@@ -29,16 +29,19 @@ export default function LoginPage() {
 
       // Temporary success
       alert("Login successful ✅");
-    } catch (e: any) {
+    } catch (e) {
       // Firebase-specific error handling
-      if (e.code === "auth/user-disabled") {
+      const errorCode = e instanceof Error && 'code' in e ? (e as { code: string }).code : null;
+      const errorMessage = e instanceof Error ? e.message : "Login failed.";
+      
+      if (errorCode === "auth/user-disabled") {
         setError("Your account is not verified yet. Please verify your email code.");
-      } else if (e.code === "auth/wrong-password") {
+      } else if (errorCode === "auth/wrong-password") {
         setError("Incorrect password.");
-      } else if (e.code === "auth/user-not-found") {
+      } else if (errorCode === "auth/user-not-found") {
         setError("No account found for this email.");
       } else {
-        setError(e.message ?? "Login failed.");
+        setError(errorMessage);
       }
     } finally {
       setLoading(false);

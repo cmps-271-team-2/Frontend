@@ -119,8 +119,8 @@ export default function RegisterPage() {
                   body: JSON.stringify({ email }),
                 });
                 setMessage("OTP resent. Check your email.");
-              } catch (e: any) {
-                setError(e.message || "Failed to resend OTP");
+              } catch (e) {
+                setError(e instanceof Error ? e.message : "Failed to resend OTP");
               }
             }}
             style={{ padding: 10, width: "100%", marginTop: 10 }}

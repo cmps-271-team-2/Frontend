@@ -52,3 +52,4 @@ dist/
 build/
 EOF
 backend/serviceAccountKey.json 
+backend/serviceAccountKey.json 

@@ -6,12 +6,24 @@ import type {
   AdminJobDTO,
   AdminPostDTO,
   AdminProfileDTO,
+  AdminUserDTO,
+  AdminStatusDTO,
   JobKindDTO,
   JobStatusDTO,
 } from "../dtos";
-import { fetchAdminAnalytics, fetchAdminJobs, fetchAdminPosts, fetchAdminProfiles } from "../adminApi";
+import {
+  deleteAdminPost,
+  deleteAdminUser,
+  setAdminProfileBanned,
+  setAdminUserBanned,
+  fetchAdminAnalytics,
+  fetchAdminJobs,
+  fetchAdminPosts,
+  fetchAdminProfiles,
+  fetchAdminUsers,
+} from "../adminApi";
 
-type TabId = "analytics" | "profiles" | "posts" | "jobs";
+type TabId = "analytics" | "profiles" | "posts" | "jobs" | "users";
 
 type LoadState = {
   loading: boolean;
@@ -64,27 +76,37 @@ export default function AdminDashboard() {
   const [profiles, setProfiles] = useState<AdminProfileDTO[]>([]);
   const [posts, setPosts] = useState<AdminPostDTO[]>([]);
   const [jobs, setJobs] = useState<AdminJobDTO[]>([]);
+  const [users, setUsers] = useState<AdminUserDTO[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsDTO | null>(null);
 
   const [profilesState, setProfilesState] = useState<LoadState>({ loading: false, error: null });
   const [postsState, setPostsState] = useState<LoadState>({ loading: false, error: null });
   const [jobsState, setJobsState] = useState<LoadState>({ loading: false, error: null });
+  const [usersState, setUsersState] = useState<LoadState>({ loading: false, error: null });
   const [analyticsState, setAnalyticsState] = useState<LoadState>({ loading: false, error: null });
 
   const [profileSearch, setProfileSearch] = useState("");
   const [profileLocation, setProfileLocation] = useState<string | "all">("all");
+  const [profileMinReports, setProfileMinReports] = useState<number | "all">("all");
+  const [profileStatus, setProfileStatus] = useState<AdminStatusDTO | "all">("all");
 
   const [postSearch, setPostSearch] = useState("");
   const [postTargetType, setPostTargetType] = useState<string | "all">("all");
   const [postMinRating, setPostMinRating] = useState<number | "all">("all");
+  const [postMinReports, setPostMinReports] = useState<number | "all">("all");
 
   const [jobSearch, setJobSearch] = useState("");
   const [jobStatus, setJobStatus] = useState<JobStatusDTO | "all">("all");
   const [jobKind, setJobKind] = useState<JobKindDTO | "all">("all");
 
+  const [userSearch, setUserSearch] = useState("");
+  const [userVerified, setUserVerified] = useState<boolean | "all">("all");
+  const [userStatus, setUserStatus] = useState<AdminStatusDTO | "all">("all");
+
   const debouncedProfileSearch = useDebouncedValue(profileSearch, 250);
   const debouncedPostSearch = useDebouncedValue(postSearch, 250);
   const debouncedJobSearch = useDebouncedValue(jobSearch, 250);
+  const debouncedUserSearch = useDebouncedValue(userSearch, 250);
 
   async function loadAnalytics() {
     setAnalyticsState({ loading: true, error: null });
@@ -103,6 +125,8 @@ export default function AdminDashboard() {
       const data = await fetchAdminProfiles({
         search: debouncedProfileSearch || undefined,
         location: profileLocation,
+        status: profileStatus,
+        minReports: profileMinReports === "all" ? undefined : profileMinReports,
         limit: 200,
         offset: 0,
       });
@@ -120,6 +144,7 @@ export default function AdminDashboard() {
         search: debouncedPostSearch || undefined,
         targetType: postTargetType,
         minRating: postMinRating === "all" ? undefined : postMinRating,
+        minReports: postMinReports === "all" ? undefined : postMinReports,
         limit: 200,
         offset: 0,
       });
@@ -147,29 +172,90 @@ export default function AdminDashboard() {
     }
   }
 
+  async function loadUsers() {
+    setUsersState({ loading: true, error: null });
+    try {
+      const data = await fetchAdminUsers({
+        search: debouncedUserSearch || undefined,
+        verified: userVerified,
+        status: userStatus,
+        limit: 200,
+        offset: 0,
+      });
+      setUsers(data.items);
+      setUsersState({ loading: false, error: null });
+    } catch (e: any) {
+      setUsersState({ loading: false, error: e?.message ?? "Failed to load users" });
+    }
+  }
+
+  async function handleDeletePost(postId: string) {
+    if (!confirm(`Delete post ${postId}? This cannot be undone.`)) return;
+    try {
+      await deleteAdminPost(postId);
+      await loadPosts();
+    } catch (e: any) {
+      alert(e?.message ?? "Failed to delete post");
+    }
+  }
+
+  async function handleDeleteUser(userId: string) {
+    if (!confirm(`Delete user ${userId}? This will delete Auth + Firestore user doc.`)) return;
+    try {
+      await deleteAdminUser(userId);
+      await loadUsers();
+    } catch (e: any) {
+      alert(e?.message ?? "Failed to delete user");
+    }
+  }
+
+  async function handleToggleUserBanned(userId: string, banned: boolean) {
+    try {
+      await setAdminUserBanned(userId, banned);
+      await loadUsers();
+    } catch (e: any) {
+      alert(e?.message ?? "Failed to update user status");
+    }
+  }
+
+  async function handleToggleProfileBanned(profileId: string, banned: boolean) {
+    try {
+      await setAdminProfileBanned(profileId, banned);
+      await loadProfiles();
+    } catch (e: any) {
+      alert(e?.message ?? "Failed to update profile status");
+    }
+  }
+
   useEffect(() => {
     // Load each tab lazily.
     if (tab === "analytics" && !analytics && !analyticsState.loading) loadAnalytics();
     if (tab === "profiles" && profiles.length === 0 && !profilesState.loading) loadProfiles();
     if (tab === "posts" && posts.length === 0 && !postsState.loading) loadPosts();
     if (tab === "jobs" && jobs.length === 0 && !jobsState.loading) loadJobs();
+    if (tab === "users" && users.length === 0 && !usersState.loading) loadUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   useEffect(() => {
     if (tab === "profiles") loadProfiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedProfileSearch, profileLocation]);
+  }, [debouncedProfileSearch, profileLocation, profileMinReports, profileStatus]);
 
   useEffect(() => {
     if (tab === "posts") loadPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedPostSearch, postTargetType, postMinRating]);
+  }, [debouncedPostSearch, postTargetType, postMinRating, postMinReports]);
 
   useEffect(() => {
     if (tab === "jobs") loadJobs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedJobSearch, jobStatus, jobKind]);
+
+  useEffect(() => {
+    if (tab === "users") loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedUserSearch, userVerified, userStatus]);
 
   const profileLocationOptions = useMemo(() => {
     const set = new Set<string>();
@@ -206,7 +292,7 @@ export default function AdminDashboard() {
               <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
               <span className="rounded-full border border-foreground/10 bg-foreground/5 px-2 py-0.5 text-xs">live</span>
             </div>
-            <p className="text-sm opacity-80">Minimal dashboard for profiles, posts, and analytics.</p>
+            <p className="text-sm opacity-80">FreedomBot 🦅</p>
           </div>
 
           <nav className="inline-flex w-full rounded-xl border border-foreground/10 bg-foreground/5 p-1 sm:w-auto">
@@ -216,6 +302,7 @@ export default function AdminDashboard() {
                 { id: "profiles" as const, label: "Profiles" },
                 { id: "posts" as const, label: "Posts" },
                 { id: "jobs" as const, label: "Jobs" },
+                { id: "users" as const, label: "Users" },
               ] as const
             ).map((t) => (
               <button
@@ -336,7 +423,7 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              <div className="grid gap-3 rounded-xl border border-foreground/10 bg-foreground/5 p-3 sm:grid-cols-3">
+              <div className="grid gap-3 rounded-xl border border-foreground/10 bg-foreground/5 p-3 sm:grid-cols-4">
                 <input
                   value={profileSearch}
                   onChange={(e) => setProfileSearch(e.target.value)}
@@ -354,7 +441,26 @@ export default function AdminDashboard() {
                     </option>
                   ))}
                 </select>
-                <div className="hidden sm:block" />
+                <select
+                  value={profileMinReports}
+                  onChange={(e) => setProfileMinReports(e.target.value === "all" ? "all" : Number(e.target.value))}
+                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
+                >
+                  <option value="all">Any reports</option>
+                  <option value="1">≥ 1</option>
+                  <option value="2">≥ 2</option>
+                  <option value="5">≥ 5</option>
+                  <option value="10">≥ 10</option>
+                </select>
+                <select
+                  value={profileStatus}
+                  onChange={(e) => setProfileStatus(e.target.value as any)}
+                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
+                >
+                  <option value="all">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="banned">Banned</option>
+                </select>
               </div>
 
               {profilesState.error && (
@@ -369,7 +475,10 @@ export default function AdminDashboard() {
                       <th className="px-4 py-3 font-medium">Location</th>
                       <th className="px-4 py-3 font-medium">Rating</th>
                       <th className="px-4 py-3 font-medium">Count</th>
+                      <th className="px-4 py-3 font-medium">Reports</th>
+                      <th className="px-4 py-3 font-medium">Status</th>
                       <th className="px-4 py-3 font-medium">Created</th>
+                      <th className="px-4 py-3 font-medium"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -382,13 +491,25 @@ export default function AdminDashboard() {
                         <td className="px-4 py-3">{p.location ?? "—"}</td>
                         <td className="px-4 py-3 tabular-nums">{p.ratingAvg.toFixed(2)}</td>
                         <td className="px-4 py-3 tabular-nums">{p.ratingCount}</td>
+                        <td className="px-4 py-3 tabular-nums">{p.reports}</td>
+                        <td className="px-4 py-3">
+                          <StatusPill label={p.status} tone={p.status === "banned" ? "bad" : "good"} />
+                        </td>
                         <td className="px-4 py-3 text-xs opacity-80">{formatDate(p.createdAt)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => handleToggleProfileBanned(p.id, p.status !== "banned")}
+                            className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs hover:bg-foreground/10"
+                          >
+                            {p.status === "banned" ? "Unban" : "Ban"}
+                          </button>
+                        </td>
                       </tr>
                     ))}
 
                     {!profilesState.loading && profiles.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-sm opacity-70">No profiles match your filters.</td>
+                        <td colSpan={8} className="px-4 py-10 text-center text-sm opacity-70">No profiles match your filters.</td>
                       </tr>
                     )}
                   </tbody>
@@ -447,6 +568,17 @@ export default function AdminDashboard() {
                   <option value="4">≥ 4</option>
                   <option value="5">= 5</option>
                 </select>
+                <select
+                  value={postMinReports}
+                  onChange={(e) => setPostMinReports(e.target.value === "all" ? "all" : Number(e.target.value))}
+                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
+                >
+                  <option value="all">Any reports</option>
+                  <option value="1">≥ 1</option>
+                  <option value="2">≥ 2</option>
+                  <option value="5">≥ 5</option>
+                  <option value="10">≥ 10</option>
+                </select>
               </div>
 
               {postsState.error && (
@@ -461,7 +593,9 @@ export default function AdminDashboard() {
                       <th className="px-4 py-3 font-medium">Target</th>
                       <th className="px-4 py-3 font-medium">Type</th>
                       <th className="px-4 py-3 font-medium">Rating</th>
+                      <th className="px-4 py-3 font-medium">Reports</th>
                       <th className="px-4 py-3 font-medium">Created</th>
+                      <th className="px-4 py-3 font-medium"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -476,13 +610,22 @@ export default function AdminDashboard() {
                           <StatusPill label={p.targetType || "—"} tone="neutral" />
                         </td>
                         <td className="px-4 py-3 tabular-nums">{p.rating}</td>
+                        <td className="px-4 py-3 tabular-nums">{p.reports}</td>
                         <td className="px-4 py-3 text-xs opacity-80">{formatDate(p.createdAt)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => handleDeletePost(p.id)}
+                            className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs hover:bg-foreground/10"
+                          >
+                            Delete
+                          </button>
+                        </td>
                       </tr>
                     ))}
 
                     {!postsState.loading && posts.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-sm opacity-70">No posts match your filters.</td>
+                        <td colSpan={7} className="px-4 py-10 text-center text-sm opacity-70">No posts match your filters.</td>
                       </tr>
                     )}
                   </tbody>
@@ -544,7 +687,7 @@ export default function AdminDashboard() {
               )}
 
               <div className="overflow-x-auto rounded-xl border border-foreground/10">
-                <table className="w-full min-w-[980px] border-collapse text-left text-sm">
+                <table className="w-full min-w-245 border-collapse text-left text-sm">
                   <thead className="bg-foreground/5">
                     <tr>
                       <th className="px-4 py-3 font-medium">Job</th>
@@ -607,6 +750,109 @@ export default function AdminDashboard() {
               </div>
 
               <div className="text-xs opacity-70">Showing {jobs.length} jobs (mock).{jobsState.loading ? " Loading…" : ""}</div>
+            </section>
+          )}
+
+          {tab === "users" && (
+            <section className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-medium">Users</h2>
+                  <p className="text-sm opacity-75">Firestore users + delete (Auth + user doc).</p>
+                </div>
+                <button
+                  onClick={loadUsers}
+                  className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm hover:bg-foreground/10"
+                >
+                  Refresh
+                </button>
+              </div>
+
+              <div className="grid gap-3 rounded-xl border border-foreground/10 bg-foreground/5 p-3 sm:grid-cols-3">
+                <input
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder="Search email or uid…"
+                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/30"
+                />
+                <select
+                  value={String(userVerified)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setUserVerified(v === "all" ? "all" : v === "true");
+                  }}
+                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
+                >
+                  <option value="all">All</option>
+                  <option value="true">Verified</option>
+                  <option value="false">Not verified</option>
+                </select>
+                <select
+                  value={userStatus}
+                  onChange={(e) => setUserStatus(e.target.value as any)}
+                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
+                >
+                  <option value="all">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="banned">Banned</option>
+                </select>
+              </div>
+
+              {usersState.error && (
+                <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-3 text-sm">{usersState.error}</div>
+              )}
+
+              <div className="overflow-x-auto rounded-xl border border-foreground/10">
+                <table className="w-full min-w-245 border-collapse text-left text-sm">
+                  <thead className="bg-foreground/5">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Email</th>
+                      <th className="px-4 py-3 font-medium">UID</th>
+                      <th className="px-4 py-3 font-medium">Verified</th>
+                      <th className="px-4 py-3 font-medium">Status</th>
+                      <th className="px-4 py-3 font-medium">Created</th>
+                      <th className="px-4 py-3 font-medium"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((u) => (
+                      <tr key={u.id} className="border-t border-foreground/10 hover:bg-foreground/5">
+                        <td className="px-4 py-3 tabular-nums">{u.email || "—"}</td>
+                        <td className="px-4 py-3 text-xs opacity-80 tabular-nums">{u.id}</td>
+                        <td className="px-4 py-3">
+                          <StatusPill label={u.isVerified ? "verified" : "pending"} tone={u.isVerified ? "good" : "warn"} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusPill label={u.status} tone={u.status === "banned" ? "bad" : "good"} />
+                        </td>
+                        <td className="px-4 py-3 text-xs opacity-80">{formatDate(u.createdAt)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={() => handleToggleUserBanned(u.id, u.status !== "banned")}
+                            className="mr-2 rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs hover:bg-foreground/10"
+                          >
+                            {u.status === "banned" ? "Unban" : "Ban"}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(u.id)}
+                            className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs hover:bg-foreground/10"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {!usersState.loading && users.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-10 text-center text-sm opacity-70">No users match your filters.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="text-xs opacity-70">Showing {users.length} users.{usersState.loading ? " Loading…" : ""}</div>
             </section>
           )}
         </div>

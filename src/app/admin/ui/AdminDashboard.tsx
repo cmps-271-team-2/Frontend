@@ -320,7 +320,7 @@ export default function AdminDashboard() {
               )}
 
               <div className="overflow-x-auto rounded-xl border border-foreground/10">
-                <table className="w-full min-w-[860px] border-collapse text-left text-sm">
+                <table className="w-full min-w-215 border-collapse text-left text-sm">
                   <thead className="bg-foreground/5">
                     <tr>
                       <th className="px-4 py-3 font-medium">User</th>
@@ -420,7 +420,7 @@ export default function AdminDashboard() {
               )}
 
               <div className="overflow-x-auto rounded-xl border border-foreground/10">
-                <table className="w-full min-w-[980px] border-collapse text-left text-sm">
+                <table className="w-full min-w-245 border-collapse text-left text-sm">
                   <thead className="bg-foreground/5">
                     <tr>
                       <th className="px-4 py-3 font-medium">Title</th>

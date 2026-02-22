@@ -1,13 +1,18 @@
 import { apiFetch } from "@/lib/api";
-import type { Analytics, PagedResponse, Post, PostStatus, Profile, ProfileRole, ProfileStatus } from "./types";
+import {
+  analyticsDtoSchema,
+  pagedResponseDtoSchema,
+  postDtoSchema,
+  profileDtoSchema,
+  type AnalyticsDTO,
+  type ListPostsQueryDTO,
+  type ListProfilesQueryDTO,
+  type PagedResponseDTO,
+  type PostDTO,
+  type ProfileDTO,
+} from "./dtos";
 
-export async function fetchAdminProfiles(params: {
-  search?: string;
-  role?: ProfileRole | "all";
-  status?: ProfileStatus | "all";
-  offset?: number;
-  limit?: number;
-}): Promise<PagedResponse<Profile>> {
+export async function fetchAdminProfiles(params: ListProfilesQueryDTO): Promise<PagedResponseDTO<ProfileDTO>> {
   const qs = new URLSearchParams();
   if (params.search) qs.set("search", params.search);
   if (params.role) qs.set("role", params.role);
@@ -16,16 +21,11 @@ export async function fetchAdminProfiles(params: {
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
 
   const path = `/admin/mock/profiles?${qs.toString()}`;
-  return apiFetch<PagedResponse<Profile>>(path);
+  const raw = await apiFetch<unknown>(path);
+  return pagedResponseDtoSchema(profileDtoSchema).parse(raw);
 }
 
-export async function fetchAdminPosts(params: {
-  search?: string;
-  status?: PostStatus | "all";
-  tag?: string | "all";
-  offset?: number;
-  limit?: number;
-}): Promise<PagedResponse<Post>> {
+export async function fetchAdminPosts(params: ListPostsQueryDTO): Promise<PagedResponseDTO<PostDTO>> {
   const qs = new URLSearchParams();
   if (params.search) qs.set("search", params.search);
   if (params.status) qs.set("status", params.status);
@@ -34,9 +34,11 @@ export async function fetchAdminPosts(params: {
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
 
   const path = `/admin/mock/posts?${qs.toString()}`;
-  return apiFetch<PagedResponse<Post>>(path);
+  const raw = await apiFetch<unknown>(path);
+  return pagedResponseDtoSchema(postDtoSchema).parse(raw);
 }
 
-export async function fetchAdminAnalytics(): Promise<Analytics> {
-  return apiFetch<Analytics>("/admin/mock/analytics");
+export async function fetchAdminAnalytics(): Promise<AnalyticsDTO> {
+  const raw = await apiFetch<unknown>("/admin/mock/analytics");
+  return analyticsDtoSchema.parse(raw);
 }

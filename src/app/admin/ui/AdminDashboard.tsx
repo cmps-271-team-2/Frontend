@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Analytics, Post, PostStatus, Profile, ProfileRole, ProfileStatus } from "../types";
+import type {
+  AnalyticsDTO,
+  PostDTO,
+  PostStatusDTO,
+  ProfileDTO,
+  ProfileRoleDTO,
+  ProfileStatusDTO,
+} from "../dtos";
 import { fetchAdminAnalytics, fetchAdminPosts, fetchAdminProfiles } from "../adminApi";
 
 type TabId = "analytics" | "profiles" | "posts";
@@ -54,20 +61,20 @@ function StatusPill({ label, tone }: { label: string; tone: "good" | "warn" | "b
 export default function AdminDashboard() {
   const [tab, setTab] = useState<TabId>("analytics");
 
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [profiles, setProfiles] = useState<ProfileDTO[]>([]);
+  const [posts, setPosts] = useState<PostDTO[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsDTO | null>(null);
 
   const [profilesState, setProfilesState] = useState<LoadState>({ loading: false, error: null });
   const [postsState, setPostsState] = useState<LoadState>({ loading: false, error: null });
   const [analyticsState, setAnalyticsState] = useState<LoadState>({ loading: false, error: null });
 
   const [profileSearch, setProfileSearch] = useState("");
-  const [profileRole, setProfileRole] = useState<ProfileRole | "all">("all");
-  const [profileStatus, setProfileStatus] = useState<ProfileStatus | "all">("all");
+  const [profileRole, setProfileRole] = useState<ProfileRoleDTO | "all">("all");
+  const [profileStatus, setProfileStatus] = useState<ProfileStatusDTO | "all">("all");
 
   const [postSearch, setPostSearch] = useState("");
-  const [postStatus, setPostStatus] = useState<PostStatus | "all">("all");
+  const [postStatus, setPostStatus] = useState<PostStatusDTO | "all">("all");
   const [postTag, setPostTag] = useState<string | "all">("all");
 
   const debouncedProfileSearch = useDebouncedValue(profileSearch, 250);

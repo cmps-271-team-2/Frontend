@@ -22,6 +22,7 @@ import {
   fetchAdminProfiles,
   fetchAdminUsers,
 } from "../adminApi";
+import TankPreview from "./TankPreview";
 
 type TabId = "analytics" | "profiles" | "posts" | "jobs" | "users";
 
@@ -291,6 +292,7 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
               <span className="rounded-full border border-foreground/10 bg-foreground/5 px-2 py-0.5 text-xs">live</span>
+              <TankPreview className="ml-1 shrink-0 pointer-events-none" />
             </div>
             <p className="text-sm opacity-80">FreedomBot 🦅</p>
           </div>

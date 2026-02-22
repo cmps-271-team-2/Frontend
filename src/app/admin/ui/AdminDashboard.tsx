@@ -3,11 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type {
   AnalyticsDTO,
-  PostDTO,
-  PostStatusDTO,
-  ProfileDTO,
-  ProfileRoleDTO,
-  ProfileStatusDTO,
+  AdminPostDTO,
+  AdminProfileDTO,
 } from "../dtos";
 import { fetchAdminAnalytics, fetchAdminPosts, fetchAdminProfiles } from "../adminApi";
 
@@ -61,8 +58,8 @@ function StatusPill({ label, tone }: { label: string; tone: "good" | "warn" | "b
 export default function AdminDashboard() {
   const [tab, setTab] = useState<TabId>("analytics");
 
-  const [profiles, setProfiles] = useState<ProfileDTO[]>([]);
-  const [posts, setPosts] = useState<PostDTO[]>([]);
+  const [profiles, setProfiles] = useState<AdminProfileDTO[]>([]);
+  const [posts, setPosts] = useState<AdminPostDTO[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsDTO | null>(null);
 
   const [profilesState, setProfilesState] = useState<LoadState>({ loading: false, error: null });
@@ -70,12 +67,11 @@ export default function AdminDashboard() {
   const [analyticsState, setAnalyticsState] = useState<LoadState>({ loading: false, error: null });
 
   const [profileSearch, setProfileSearch] = useState("");
-  const [profileRole, setProfileRole] = useState<ProfileRoleDTO | "all">("all");
-  const [profileStatus, setProfileStatus] = useState<ProfileStatusDTO | "all">("all");
+  const [profileLocation, setProfileLocation] = useState<string | "all">("all");
 
   const [postSearch, setPostSearch] = useState("");
-  const [postStatus, setPostStatus] = useState<PostStatusDTO | "all">("all");
-  const [postTag, setPostTag] = useState<string | "all">("all");
+  const [postTargetType, setPostTargetType] = useState<string | "all">("all");
+  const [postMinRating, setPostMinRating] = useState<number | "all">("all");
 
   const debouncedProfileSearch = useDebouncedValue(profileSearch, 250);
   const debouncedPostSearch = useDebouncedValue(postSearch, 250);
@@ -96,8 +92,7 @@ export default function AdminDashboard() {
     try {
       const data = await fetchAdminProfiles({
         search: debouncedProfileSearch || undefined,
-        role: profileRole,
-        status: profileStatus,
+        location: profileLocation,
         limit: 200,
         offset: 0,
       });
@@ -113,8 +108,8 @@ export default function AdminDashboard() {
     try {
       const data = await fetchAdminPosts({
         search: debouncedPostSearch || undefined,
-        status: postStatus,
-        tag: postTag,
+        targetType: postTargetType,
+        minRating: postMinRating === "all" ? undefined : postMinRating,
         limit: 200,
         offset: 0,
       });
@@ -136,25 +131,35 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (tab === "profiles") loadProfiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedProfileSearch, profileRole, profileStatus]);
+  }, [debouncedProfileSearch, profileLocation]);
 
   useEffect(() => {
     if (tab === "posts") loadPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedPostSearch, postStatus, postTag]);
+  }, [debouncedPostSearch, postTargetType, postMinRating]);
 
-  const postTagOptions = useMemo(() => {
+  const profileLocationOptions = useMemo(() => {
     const set = new Set<string>();
-    for (const p of posts) for (const t of p.tags) set.add(t);
+    for (const p of profiles) {
+      const loc = (p.location ?? "").trim();
+      if (loc) set.add(loc);
+    }
+    return ["all", ...Array.from(set).sort()];
+  }, [profiles]);
+
+  const postTargetTypeOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of posts) {
+      const tt = (p.targetType ?? "").trim();
+      if (tt) set.add(tt);
+    }
     return ["all", ...Array.from(set).sort()];
   }, [posts]);
 
   const totals = analytics?.totals;
   const series = analytics?.series7d ?? [];
 
-  const maxPosts = useMemo(() => {
-    return Math.max(1, ...series.map((d) => d.posts));
-  }, [series]);
+  const maxPosts = useMemo(() => Math.max(1, ...series.map((d) => d.posts)), [series]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -163,7 +168,7 @@ export default function AdminDashboard() {
           <div className="space-y-1">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
-              <span className="rounded-full border border-foreground/10 bg-foreground/5 px-2 py-0.5 text-xs">mock</span>
+              <span className="rounded-full border border-foreground/10 bg-foreground/5 px-2 py-0.5 text-xs">live</span>
             </div>
             <p className="text-sm opacity-80">Minimal dashboard for profiles, posts, and analytics.</p>
           </div>
@@ -216,24 +221,26 @@ export default function AdminDashboard() {
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4">
-                  <div className="text-xs opacity-70">Profiles</div>
-                  <div className="mt-1 text-2xl font-semibold tabular-nums">{totals?.profilesTotal ?? "—"}</div>
-                  <div className="mt-2 text-xs opacity-75">Active: {totals?.profilesActive ?? "—"}</div>
+                  <div className="text-xs opacity-70">Users</div>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums">{totals?.usersTotal ?? "—"}</div>
+                  <div className="mt-2 text-xs opacity-75">Signups (7d): {series.reduce((a, b) => a + b.users, 0)}</div>
                 </div>
                 <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4">
                   <div className="text-xs opacity-70">Posts</div>
                   <div className="mt-1 text-2xl font-semibold tabular-nums">{totals?.postsTotal ?? "—"}</div>
-                  <div className="mt-2 text-xs opacity-75">Drafts: {totals?.postsDraft ?? "—"}</div>
+                  <div className="mt-2 text-xs opacity-75">Avg/day: {series.length ? Math.round(series.reduce((a, b) => a + b.posts, 0) / series.length) : "—"}</div>
                 </div>
                 <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4">
-                  <div className="text-xs opacity-70">Flagged</div>
-                  <div className="mt-1 text-2xl font-semibold tabular-nums">{totals?.postsFlagged ?? "—"}</div>
-                  <div className="mt-2 text-xs opacity-75">Suspended: {totals?.profilesSuspended ?? "—"}</div>
+                  <div className="text-xs opacity-70">Profiles</div>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums">{totals?.profilesTotal ?? "—"}</div>
+                  <div className="mt-2 text-xs opacity-75">Targets to rate</div>
                 </div>
                 <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4">
-                  <div className="text-xs opacity-70">Pending</div>
-                  <div className="mt-1 text-2xl font-semibold tabular-nums">{totals?.profilesPending ?? "—"}</div>
-                  <div className="mt-2 text-xs opacity-75">Review queue (mock)</div>
+                  <div className="text-xs opacity-70">Velocity</div>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums">
+                    {series.length ? Math.round(series.reduce((a, b) => a + b.users + b.posts, 0) / series.length) : "—"}
+                  </div>
+                  <div className="mt-2 text-xs opacity-75">Avg users+posts/day</div>
                 </div>
               </div>
 
@@ -264,13 +271,13 @@ export default function AdminDashboard() {
 
                 <div className="mt-4 grid gap-2 text-xs opacity-80 sm:grid-cols-3">
                   <div className="rounded-lg border border-foreground/10 bg-background px-3 py-2">
-                    Avg signups/day: {series.length ? Math.round(series.reduce((a, b) => a + b.signups, 0) / series.length) : "—"}
+                    Avg users/day: {series.length ? Math.round(series.reduce((a, b) => a + b.users, 0) / series.length) : "—"}
                   </div>
                   <div className="rounded-lg border border-foreground/10 bg-background px-3 py-2">
                     Avg posts/day: {series.length ? Math.round(series.reduce((a, b) => a + b.posts, 0) / series.length) : "—"}
                   </div>
                   <div className="rounded-lg border border-foreground/10 bg-background px-3 py-2">
-                    Avg reports/day: {series.length ? Math.round(series.reduce((a, b) => a + b.reports, 0) / series.length) : "—"}
+                    Last day users: {series.length ? series[series.length - 1].users : "—"}
                   </div>
                 </div>
               </div>
@@ -296,30 +303,21 @@ export default function AdminDashboard() {
                 <input
                   value={profileSearch}
                   onChange={(e) => setProfileSearch(e.target.value)}
-                  placeholder="Search name, email, id…"
+                  placeholder="Search name, location, id…"
                   className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/30"
                 />
                 <select
-                  value={profileRole}
-                  onChange={(e) => setProfileRole(e.target.value as any)}
+                  value={profileLocation}
+                  onChange={(e) => setProfileLocation(e.target.value)}
                   className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
                 >
-                  <option value="all">All roles</option>
-                  <option value="student">Student</option>
-                  <option value="staff">Staff</option>
-                  <option value="faculty">Faculty</option>
-                  <option value="admin">Admin</option>
+                  {profileLocationOptions.map((loc) => (
+                    <option key={loc} value={loc}>
+                      {loc === "all" ? "All locations" : loc}
+                    </option>
+                  ))}
                 </select>
-                <select
-                  value={profileStatus}
-                  onChange={(e) => setProfileStatus(e.target.value as any)}
-                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
-                >
-                  <option value="all">All statuses</option>
-                  <option value="active">Active</option>
-                  <option value="pending">Pending</option>
-                  <option value="suspended">Suspended</option>
-                </select>
+                <div className="hidden sm:block" />
               </div>
 
               {profilesState.error && (
@@ -330,41 +328,30 @@ export default function AdminDashboard() {
                 <table className="w-full min-w-215 border-collapse text-left text-sm">
                   <thead className="bg-foreground/5">
                     <tr>
-                      <th className="px-4 py-3 font-medium">User</th>
-                      <th className="px-4 py-3 font-medium">Email</th>
-                      <th className="px-4 py-3 font-medium">Role</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
+                      <th className="px-4 py-3 font-medium">Profile</th>
+                      <th className="px-4 py-3 font-medium">Location</th>
+                      <th className="px-4 py-3 font-medium">Rating</th>
+                      <th className="px-4 py-3 font-medium">Count</th>
                       <th className="px-4 py-3 font-medium">Created</th>
-                      <th className="px-4 py-3 font-medium">Last active</th>
                     </tr>
                   </thead>
                   <tbody>
                     {profiles.map((p) => (
                       <tr key={p.id} className="border-t border-foreground/10 hover:bg-foreground/5">
                         <td className="px-4 py-3">
-                          <div className="font-medium">{p.displayName}</div>
+                          <div className="font-medium">{p.name}</div>
                           <div className="text-xs opacity-70">{p.id}</div>
                         </td>
-                        <td className="px-4 py-3 tabular-nums">{p.email}</td>
-                        <td className="px-4 py-3">
-                          <StatusPill label={p.role} tone="neutral" />
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusPill
-                            label={p.status}
-                            tone={p.status === "active" ? "good" : p.status === "pending" ? "warn" : "bad"}
-                          />
-                        </td>
+                        <td className="px-4 py-3">{p.location ?? "—"}</td>
+                        <td className="px-4 py-3 tabular-nums">{p.ratingAvg.toFixed(2)}</td>
+                        <td className="px-4 py-3 tabular-nums">{p.ratingCount}</td>
                         <td className="px-4 py-3 text-xs opacity-80">{formatDate(p.createdAt)}</td>
-                        <td className="px-4 py-3 text-xs opacity-80">{formatDate(p.lastActiveAt)}</td>
                       </tr>
                     ))}
 
                     {!profilesState.loading && profiles.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-4 py-10 text-center text-sm opacity-70">
-                          No profiles match your filters.
-                        </td>
+                        <td colSpan={5} className="px-4 py-10 text-center text-sm opacity-70">No profiles match your filters.</td>
                       </tr>
                     )}
                   </tbody>
@@ -396,29 +383,32 @@ export default function AdminDashboard() {
                 <input
                   value={postSearch}
                   onChange={(e) => setPostSearch(e.target.value)}
-                  placeholder="Search title, author, tag…"
+                  placeholder="Search text, target id, type…"
                   className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/30"
                 />
                 <select
-                  value={postStatus}
-                  onChange={(e) => setPostStatus(e.target.value as any)}
+                  value={postTargetType}
+                  onChange={(e) => setPostTargetType(e.target.value)}
                   className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
                 >
-                  <option value="all">All statuses</option>
-                  <option value="published">Published</option>
-                  <option value="draft">Draft</option>
-                  <option value="flagged">Flagged</option>
-                </select>
-                <select
-                  value={postTag}
-                  onChange={(e) => setPostTag(e.target.value)}
-                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
-                >
-                  {postTagOptions.map((t) => (
+                  {postTargetTypeOptions.map((t) => (
                     <option key={t} value={t}>
-                      {t === "all" ? "All tags" : t}
+                      {t === "all" ? "All target types" : t}
                     </option>
                   ))}
+                </select>
+                <select
+                  value={postMinRating}
+                  onChange={(e) => setPostMinRating(e.target.value === "all" ? "all" : Number(e.target.value))}
+                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
+                >
+                  <option value="all">Any rating</option>
+                  <option value="0">≥ 0</option>
+                  <option value="1">≥ 1</option>
+                  <option value="2">≥ 2</option>
+                  <option value="3">≥ 3</option>
+                  <option value="4">≥ 4</option>
+                  <option value="5">= 5</option>
                 </select>
               </div>
 
@@ -430,12 +420,10 @@ export default function AdminDashboard() {
                 <table className="w-full min-w-245 border-collapse text-left text-sm">
                   <thead className="bg-foreground/5">
                     <tr>
-                      <th className="px-4 py-3 font-medium">Title</th>
-                      <th className="px-4 py-3 font-medium">Author</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-4 py-3 font-medium">Tags</th>
-                      <th className="px-4 py-3 font-medium">Likes</th>
-                      <th className="px-4 py-3 font-medium">Reports</th>
+                      <th className="px-4 py-3 font-medium">Text</th>
+                      <th className="px-4 py-3 font-medium">Target</th>
+                      <th className="px-4 py-3 font-medium">Type</th>
+                      <th className="px-4 py-3 font-medium">Rating</th>
                       <th className="px-4 py-3 font-medium">Created</th>
                     </tr>
                   </thead>
@@ -443,36 +431,21 @@ export default function AdminDashboard() {
                     {posts.map((p) => (
                       <tr key={p.id} className="border-t border-foreground/10 hover:bg-foreground/5">
                         <td className="px-4 py-3">
-                          <div className="font-medium">{p.title}</div>
+                          <div className="font-medium">{p.text || "(no text)"}</div>
                           <div className="text-xs opacity-70">{p.id}</div>
                         </td>
-                        <td className="px-4 py-3">{p.authorName}</td>
+                        <td className="px-4 py-3 tabular-nums">{p.targetId || "—"}</td>
                         <td className="px-4 py-3">
-                          <StatusPill
-                            label={p.status}
-                            tone={p.status === "published" ? "good" : p.status === "draft" ? "neutral" : "bad"}
-                          />
+                          <StatusPill label={p.targetType || "—"} tone="neutral" />
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex flex-wrap gap-1">
-                            {p.tags.map((t) => (
-                              <span key={t} className="rounded-full border border-foreground/10 bg-background px-2 py-0.5 text-xs">
-                                {t}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 tabular-nums">{p.likeCount}</td>
-                        <td className="px-4 py-3 tabular-nums">{p.reportCount}</td>
+                        <td className="px-4 py-3 tabular-nums">{p.rating}</td>
                         <td className="px-4 py-3 text-xs opacity-80">{formatDate(p.createdAt)}</td>
                       </tr>
                     ))}
 
                     {!postsState.loading && posts.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-4 py-10 text-center text-sm opacity-70">
-                          No posts match your filters.
-                        </td>
+                        <td colSpan={5} className="px-4 py-10 text-center text-sm opacity-70">No posts match your filters.</td>
                       </tr>
                     )}
                   </tbody>

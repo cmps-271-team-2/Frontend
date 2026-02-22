@@ -1,9 +1,6 @@
 export type {
   AnalyticsDTO as Analytics,
   PagedResponseDTO as PagedResponse,
-  PostDTO as Post,
-  PostStatusDTO as PostStatus,
-  ProfileDTO as Profile,
-  ProfileRoleDTO as ProfileRole,
-  ProfileStatusDTO as ProfileStatus,
+  AdminPostDTO as Post,
+  AdminProfileDTO as Profile,
 } from "./dtos";

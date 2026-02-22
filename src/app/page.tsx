@@ -3,7 +3,7 @@
 import { auth } from "@/lib/firebase";
 
 export default function Home() {
-  const apiKeyLoaded = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  const apiKeyLoaded = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY || !!process.env.NEXT_PUBLIC_FIREBASE_PRIVATE_KEY;
 
   return (
     <main style={{ padding: 40, fontFamily: "sans-serif" }}>

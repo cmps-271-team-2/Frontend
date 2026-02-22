@@ -34,6 +34,25 @@ export const analyticsDtoSchema = z.object({
 });
 export type AnalyticsDTO = z.infer<typeof analyticsDtoSchema>;
 
+export const jobStatusDtoSchema = z.enum(["queued", "running", "succeeded", "failed", "canceled"]);
+export type JobStatusDTO = z.infer<typeof jobStatusDtoSchema>;
+
+export const jobKindDtoSchema = z.enum(["ai", "etl", "indexing", "cron", "other"]);
+export type JobKindDTO = z.infer<typeof jobKindDtoSchema>;
+
+export const adminJobDtoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  kind: jobKindDtoSchema,
+  status: jobStatusDtoSchema,
+  progress: z.number(),
+  createdAt: z.string(),
+  startedAt: z.string().nullable(),
+  updatedAt: z.string(),
+  etaSeconds: z.number().nullable(),
+});
+export type AdminJobDTO = z.infer<typeof adminJobDtoSchema>;
+
 export function pagedResponseDtoSchema<TItem extends z.ZodTypeAny>(itemSchema: TItem) {
   return z.object({
     total: z.number(),
@@ -64,6 +83,14 @@ export type ListPostsQueryDTO = {
   targetType?: string | "all";
   minRating?: number;
   maxRating?: number;
+  offset?: number;
+  limit?: number;
+};
+
+export type ListJobsQueryDTO = {
+  search?: string;
+  status?: JobStatusDTO | "all";
+  kind?: JobKindDTO | "all";
   offset?: number;
   limit?: number;
 };

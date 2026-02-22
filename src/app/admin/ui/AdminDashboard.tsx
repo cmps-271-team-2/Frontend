@@ -3,12 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import type {
   AnalyticsDTO,
+  AdminJobDTO,
   AdminPostDTO,
   AdminProfileDTO,
+  JobKindDTO,
+  JobStatusDTO,
 } from "../dtos";
-import { fetchAdminAnalytics, fetchAdminPosts, fetchAdminProfiles } from "../adminApi";
+import { fetchAdminAnalytics, fetchAdminJobs, fetchAdminPosts, fetchAdminProfiles } from "../adminApi";
 
-type TabId = "analytics" | "profiles" | "posts";
+type TabId = "analytics" | "profiles" | "posts" | "jobs";
 
 type LoadState = {
   loading: boolean;
@@ -60,10 +63,12 @@ export default function AdminDashboard() {
 
   const [profiles, setProfiles] = useState<AdminProfileDTO[]>([]);
   const [posts, setPosts] = useState<AdminPostDTO[]>([]);
+  const [jobs, setJobs] = useState<AdminJobDTO[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsDTO | null>(null);
 
   const [profilesState, setProfilesState] = useState<LoadState>({ loading: false, error: null });
   const [postsState, setPostsState] = useState<LoadState>({ loading: false, error: null });
+  const [jobsState, setJobsState] = useState<LoadState>({ loading: false, error: null });
   const [analyticsState, setAnalyticsState] = useState<LoadState>({ loading: false, error: null });
 
   const [profileSearch, setProfileSearch] = useState("");
@@ -73,8 +78,13 @@ export default function AdminDashboard() {
   const [postTargetType, setPostTargetType] = useState<string | "all">("all");
   const [postMinRating, setPostMinRating] = useState<number | "all">("all");
 
+  const [jobSearch, setJobSearch] = useState("");
+  const [jobStatus, setJobStatus] = useState<JobStatusDTO | "all">("all");
+  const [jobKind, setJobKind] = useState<JobKindDTO | "all">("all");
+
   const debouncedProfileSearch = useDebouncedValue(profileSearch, 250);
   const debouncedPostSearch = useDebouncedValue(postSearch, 250);
+  const debouncedJobSearch = useDebouncedValue(jobSearch, 250);
 
   async function loadAnalytics() {
     setAnalyticsState({ loading: true, error: null });
@@ -120,11 +130,29 @@ export default function AdminDashboard() {
     }
   }
 
+  async function loadJobs() {
+    setJobsState({ loading: true, error: null });
+    try {
+      const data = await fetchAdminJobs({
+        search: debouncedJobSearch || undefined,
+        status: jobStatus,
+        kind: jobKind,
+        limit: 200,
+        offset: 0,
+      });
+      setJobs(data.items);
+      setJobsState({ loading: false, error: null });
+    } catch (e: any) {
+      setJobsState({ loading: false, error: e?.message ?? "Failed to load jobs" });
+    }
+  }
+
   useEffect(() => {
     // Load each tab lazily.
     if (tab === "analytics" && !analytics && !analyticsState.loading) loadAnalytics();
     if (tab === "profiles" && profiles.length === 0 && !profilesState.loading) loadProfiles();
     if (tab === "posts" && posts.length === 0 && !postsState.loading) loadPosts();
+    if (tab === "jobs" && jobs.length === 0 && !jobsState.loading) loadJobs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -137,6 +165,11 @@ export default function AdminDashboard() {
     if (tab === "posts") loadPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedPostSearch, postTargetType, postMinRating]);
+
+  useEffect(() => {
+    if (tab === "jobs") loadJobs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedJobSearch, jobStatus, jobKind]);
 
   const profileLocationOptions = useMemo(() => {
     const set = new Set<string>();
@@ -155,6 +188,9 @@ export default function AdminDashboard() {
     }
     return ["all", ...Array.from(set).sort()];
   }, [posts]);
+
+  const jobKinds = useMemo(() => ["all", "ai", "etl", "indexing", "cron", "other"] as const, []);
+  const jobStatuses = useMemo(() => ["all", "queued", "running", "succeeded", "failed", "canceled"] as const, []);
 
   const totals = analytics?.totals;
   const series = analytics?.series7d ?? [];
@@ -179,6 +215,7 @@ export default function AdminDashboard() {
                 { id: "analytics" as const, label: "Analytics" },
                 { id: "profiles" as const, label: "Profiles" },
                 { id: "posts" as const, label: "Posts" },
+                { id: "jobs" as const, label: "Jobs" },
               ] as const
             ).map((t) => (
               <button
@@ -453,6 +490,123 @@ export default function AdminDashboard() {
               </div>
 
               <div className="text-xs opacity-70">Showing {posts.length} posts (mock).{postsState.loading ? " Loading…" : ""}</div>
+            </section>
+          )}
+
+          {tab === "jobs" && (
+            <section className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-medium">Jobs</h2>
+                  <p className="text-sm opacity-75">Ongoing compute jobs (mock).</p>
+                </div>
+                <button
+                  onClick={loadJobs}
+                  className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm hover:bg-foreground/10"
+                >
+                  Refresh
+                </button>
+              </div>
+
+              <div className="grid gap-3 rounded-xl border border-foreground/10 bg-foreground/5 p-3 sm:grid-cols-3">
+                <input
+                  value={jobSearch}
+                  onChange={(e) => setJobSearch(e.target.value)}
+                  placeholder="Search job name, id…"
+                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/30"
+                />
+                <select
+                  value={jobKind}
+                  onChange={(e) => setJobKind(e.target.value as any)}
+                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
+                >
+                  {jobKinds.map((k) => (
+                    <option key={k} value={k}>
+                      {k === "all" ? "All kinds" : k}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={jobStatus}
+                  onChange={(e) => setJobStatus(e.target.value as any)}
+                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
+                >
+                  {jobStatuses.map((s) => (
+                    <option key={s} value={s}>
+                      {s === "all" ? "All statuses" : s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {jobsState.error && (
+                <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-3 text-sm">{jobsState.error}</div>
+              )}
+
+              <div className="overflow-x-auto rounded-xl border border-foreground/10">
+                <table className="w-full min-w-[980px] border-collapse text-left text-sm">
+                  <thead className="bg-foreground/5">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Job</th>
+                      <th className="px-4 py-3 font-medium">Kind</th>
+                      <th className="px-4 py-3 font-medium">Status</th>
+                      <th className="px-4 py-3 font-medium">Progress</th>
+                      <th className="px-4 py-3 font-medium">ETA</th>
+                      <th className="px-4 py-3 font-medium">Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {jobs.map((j) => (
+                      <tr key={j.id} className="border-t border-foreground/10 hover:bg-foreground/5">
+                        <td className="px-4 py-3">
+                          <div className="font-medium">{j.name}</div>
+                          <div className="text-xs opacity-70">{j.id}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusPill label={j.kind} tone="neutral" />
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusPill
+                            label={j.status}
+                            tone={
+                              j.status === "running"
+                                ? "good"
+                                : j.status === "queued"
+                                  ? "warn"
+                                  : j.status === "succeeded"
+                                    ? "neutral"
+                                    : "bad"
+                            }
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="h-2 w-40 overflow-hidden rounded-full bg-foreground/10">
+                              <div
+                                className="h-full bg-foreground/30"
+                                style={{ width: `${Math.max(0, Math.min(100, j.progress))}%` }}
+                              />
+                            </div>
+                            <div className="tabular-nums text-xs opacity-80">{j.progress}%</div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-xs opacity-80 tabular-nums">
+                          {typeof j.etaSeconds === "number" ? `${Math.round(j.etaSeconds / 60)}m` : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-xs opacity-80">{formatDate(j.updatedAt)}</td>
+                      </tr>
+                    ))}
+
+                    {!jobsState.loading && jobs.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-10 text-center text-sm opacity-70">No jobs match your filters.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="text-xs opacity-70">Showing {jobs.length} jobs (mock).{jobsState.loading ? " Loading…" : ""}</div>
             </section>
           )}
         </div>

@@ -4,9 +4,12 @@ import {
   pagedResponseDtoSchema,
   adminPostDtoSchema,
   adminProfileDtoSchema,
+  adminJobDtoSchema,
   type AnalyticsDTO,
+  type AdminJobDTO,
   type ListPostsQueryDTO,
   type ListProfilesQueryDTO,
+  type ListJobsQueryDTO,
   type PagedResponseDTO,
   type AdminPostDTO,
   type AdminProfileDTO,
@@ -41,4 +44,17 @@ export async function fetchAdminPosts(params: ListPostsQueryDTO): Promise<PagedR
 export async function fetchAdminAnalytics(): Promise<AnalyticsDTO> {
   const raw = await apiFetch<unknown>("/admin/analytics");
   return analyticsDtoSchema.parse(raw);
+}
+
+export async function fetchAdminJobs(params: ListJobsQueryDTO): Promise<PagedResponseDTO<AdminJobDTO>> {
+  const qs = new URLSearchParams();
+  if (params.search) qs.set("search", params.search);
+  if (params.status) qs.set("status", params.status);
+  if (params.kind) qs.set("kind", params.kind);
+  if (typeof params.offset === "number") qs.set("offset", String(params.offset));
+  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
+
+  const path = `/admin/jobs?${qs.toString()}`;
+  const raw = await apiFetch<unknown>(path);
+  return pagedResponseDtoSchema(adminJobDtoSchema).parse(raw);
 }

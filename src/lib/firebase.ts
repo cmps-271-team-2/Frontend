@@ -3,7 +3,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
-// Firebase config loaded from environment variables
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_PRIVATE_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
@@ -13,8 +12,9 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-// Initialize Firebase only once
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+// Initialize Firebase
+// We use a ternary to check if the app exists; if not, we initialize a new one.
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Export Firebase Auth instance
+// Export Auth
 export const auth = getAuth(app);

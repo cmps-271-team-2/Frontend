@@ -33,6 +33,7 @@ export default function Home() {
   // 2. STATE MANAGEMENT
   const [activeCategory, setActiveCategory] = useState("All");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const apiKeyLoaded = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY || !!process.env.NEXT_PUBLIC_FIREBASE_PRIVATE_KEY;
 
   // 3. FILTER LOGIC
   const filteredReviews = activeCategory === "All" 

@@ -27,13 +27,25 @@ export default function RegisterPage() {
       return;
     }
 
-    await apiFetch<{ message: string }>("/auth/register/request-otp", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await apiFetch<{ message: string }>("/auth/register/request-otp", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-    setMessage("OTP requested. Check your email (or backend console in dev).");
-    setStep("otp");
+      if (res.message === "PENDING_VERIFICATION") {
+        setMessage("OTP resent. Check your email.");
+      } else {
+        setMessage("OTP requested. Check your email (or backend console in dev).");
+      }
+      setStep("otp");
+    } catch (e: any) {
+      if (e?.message === "EMAIL_EXISTS") {
+        setError("Account already exists. Please login.");
+      } else {
+        setError(e.message || "Failed to request OTP");
+      }
+    }
   }
 
   async function handleVerifyOtp() {
@@ -46,16 +58,19 @@ export default function RegisterPage() {
       return;
     }
 
-    const res = await apiFetch<{ message: string }>("/auth/register/verify-otp", {
-      method: "POST",
-      body: JSON.stringify({ email, otp }),
-    });
+    try {
+      const res = await apiFetch<{ message: string }>("/auth/register/verify-otp", {
+        method: "POST",
+        body: JSON.stringify({ email, otp }),
+      });
 
-    setMessage(res.message);
-    // redirect to login after a short moment
-    setTimeout(() => {
-      window.location.href = "/login";
-    }, 800);
+      setMessage(res.message);
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 800);
+    } catch (e: any) {
+      setError(e.message || "Failed to verify OTP");
+    }
   }
 
   return (

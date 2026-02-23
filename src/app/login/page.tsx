@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { aubEmailSchema } from "@/lib/validators";
@@ -69,6 +70,15 @@ export default function LoginPage() {
       <button onClick={handleLogin} disabled={loading} style={{ width: "100%", padding: 10 }}>
         {loading ? "Logging in..." : "Login"}
       </button>
+
+      <div style={{ marginTop: 12, display: "flex", gap: 12 }}>
+        <Link href="/forgot-password" style={{ color: "#2563eb" }}>
+          Forgot password?
+        </Link>
+        <Link href="/register" style={{ color: "#2563eb" }}>
+          Create account
+        </Link>
+      </div>
 
       {error && <p style={{ marginTop: 12, color: "crimson" }}>{error}</p>}
     </main>

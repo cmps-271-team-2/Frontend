@@ -1,0 +1,39 @@
+# =========================
+# Firebase Admin
+# =========================
+
+FIREBASE_TYPE=service_account
+FIREBASE_PROJECT_ID=aub-rate
+FIREBASE_PRIVATE_KEY_ID=9567b4fe54238f56bb24c8effec3ccf69dc12430
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDf3Jaw27ZCSFKY\nJy7yyTTPNtiaMfpHvhR8M6fR7N6zSBQfUPpup3RlkBHVNt+hbMAqtQn1GMs4oSwJ\ngH/dOXESQd3Ow38LjyjFoftXOjfvzJN/3nvFG2DQ+8pItPwAA57pbyZPi85tJiaJ\ncnFi8qYobi/FK/Yq54qp0vEwFhSwPwxQp0VpI7sr0sdujrPN0gvfHUekLbTl1D4k\nJYFUtbqhqdpNmv8NhG54r76PQMmu1RvdfQkK3/J7AjZWmt00xQpcz1Efthul3l6y\nd3GzjtmIDQHtmh7LGulec+pBzwCXWTTugIKajoADmkix+yZVUP9mRr96nS0U3G11\nIvHE668tAgMBAAECggEADycLPCVjDNGAZbQhRWXBIVWBC87eNgTztgR5E4iI+nGi\niwwcJ2lGQ6mgy2HPeUm3KCzg46ot90NRi8Ma5IqC0M2MifZJnyqtg9MXBCx4pM6g\nHUOd9RWJVBv28Tzu4cFc/Ef9u9ymuFSgvyTz79Kk1I/AxAPZwcWyaRRSJwMXm2ZI\noSb4yjELW25vtnVHzRWvOJlamSlbllt7xwsSp6k6AhP1+5OzFtBLJIwNiyCe+Jav\nTYmPyAVHPCka1iV5zFl9PANJff5jZ6QmjU9lGyYOgzIa76bNVkzOViMbY7JXXKJc\nQzyG5ibuCiz/AS1zIGJHFw9O/T2V2rGj+19jrx07MQKBgQD/d5jsdUzmEIdUAjjC\nGHzsX/N06TYZtyu53SCCbZtVMsqI6tEevjD+iiRA6zpZVBt4R1VjjfuY2UNfhtOf\n84Et7weatodDV+40pT28Ftcxl7OEk0pbC7WpOdPVTKAZbTBGRdZsgM9aOqRbqJ/E\nCKw+wP5b+cVvL4ppFBQsaJ0LLwKBgQDgVB2zmtxIf5sju3S/BKe+39n/1FyrlpbZ\niri4ke41sIw2Z4oCymYFspLByRC0nOFZeXsiR7zrcFOOmjSo84N7KLqy39dGwk5z\nX8DXZg6WF451ojuf53AQMIuuEqF0CQzy899JbEgGGKfVmK535HROiMBOdx1GxFbw\n7iLoiM5kYwKBgQDWbauFZlv6jAsbH5ZGjMlmmo8+JXYMlav1IT9lWtzT4YMQ85A9\n7sQvEwKlHwxl6Gv6RF3O52E0hcDAUOoWyww14vmOCgF1LDw8Iiq0UrOj48KB2CPE\nUgrUFT7SPbPwQ68OfRYjEud4w9orOVmI8QKq1dFqoDbxQYU69+iK8fBHbwKBgFg3\nO+bhQzcPV0bZ9LMZdY3OIcBFFpwzf+bUcofCe1aJstnCJberOCuNacDi/LrJ5qR0\n7UMxys0bQwCVC5hVCqNoBONKuzGMP6WHRiJuc9X6NX906NWdAaicLpGpqewjkwAH\nfws0la4wC/AnNpTXNhWcGWPB27V0iGv+eaPQCLnZAoGBAKy5q/K4Qu/B0PBXXQ8I\nZHJj6WzbwPYXbD9ZdzhdIj0RI03ZCKyJUP6UQ3kL0kAp1MdZYfxJDxfCzquc4DjN\nIdBokLmuP/0+mGoH29qJhFNhSZOb80xMaYEW9bxbiJgFIW53u3hUwC9lavJD10Jf\nbpAIXKbuCcDbq1F/0h8GSDTn\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-fbsvc@aub-rate.iam.gserviceaccount.com
+FIREBASE_CLIENT_ID=103197801947241202054
+FIREBASE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
+FIREBASE_TOKEN_URI=https://oauth2.googleapis.com/token
+FIREBASE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
+FIREBASE_CLIENT_X509_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40aub-rate.iam.gserviceaccount.com
+FIREBASE_UNIVERSE_DOMAIN=googleapis.com
+FIREBASE_SERVICE_ACCOUNT_PATH=FIREBASE_SERVICE_ACCOUNT_PATH=C:\Users\zadab\OneDrive\Desktop\CMPS 202\JAVA\tiktok-bar\backend\serviceAccountKey.json
+
+
+# =========================
+# OTP Configuration
+# =========================
+
+OTP_EXP_MINUTES=10
+
+# =========================
+# Frontend (CORS)
+# =========================
+
+FRONTEND_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+
+# =========================
+# Email (SMTP - dev)
+# =========================
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=aub.rate.auth@gmail.com
+SMTP_PASS=hrqutrpasuyjiwza
+EMAIL_FROM="AUB Rate <aub.rate.auth@gmail.com>"

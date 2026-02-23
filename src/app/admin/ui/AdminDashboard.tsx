@@ -306,7 +306,7 @@ export default function AdminDashboard() {
           position: "fixed",
           inset: 0,
           zIndex: 9999,
-          background: "rgba(220,30,30,0.28)",
+          background: "rgba(255,255,255,0.22)",
           pointerEvents: "none",
         }}
       />

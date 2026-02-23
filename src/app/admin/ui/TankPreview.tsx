@@ -21,16 +21,12 @@ export default function TankPreview({ className, flashKey = 0 }: Props) {
   const rafRef       = useRef<number | null>(null);
   const modelRef     = useRef<THREE.Object3D | null>(null);
   const targetYRef   = useRef<number>((3 * Math.PI) / 4);
-  const flashOverlay = useRef<HTMLDivElement | null>(null);
+  const flashStartRef = useRef<number>(-9999);
 
-  // Trigger flash animation whenever flashKey increments
+  // Tell the render loop to start a flash
   useEffect(() => {
     if (flashKey === 0) return;
-    const el = flashOverlay.current;
-    if (!el) return;
-    el.classList.remove("tank-flash");
-    void el.offsetWidth; // force reflow to restart animation
-    el.classList.add("tank-flash");
+    flashStartRef.current = performance.now();
   }, [flashKey]);
 
   useEffect(() => {
@@ -126,11 +122,12 @@ export default function TankPreview({ className, flashKey = 0 }: Props) {
     });
     postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), postMat));
 
-    // ── PS1 tank material: vertex snapping + normal colour ───────────
+    // ── PS1 tank material: vertex snapping + normal colour + flash ───────────
     const ps1Mat = new THREE.ShaderMaterial({
       uniforms: {
-        uSnap: { value: 48.0 }, // lower = more jitter
-        uTime: { value: 0.0 },
+        uSnap:  { value: 48.0 },
+        uTime:  { value: 0.0 },
+        uFlash: { value: 0.0 }, // 0=normal, 1=full white
       },
       vertexShader: /* glsl */`
         uniform float uSnap;
@@ -138,7 +135,6 @@ export default function TankPreview({ className, flashKey = 0 }: Props) {
         void main() {
           vWNormal = normalize(normalMatrix * normal);
           vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          // Classic PS1 vertex snapping in clip space
           float w = clip.w;
           clip.xy = floor((clip.xy / w) * uSnap + 0.5) / uSnap * w;
           gl_Position = clip;
@@ -146,10 +142,12 @@ export default function TankPreview({ className, flashKey = 0 }: Props) {
       `,
       fragmentShader: /* glsl */`
         precision mediump float;
+        uniform float uFlash;
         varying vec3 vWNormal;
         void main() {
           vec3 n = normalize(vWNormal) * 0.5 + 0.5;
-          gl_FragColor = vec4(n, 1.0);
+          vec3 col = mix(n, vec3(1.0), uFlash);
+          gl_FragColor = vec4(col, 1.0);
         }
       `,
       side: THREE.DoubleSide,
@@ -173,6 +171,17 @@ export default function TankPreview({ className, flashKey = 0 }: Props) {
       const t = clock.getElapsedTime();
       ps1Mat.uniforms.uTime.value  = t;
       postMat.uniforms.uTime.value = t;
+
+      // Drive the per-mesh flash: double-pulse over ~600ms
+      const elapsed = (performance.now() - flashStartRef.current) / 1000;
+      let flash = 0;
+      if (elapsed < 0.6) {
+        // Two spikes: peak at 0.08s and 0.28s, decay between
+        const p1 = Math.max(0, 1 - Math.abs(elapsed - 0.08) / 0.08);
+        const p2 = Math.max(0, 1 - Math.abs(elapsed - 0.28) / 0.1);
+        flash = Math.min(1, p1 + p2 * 0.8);
+      }
+      ps1Mat.uniforms.uFlash.value = flash;
 
       if (modelRef.current) {
         const cur = modelRef.current.rotation.y;
@@ -279,20 +288,6 @@ export default function TankPreview({ className, flashKey = 0 }: Props) {
           imageRendering: "pixelated",
         }}
         aria-label="M1 Abrams PS1 preview"
-      />
-      {/* Flash overlay — animated via .tank-flash class */}
-      <div
-        ref={flashOverlay}
-        style={{
-          position: "absolute",
-          top: "-60px",
-          left: "-120px",
-          width: CSS_W,
-          height: CSS_H,
-          zIndex: 1,
-          pointerEvents: "none",
-          borderRadius: 12,
-        }}
       />
     </div>
   );

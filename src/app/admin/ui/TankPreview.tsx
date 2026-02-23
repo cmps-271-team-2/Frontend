@@ -14,13 +14,24 @@ const PS1_H = 48;
 const CSS_W = 360;
 const CSS_H = 180;
 
-type Props = { className?: string };
+type Props = { className?: string; flashKey?: number };
 
-export default function TankPreview({ className }: Props) {
-  const canvasRef  = useRef<HTMLCanvasElement | null>(null);
-  const rafRef     = useRef<number | null>(null);
-  const modelRef   = useRef<THREE.Object3D | null>(null);
-  const targetYRef = useRef<number>((3 * Math.PI) / 4);
+export default function TankPreview({ className, flashKey = 0 }: Props) {
+  const canvasRef    = useRef<HTMLCanvasElement | null>(null);
+  const rafRef       = useRef<number | null>(null);
+  const modelRef     = useRef<THREE.Object3D | null>(null);
+  const targetYRef   = useRef<number>((3 * Math.PI) / 4);
+  const flashOverlay = useRef<HTMLDivElement | null>(null);
+
+  // Trigger flash animation whenever flashKey increments
+  useEffect(() => {
+    if (flashKey === 0) return;
+    const el = flashOverlay.current;
+    if (!el) return;
+    el.classList.remove("tank-flash");
+    void el.offsetWidth; // force reflow to restart animation
+    el.classList.add("tank-flash");
+  }, [flashKey]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -268,6 +279,20 @@ export default function TankPreview({ className }: Props) {
           imageRendering: "pixelated",
         }}
         aria-label="M1 Abrams PS1 preview"
+      />
+      {/* Flash overlay — animated via .tank-flash class */}
+      <div
+        ref={flashOverlay}
+        style={{
+          position: "absolute",
+          top: "-60px",
+          left: "-120px",
+          width: CSS_W,
+          height: CSS_H,
+          zIndex: 1,
+          pointerEvents: "none",
+          borderRadius: 12,
+        }}
       />
     </div>
   );

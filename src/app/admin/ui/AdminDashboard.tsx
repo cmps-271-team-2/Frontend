@@ -104,6 +104,11 @@ export default function AdminDashboard() {
   const [userVerified, setUserVerified] = useState<boolean | "all">("all");
   const [userStatus, setUserStatus] = useState<AdminStatusDTO | "all">("all");
 
+  // Delete animation state
+  const [screenFlash, setScreenFlash] = useState(false);
+  const [tankFlashKey, setTankFlashKey] = useState(0);
+  const [shatteringUserId, setShatteringUserId] = useState<string | null>(null);
+
   const debouncedProfileSearch = useDebouncedValue(profileSearch, 250);
   const debouncedPostSearch = useDebouncedValue(postSearch, 250);
   const debouncedJobSearch = useDebouncedValue(jobSearch, 250);
@@ -201,11 +206,19 @@ export default function AdminDashboard() {
   }
 
   async function handleDeleteUser(userId: string) {
-    if (!confirm(`Delete user ${userId}? This will delete Auth + Firestore user doc.`)) return;
+    // Trigger all three visual effects simultaneously
+    setScreenFlash(true);
+    setTankFlashKey((k) => k + 1);
+    setShatteringUserId(userId);
+    // Wait for shatter animation to finish before deleting
+    await new Promise((r) => setTimeout(r, 680));
+    setScreenFlash(false);
     try {
       await deleteAdminUser(userId);
+      setShatteringUserId(null);
       await loadUsers();
     } catch (e: any) {
+      setShatteringUserId(null);
       alert(e?.message ?? "Failed to delete user");
     }
   }
@@ -285,6 +298,19 @@ export default function AdminDashboard() {
   const maxPosts = useMemo(() => Math.max(1, ...series.map((d) => d.posts)), [series]);
 
   return (
+    <>
+    {screenFlash && (
+      <div
+        className="screen-flash"
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 9999,
+          background: "rgba(220,30,30,0.28)",
+          pointerEvents: "none",
+        }}
+      />
+    )}
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -292,7 +318,7 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
               <span className="rounded-full border border-foreground/10 bg-foreground/5 px-2 py-0.5 text-xs">live</span>
-              <TankPreview className="ml-1 shrink-0 pointer-events-none" />
+              <TankPreview className="ml-1 shrink-0 pointer-events-none" flashKey={tankFlashKey} />
             </div>
             <p className="text-sm opacity-80">FreedomBot 🦅</p>
           </div>
@@ -818,7 +844,13 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody>
                     {users.map((u) => (
-                      <tr key={u.id} className="border-t border-foreground/10 hover:bg-foreground/5">
+                      <tr
+                        key={u.id}
+                        className={cx(
+                          "border-t border-foreground/10 hover:bg-foreground/5",
+                          shatteringUserId === u.id ? "row-shattering" : ""
+                        )}
+                      >
                         <td className="px-4 py-3 tabular-nums">{u.email || "—"}</td>
                         <td className="px-4 py-3 text-xs opacity-80 tabular-nums">{u.id}</td>
                         <td className="px-4 py-3">
@@ -864,5 +896,6 @@ export default function AdminDashboard() {
         </footer>
       </div>
     </div>
+    </>
   );
 }

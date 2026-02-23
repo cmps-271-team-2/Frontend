@@ -79,8 +79,8 @@ export default function BottomBar() {
           </span>
         </Link>
 
-        {/* Plus -> Rate */}
-        <Link href="/rate" aria-label="Create rating" style={{ textDecoration: "none" }}>
+        {/* Plus -> Choice Page */}
+        <Link href="/rate/choice" aria-label="Create rating" style={{ textDecoration: "none" }}>
           <div
             style={{
               width: 55,

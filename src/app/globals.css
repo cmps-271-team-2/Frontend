@@ -1,13 +1,14 @@
 @import "tailwindcss";
+@source "../**/*.{ts,tsx}";
 
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
   width: 100%;
-  overflow: hidden; 
-  overscroll-behavior-y: none; 
-@source "../**/*.{ts,tsx}";
+  overflow: hidden;
+  overscroll-behavior-y: none;
+}
 
 :root {
   --background: #ffffff;

@@ -109,3 +109,53 @@ textarea::placeholder {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+.flip-card {
+  perspective: 1000px;
+}
+
+.flip-card-inner {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 700ms;
+}
+
+.flip-card:hover .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-face {
+  position: absolute;
+  inset: 0;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+.category-card-glow-layer {
+  pointer-events: none;
+  position: absolute;
+  inset: -6px;
+  border-radius: 2.7rem;
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+
+.group:hover .category-card-glow-layer {
+  opacity: 1;
+}
+
+.category-card-glow--purple {
+  box-shadow: 0 0 34px rgba(147, 51, 234, 0.52);
+}
+
+.category-card-glow--orange {
+  box-shadow: 0 0 34px rgba(249, 115, 22, 0.5);
+}
+
+.category-card-glow--green {
+  box-shadow: 0 0 34px rgba(22, 163, 74, 0.5);
+}

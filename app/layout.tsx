@@ -3,7 +3,7 @@ import ThemeToggle from "./components/theme-toggle";
 import BottomBarWrapper from "./components/bottombar-wrapper";
 import "./globals.css";
 
-export const metadata: Metadata = { title: "Professor Rating" };
+export const metadata: Metadata = { title: "UniTok" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

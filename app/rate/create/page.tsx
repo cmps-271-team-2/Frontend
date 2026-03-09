@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import CourseProfessorRatingForm from "../components/course-professor-rating-form";
 import StudyFoodRatingForm from "../components/study-food-rating-form";
@@ -13,6 +13,20 @@ type ToastState = {
 } | null;
 
 export default function CreateRatingPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto w-full max-w-3xl px-4 pb-32 pt-6" style={{ color: "var(--text)" }}>
+          <h1 className="text-2xl font-black">Create rating</h1>
+        </main>
+      }
+    >
+      <CreateRatingPageContent />
+    </Suspense>
+  );
+}
+
+function CreateRatingPageContent() {
   const searchParams = useSearchParams();
   const [toast, setToast] = useState<ToastState>(null);
 

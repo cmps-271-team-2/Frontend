@@ -129,9 +129,9 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
             Three categories, <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">endless reviews</span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <CategoryCard icon={<Star fill="currentColor"/>} color="bg-purple-600" title="Rate Professors" desc="Share honest reviews about teaching style, grading, and more." />
-            <CategoryCard icon={<Coffee fill="currentColor"/>} color="bg-orange-500" title="Review Cafeterias" desc="Find the best food, coffee, and hangout spots on campus." />
-            <CategoryCard icon={<BookOpen />} color="bg-green-600" title="Discover Study Spots" desc="Uncover quiet libraries, cozy corners, and productive spaces." />
+            <CategoryCard icon={<Star fill="currentColor"/>} color="bg-purple-600" glowTone="purple" title="Rate Professors" desc="Share honest reviews about teaching style, grading, and more." />
+            <CategoryCard icon={<Coffee fill="currentColor"/>} color="bg-orange-500" glowTone="orange" title="Review Cafeterias" desc="Find the best food, coffee, and hangout spots on campus." />
+            <CategoryCard icon={<BookOpen />} color="bg-green-600" glowTone="green" title="Discover Study Spots" desc="Uncover quiet libraries, cozy corners, and productive spaces." />
           </div>
         </div>
       </section>
@@ -305,14 +305,21 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
 }
 
 {/*the design of the cards*/}
-function CategoryCard({ icon, color, title, desc }: any) {
+function CategoryCard({ icon, color, title, desc, glowTone }: any) {
+  const glowClass =
+    glowTone === "orange"
+      ? "category-card-glow--orange"
+      : glowTone === "green"
+      ? "category-card-glow--green"
+      : "category-card-glow--purple";
+
   return (
-    <div className="relative group">
+    <div className="relative group cursor-pointer">
       {/* This is the "Lightening Border" / Glow effect */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-[2.5rem] blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+      <div className={`category-card-glow-layer ${glowClass}`}></div>
       
       {/* The Actual Card */}
-      <div className="relative bg-[#111] border border-white/10 p-10 rounded-[2.5rem] text-left hover:border-white/20 transition-all group-hover:-translate-y-2 flex flex-col h-full">
+      <div className="relative z-10 bg-[#111] border border-white/10 p-10 rounded-[2.5rem] text-left hover:border-white/20 hover:-translate-y-2 transform-gpu transition-all duration-300 flex flex-col h-full">
         <div className={`${color} w-14 h-14 rounded-2xl flex items-center justify-center mb-8 shadow-2xl group-hover:scale-110 transition-transform text-white`}>
           {icon}
         </div>
@@ -338,12 +345,12 @@ function FeatureItem({ img, label, color }: any) {
 {/* FLIPPING CARD COMPONENT */}
 function FeatureCard({ img, label, glowColor }: any) {
   return (
-    <div className="group h-[400px] w-full [perspective:1000px]">
+    <div className="flip-card group h-[400px] w-full">
       
-      <div className="relative h-full w-full transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+      <div className="flip-card-inner h-full w-full">
         
         {/*picture on the front side*/}
-        <div className="absolute inset-0">
+        <div className="flip-card-face">
             <div className={`h-full w-full bg-[#111] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl transition-all ${glowColor}`}>
                 <img 
                     src={img} 
@@ -354,7 +361,7 @@ function FeatureCard({ img, label, glowColor }: any) {
         </div>
 
         {/*writing on the back side*/}
-        <div className="absolute inset-0 h-full w-full rounded-[2.5rem] bg-gradient-to-br from-purple-600 to-pink-600 p-8 text-white [transform:rotateY(180deg)] [backface-visibility:hidden]">
+        <div className="flip-card-face flip-card-back h-full w-full rounded-[2.5rem] bg-gradient-to-br from-purple-600 to-pink-600 p-8 text-white">
           <div className="flex h-full flex-col items-center justify-center text-center">
             <div className="mb-6 rounded-full bg-white/20 p-4">
                <Star className="text-white" fill="white" size={32} />

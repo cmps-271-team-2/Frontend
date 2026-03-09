@@ -15,9 +15,8 @@ export async function apiFetch<T>(
 
   const { authToken, ...fetchOptions } = options;
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(fetchOptions.headers || {}),
   };
 
   if (authToken) {

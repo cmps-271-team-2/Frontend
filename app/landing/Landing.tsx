@@ -93,8 +93,8 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
     <div className="h-screen overflow-y-auto snap-y snap-mandatory bg-black bg-gradient-to-b from-black via-[#1a0b2e] to-black text-white scrollbar-hide">
       
       {/*our website's logo*/}
-      <div className="fixed top-2 left-8 z-[100] cursor-pointer">
-        <img src="/logo.png" alt="Logo" className="h-40 md:h-48 w-auto object-contain" />
+      <div className="fixed top-0 left-0 -translate-x-10 -translate-y-10 z-[100] w-[13.5rem] h-[13.5rem] md:w-[15rem] md:h-[15rem] flex items-center justify-center cursor-pointer">
+        <img src="/UniTokLogo.png" alt="UniTok Logo" className="h-48 md:h-[13.5rem] w-auto object-contain" />
       </div>
 
       {/*first page*/}

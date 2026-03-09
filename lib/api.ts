@@ -2,19 +2,31 @@ type ApiError = {
   detail?: string;
 };
 
+type ApiFetchOptions = RequestInit & {
+  authToken?: string;
+};
+
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit = {}
+  options: ApiFetchOptions = {}
 ): Promise<T> {
   const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
   if (!baseUrl) throw new Error("NEXT_PUBLIC_BACKEND_URL is missing in .env");
 
+  const { authToken, ...fetchOptions } = options;
+
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    ...(fetchOptions.headers || {}),
+  };
+
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
   const res = await fetch(`${baseUrl}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
+    ...fetchOptions,
+    headers,
   });
 
   if (!res.ok) {

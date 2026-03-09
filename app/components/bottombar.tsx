@@ -60,7 +60,7 @@ export default function BottomBar() {
         }}
       >
         {/* Home */}
-        <Link href="/" style={tabStyle(active === "home")} aria-label="Home">
+        <Link href="/home" style={tabStyle(active === "home")} aria-label="Home">
           <svg
             width="24"
             height="24"

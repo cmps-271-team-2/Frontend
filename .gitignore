@@ -39,17 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-cat > .gitignore <<'EOF'
-backend/venv/
+
+# python/venv (if present in repo)
 venv/
 .venv/
 __pycache__/
 *.pyc
-.env
-*.log
-node_modules/
-dist/
-build/
-EOF
-backend/serviceAccountKey.json 
-backend/serviceAccountKey.json 

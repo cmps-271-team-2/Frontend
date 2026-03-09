@@ -38,7 +38,38 @@ body {
 }
 
 button {
-  color: var(--text);
+  color: inherit;
+}
+
+input,
+textarea,
+select {
+  color: #0f172a;
+  caret-color: #0f172a;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #64748b;
+}
+
+.auth-input {
+  color: #0f172a !important;
+  background: #ffffff;
+  caret-color: #0f172a;
+}
+
+.auth-input::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+.auth-muted-link {
+  color: #334155 !important;
+}
+
+.auth-muted-link:hover {
+  color: #6d28d9 !important;
 }
 
 /* ===== Friend’s TikTok-style scroll engine (scoped to .snap-container) ===== */

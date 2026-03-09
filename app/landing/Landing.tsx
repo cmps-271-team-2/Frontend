@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { useRouter } from "next/navigation";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { apiFetch } from "@/lib/api";
 import { aubEmailSchema, requestOtpSchema, verifyOtpSchema } from "@/lib/validators";
 import { 
-  Star, Coffee, BookOpen, Eye, EyeOff, ShieldCheck, X, Mail 
+  Star, Coffee, BookOpen, Eye, EyeOff, ShieldCheck, X
 } from "lucide-react";
 
 interface LandingProps {
@@ -14,9 +15,10 @@ interface LandingProps {
 }
 
 export default function Landing({ onLoginSuccess }: LandingProps) {
+  const router = useRouter();
   const [showLogin, setShowLogin] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [step, setStep] = useState<"auth" | "verify" | "forgot_success">("auth");
+  const [step, setStep] = useState<"auth" | "verify">("auth");
   
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [verificationCode, setVerificationCode] = useState("");
@@ -28,21 +30,9 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleForgotPassword = async () => {
-    if (!formData.email) {
-      setError("Please enter your email address first.");
-      return;
-    }
-    try {
-      setLoading(true);
-      await sendPasswordResetEmail(auth, formData.email);
-      setStep("forgot_success"); 
-      setError(null);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  const handleForgotPassword = () => {
+    setShowLogin(false);
+    router.push("/forgot-password");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -260,19 +250,9 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
                     <h3 className="text-2xl font-black mb-2">Confirm OTP</h3>
                     <p className="text-zinc-500 mb-8 text-sm">Sent to <b>{formData.email}</b></p>
                     <form onSubmit={handleVerify} className="w-full max-w-xs">
-                        <input required maxLength={6} placeholder="000000" value={verificationCode} onChange={(e) => setVerificationCode(e.target.value)} className="w-full bg-zinc-100 border-2 border-transparent rounded-2xl py-4 text-center text-4xl font-black tracking-widest focus:border-purple-500 outline-none mb-6" />
+                        <input required maxLength={6} placeholder="000000" value={verificationCode} onChange={(e) => setVerificationCode(e.target.value)} className="auth-input w-full bg-zinc-100 border-2 border-transparent rounded-2xl py-4 text-center text-4xl font-black tracking-widest focus:border-purple-500 outline-none mb-6" />
                         <button type="submit" disabled={loading} className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold uppercase tracking-widest shadow-lg shadow-purple-200">Verify & Enter</button>
                     </form>
-              </div>
-            )}
-
-            {/*forget password*/}
-            {step === "forgot_success" && (
-              <div className="absolute inset-0 z-[60] bg-white flex flex-col items-center justify-center p-10 animate-in fade-in duration-300 text-center">
-                    <div className="w-20 h-20 bg-pink-50 rounded-3xl flex items-center justify-center mb-6"><Mail className="text-pink-600" size={40}/></div>
-                    <h3 className="text-2xl font-black mb-2 italic">Check Email</h3>
-                    <p className="text-zinc-500 mb-8">Recovery link sent to <b>{formData.email}</b></p>
-                    <button onClick={() => setStep("auth")} className="px-10 py-3 bg-zinc-900 text-white rounded-xl font-bold uppercase tracking-widest">Back to Sign In</button>
               </div>
             )}
 
@@ -281,9 +261,9 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
                <h3 className="text-4xl font-black mb-8 italic">Sign In</h3>
                {error && !isSignUp && <p className="text-red-500 text-xs mb-4 font-bold">{error}</p>}
                <form onSubmit={handleSubmit} className="w-full space-y-4">
-                  <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={formData.email} onChange={handleChange} className="w-full bg-zinc-100 p-4 rounded-xl outline-none border border-transparent focus:border-purple-300" required />
-                  <input name="password" type={showPassword ? "text" : "password"} placeholder="Password" value={formData.password} onChange={handleChange} className="w-full bg-zinc-100 p-4 rounded-xl outline-none border border-transparent focus:border-purple-300" required />
-                  <button type="button" onClick={handleForgotPassword} className="text-xs font-bold text-zinc-400 hover:text-purple-600 uppercase transition-colors tracking-tight">Forgot password?</button>
+                  <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={formData.email} onChange={handleChange} className="auth-input w-full bg-zinc-100 p-4 rounded-xl outline-none border border-transparent focus:border-purple-300" required />
+                  <input name="password" type={showPassword ? "text" : "password"} placeholder="Password" value={formData.password} onChange={handleChange} className="auth-input w-full bg-zinc-100 p-4 rounded-xl outline-none border border-transparent focus:border-purple-300" required />
+                  <button type="button" onClick={handleForgotPassword} className="auth-muted-link text-xs font-bold uppercase transition-colors tracking-tight">Forgot password?</button>
                   <button type="submit" className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-purple-200 active:scale-95 transition-all">Sign In</button>
                </form>
             </div>
@@ -293,8 +273,8 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
                <h3 className="text-4xl font-black mb-8 italic">Sign Up</h3>
                {error && isSignUp && <p className="text-red-500 text-xs mb-4 font-bold">{error}</p>}
                <form onSubmit={handleSubmit} className="w-full space-y-4">
-                  <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={formData.email} onChange={handleChange} className="w-full bg-zinc-100 p-4 rounded-xl outline-none border border-transparent focus:border-purple-300" required />
-                  <input name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} className="w-full bg-zinc-100 p-4 rounded-xl outline-none border border-transparent focus:border-purple-300" required />
+                  <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={formData.email} onChange={handleChange} className="auth-input w-full bg-zinc-100 p-4 rounded-xl outline-none border border-transparent focus:border-purple-300" required />
+                  <input name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} className="auth-input w-full bg-zinc-100 p-4 rounded-xl outline-none border border-transparent focus:border-purple-300" required />
                   <button type="submit" className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-purple-200 active:scale-95 transition-all">Request OTP</button>
                </form>
             </div>

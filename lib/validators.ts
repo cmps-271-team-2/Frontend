@@ -5,9 +5,14 @@ export const aubEmailSchema = z
   .email("Enter a valid email")
   .endsWith("@mail.aub.edu", "Must be an @mail.aub.edu email");
 
+export const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .max(72, "Password must not exceed 72 characters");
+
 export const requestOtpSchema = z.object({
   email: aubEmailSchema,
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: passwordSchema,
 });
 
 export const verifyOtpSchema = z.object({

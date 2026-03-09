@@ -9,10 +9,7 @@ export default function BottomBarWrapper() {
   // Hide bottom nav on public/auth routes and creation flows
   const hide =
     pathname === "/" || // Landing page
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/register") ||
     pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password") ||
     pathname.startsWith("/change-password") ||
     pathname.startsWith("/rate"); // Create post flow
 

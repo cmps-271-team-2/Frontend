@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type {
   AnalyticsDTO,
   AdminJobDTO,
+  AdminModerationStatusDTO,
   AdminPostDTO,
   AdminProfileDTO,
   AdminUserDTO,
@@ -15,6 +16,7 @@ import {
   deleteAdminPost,
   deleteAdminUser,
   setAdminProfileBanned,
+  setAdminPostModeration,
   setAdminUserBanned,
   fetchAdminAnalytics,
   fetchAdminJobs,
@@ -69,6 +71,13 @@ function StatusPill({ label, tone }: { label: string; tone: "good" | "warn" | "b
       {label}
     </span>
   );
+}
+
+function moderationTone(status: AdminModerationStatusDTO): "good" | "warn" | "bad" | "neutral" {
+  if (status === "approved") return "good";
+  if (status === "rejected") return "bad";
+  if (status === "review") return "warn";
+  return "neutral";
 }
 
 export default function AdminDashboard() {
@@ -202,6 +211,15 @@ export default function AdminDashboard() {
       await loadPosts();
     } catch (e: any) {
       alert(e?.message ?? "Failed to delete post");
+    }
+  }
+
+  async function handleSetPostModeration(postId: string, accepted: boolean) {
+    try {
+      await setAdminPostModeration(postId, accepted);
+      await loadPosts();
+    } catch (e: any) {
+      alert(e?.message ?? "Failed to update post moderation");
     }
   }
 
@@ -555,7 +573,7 @@ export default function AdminDashboard() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-lg font-medium">Posts</h2>
-                  <p className="text-sm opacity-75">Search + filter mock posts.</p>
+                  <p className="text-sm opacity-75">Search posts, inspect moderation, and force approve or reject.</p>
                 </div>
                 <button
                   onClick={loadPosts}
@@ -622,6 +640,8 @@ export default function AdminDashboard() {
                       <th className="px-4 py-3 font-medium">Type</th>
                       <th className="px-4 py-3 font-medium">Rating</th>
                       <th className="px-4 py-3 font-medium">Reports</th>
+                      <th className="px-4 py-3 font-medium">Moderation</th>
+                      <th className="px-4 py-3 font-medium">Indexed</th>
                       <th className="px-4 py-3 font-medium">Created</th>
                       <th className="px-4 py-3 font-medium"></th>
                     </tr>
@@ -639,28 +659,53 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-4 py-3 tabular-nums">{p.rating}</td>
                         <td className="px-4 py-3 tabular-nums">{p.reports}</td>
+                        <td className="px-4 py-3">
+                          <div className="space-y-1">
+                            <StatusPill label={p.moderationStatus} tone={moderationTone(p.moderationStatus)} />
+                            <div className="text-xs opacity-70">
+                              {p.forcedByAdmin ? "Forced by admin" : p.moderationExplanation || "No explanation"}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusPill label={p.indexed ? "indexed" : "not indexed"} tone={p.indexed ? "good" : "warn"} />
+                        </td>
                         <td className="px-4 py-3 text-xs opacity-80">{formatDate(p.createdAt)}</td>
                         <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={() => handleDeletePost(p.id)}
-                            className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs hover:bg-foreground/10"
-                          >
-                            Delete
-                          </button>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => handleSetPostModeration(p.id, true)}
+                              className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs hover:bg-foreground/10"
+                            >
+                              Force accept
+                            </button>
+                            <button
+                              onClick={() => handleSetPostModeration(p.id, false)}
+                              className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs hover:bg-foreground/10"
+                            >
+                              Force reject
+                            </button>
+                            <button
+                              onClick={() => handleDeletePost(p.id)}
+                              className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs hover:bg-foreground/10"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
 
                     {!postsState.loading && posts.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-4 py-10 text-center text-sm opacity-70">No posts match your filters.</td>
+                        <td colSpan={9} className="px-4 py-10 text-center text-sm opacity-70">No posts match your filters.</td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               </div>
 
-              <div className="text-xs opacity-70">Showing {posts.length} posts (mock).{postsState.loading ? " Loading…" : ""}</div>
+              <div className="text-xs opacity-70">Showing {posts.length} posts.{postsState.loading ? " Loading…" : ""}</div>
             </section>
           )}
 

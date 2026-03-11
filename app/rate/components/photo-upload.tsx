@@ -34,11 +34,11 @@ export default function PhotoUpload({ files, previews, onChange }: PhotoUploadPr
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-semibold">Photos (optional)</label>
+      <label className="block text-sm font-semibold">Photos or videos (optional)</label>
       <input
         type="file"
         multiple
-        accept="image/*"
+        accept="image/*,video/*"
         onChange={handleFileSelect}
         className="block w-full rounded-lg border px-3 py-2 text-sm"
         style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}

@@ -11,6 +11,7 @@ export default function BottomBarWrapper() {
     pathname === "/" || // Landing page
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/change-password") ||
+    pathname.startsWith("/admin") || // Admin pages
     pathname.startsWith("/rate"); // Create post flow
 
   if (hide) return null;

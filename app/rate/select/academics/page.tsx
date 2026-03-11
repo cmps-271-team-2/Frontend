@@ -108,7 +108,7 @@ export default function SelectAcademicPage() {
             type="button"
             onClick={() =>
               router.push(
-                `/rate/create?flow=course-professor&type=${kind}&name=${encodeURIComponent(item.name)}`
+                `/rate/create?flow=course-professor&type=${kind}&id=${encodeURIComponent(item.id)}&name=${encodeURIComponent(item.name)}`
               )
             }
             className="w-full rounded-xl border px-4 py-3 text-left"

@@ -3,6 +3,9 @@ import { z } from "zod";
 export const adminStatusDtoSchema = z.enum(["active", "banned"]);
 export type AdminStatusDTO = z.infer<typeof adminStatusDtoSchema>;
 
+export const adminModerationStatusDtoSchema = z.enum(["pending", "approved", "rejected", "review"]);
+export type AdminModerationStatusDTO = z.infer<typeof adminModerationStatusDtoSchema>;
+
 export const adminProfileDtoSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -22,6 +25,13 @@ export const adminPostDtoSchema = z.object({
   text: z.string(),
   rating: z.number(),
   reports: z.number(),
+  moderationStatus: adminModerationStatusDtoSchema,
+  moderationAllowed: z.boolean(),
+  moderationExplanation: z.string().nullable().optional(),
+  moderationViolations: z.array(z.string()),
+  forcedByAdmin: z.boolean(),
+  indexed: z.boolean(),
+  indexingVersion: z.number().nullable().optional(),
   createdAt: z.string(),
 });
 export type AdminPostDTO = z.infer<typeof adminPostDtoSchema>;
@@ -48,6 +58,15 @@ export const setBannedResultDtoSchema = z.object({
   status: adminStatusDtoSchema,
 });
 export type SetBannedResultDTO = z.infer<typeof setBannedResultDtoSchema>;
+
+export const setPostModerationResultDtoSchema = z.object({
+  ok: z.boolean(),
+  id: z.string(),
+  moderationStatus: adminModerationStatusDtoSchema,
+  moderationAllowed: z.boolean(),
+  indexed: z.boolean(),
+});
+export type SetPostModerationResultDTO = z.infer<typeof setPostModerationResultDtoSchema>;
 
 export const seriesPointDtoSchema = z.object({
   day: z.string(),

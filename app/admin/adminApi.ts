@@ -8,11 +8,13 @@ import {
   adminUserDtoSchema,
   deleteResultDtoSchema,
   setBannedResultDtoSchema,
+  setPostModerationResultDtoSchema,
   type AnalyticsDTO,
   type AdminJobDTO,
   type AdminUserDTO,
   type DeleteResultDTO,
   type SetBannedResultDTO,
+  type SetPostModerationResultDTO,
   type ListPostsQueryDTO,
   type ListProfilesQueryDTO,
   type ListJobsQueryDTO,
@@ -90,6 +92,14 @@ export async function deleteAdminPost(postId: string): Promise<DeleteResultDTO> 
     method: "DELETE",
   });
   return deleteResultDtoSchema.parse(raw);
+}
+
+export async function setAdminPostModeration(postId: string, accepted: boolean): Promise<SetPostModerationResultDTO> {
+  const raw = await apiFetch<unknown>(`/admin/posts/${encodeURIComponent(postId)}/moderation`, {
+    method: "PATCH",
+    body: JSON.stringify({ accepted }),
+  });
+  return setPostModerationResultDtoSchema.parse(raw);
 }
 
 export async function deleteAdminUser(userId: string): Promise<DeleteResultDTO> {

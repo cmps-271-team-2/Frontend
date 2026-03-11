@@ -2,6 +2,7 @@ export type StudyFoodCategory = "study-spot" | "food-spot";
 
 export type StudyFoodRatingPayload = {
   ratingType: "study-food";
+  targetId: string;
   spotName: string;
   category: StudyFoodCategory;
   location?: string;
@@ -10,13 +11,14 @@ export type StudyFoodRatingPayload = {
   priceRange?: string;
   bestTimeToGo?: string;
   comment: string;
-  photos?: string[];
+  media?: string[];
 };
 
 export type CourseProfessorType = "course" | "professor";
 
 export type CourseProfessorRatingPayload = {
   ratingType: "course-professor";
+  targetId: string;
   type: CourseProfessorType;
   courseName?: string;
   professorName?: string;
@@ -38,6 +40,10 @@ export type RatingPayload = StudyFoodRatingPayload | CourseProfessorRatingPayloa
 type SubmitRatingResponse = {
   ok: boolean;
   message?: string;
+  moderation?: {
+    status: string;
+    allowed: boolean;
+  };
 };
 
 export async function submitRating(payload: RatingPayload): Promise<SubmitRatingResponse> {

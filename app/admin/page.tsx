@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import AdminGate from "./ui/AdminGate";
 
 export const metadata = {
@@ -5,5 +6,9 @@ export const metadata = {
 };
 
 export default function AdminPage() {
-  return <AdminGate />;
+  return (
+    <Suspense fallback={null}>
+      <AdminGate />
+    </Suspense>
+  );
 }

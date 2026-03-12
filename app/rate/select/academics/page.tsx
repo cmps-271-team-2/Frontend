@@ -75,8 +75,9 @@ export default function SelectAcademicPage() {
             onClick={() => setKind(option.value)}
             className="rounded-full border px-4 py-2 text-sm font-bold"
             style={{
-              borderColor: kind === option.value ? "#3b82f6" : "var(--border)",
-              background: kind === option.value ? "rgba(59, 130, 246, 0.18)" : "transparent",
+              borderColor: kind === option.value ? "var(--accent-blue)" : "var(--border)",
+              background: kind === option.value ? "rgba(91,200,255,0.08)" : "transparent",
+              color: kind === option.value ? "var(--accent-blue)" : "var(--text)",
             }}
           >
             {option.label}

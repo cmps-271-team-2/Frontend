@@ -20,10 +20,11 @@ export default function BottomBar() {
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      color: isActive ? "#ffffff" : "rgba(255,255,255,0.78)",
+      color: isActive ? "#ffffff" : "rgba(255,255,255,0.45)",
       textDecoration: "none",
       padding: "6px 0",
       userSelect: "none",
+      transition: "color 0.2s",
     } as const);
 
   return (
@@ -37,23 +38,23 @@ export default function BottomBar() {
         zIndex: 50,
         display: "flex",
         justifyContent: "center",
-        pointerEvents: "none", // makes the outer wrapper ignore clicks
+        pointerEvents: "none",
       }}
     >
       <div
         style={{
-          pointerEvents: "auto", // bar itself is clickable
+          pointerEvents: "auto",
           width: "100%",
-          maxWidth: 520,
+          maxWidth: 480,
           margin: "0 auto",
           padding: "10px 14px calc(env(safe-area-inset-bottom, 0px) + 10px)",
-          background: "rgba(0,0,0,0.92)",
-          border: "1px solid rgba(255,255,255,0.18)", // clear outline
+          background: "rgba(17,17,17,0.95)",
+          border: "1px solid rgba(255,255,255,0.06)",
           borderBottom: "none",
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          boxShadow: "0 -10px 30px rgba(0,0,0,0.55)",
-          backdropFilter: "blur(10px)",
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
+          backdropFilter: "blur(16px)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-around",
@@ -62,8 +63,8 @@ export default function BottomBar() {
         {/* Home */}
         <Link href="/home" style={tabStyle(active === "home")} aria-label="Home">
           <svg
-            width="24"
-            height="24"
+            width="22"
+            height="22"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -74,7 +75,7 @@ export default function BottomBar() {
             <path d="M3 10.5L12 3l9 7.5" />
             <path d="M5 10v10h14V10" />
           </svg>
-          <span style={{ fontSize: 12, marginTop: 4, textAlign: "center" }}>
+          <span style={{ fontSize: 11, marginTop: 4, textAlign: "center", fontWeight: 600 }}>
             Home
           </span>
         </Link>
@@ -83,24 +84,25 @@ export default function BottomBar() {
         <Link href="/rate/choice" aria-label="Create rating" style={{ textDecoration: "none" }}>
           <div
             style={{
-              width: 55,
-              height: 35,
-              borderRadius: 14,
-              background: "linear-gradient(90deg,#ff416c,#ff4b2b)",
+              width: 50,
+              height: 34,
+              borderRadius: 12,
+              background: "linear-gradient(135deg, var(--neon-purple), var(--neon-hotpink))",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               boxShadow:
                 active === "rate"
-                  ? "0 0 0 2px rgba(255,255,255,0.25)"
-                  : "0 6px 18px rgba(0,0,0,0.45)",
+                  ? "0 0 12px rgba(197,107,255,0.3), 0 0 0 2px rgba(255,255,255,0.15)"
+                  : "0 4px 16px rgba(197,107,255,0.2)",
               transform: active === "rate" ? "translateY(-1px)" : "none",
+              transition: "all 0.2s",
             }}
           >
             <span
               style={{
-                fontSize: 22,
-                fontWeight: 800,
+                fontSize: 20,
+                fontWeight: 700,
                 color: "white",
                 lineHeight: 1,
               }}
@@ -117,8 +119,8 @@ export default function BottomBar() {
           aria-label="Profile"
         >
           <svg
-            width="24"
-            height="24"
+            width="22"
+            height="22"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -129,7 +131,7 @@ export default function BottomBar() {
             <circle cx="12" cy="8" r="4" />
             <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
           </svg>
-          <span style={{ fontSize: 12, marginTop: 4, textAlign: "center" }}>
+          <span style={{ fontSize: 11, marginTop: 4, textAlign: "center", fontWeight: 600 }}>
             Profile
           </span>
         </Link>

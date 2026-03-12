@@ -188,7 +188,7 @@ export default function StudyFoodRatingForm({
         {lockSelection ? (
           <div
             className="inline-flex rounded-full border px-4 py-2 text-sm font-semibold"
-            style={{ borderColor: "#3b82f6", background: "rgba(59, 130, 246, 0.18)" }}
+            style={{ borderColor: "var(--accent-green)", background: "rgba(105, 242, 140, 0.08)" }}
           >
             {category === "food-spot" ? "Food spot" : "Study spot"}
           </div>
@@ -204,8 +204,8 @@ export default function StudyFoodRatingForm({
                 onClick={() => setCategory(item.value as StudyFoodCategory)}
                 className="rounded-full border px-4 py-2 text-sm font-semibold"
                 style={{
-                  borderColor: category === item.value ? "#3b82f6" : "var(--border)",
-                  background: category === item.value ? "rgba(59, 130, 246, 0.18)" : "transparent",
+                  borderColor: category === item.value ? "var(--accent-green)" : "var(--border)",
+                  background: category === item.value ? "rgba(105, 242, 140, 0.08)" : "transparent",
                 }}
               >
                 {item.label}
@@ -297,7 +297,7 @@ export default function StudyFoodRatingForm({
         type="submit"
         disabled={isSubmitting}
         className="w-full rounded-lg px-4 py-2 font-bold disabled:opacity-70"
-        style={{ background: "#2563eb", color: "white" }}
+        style={{ background: "var(--accent)", color: "white" }}
       >
         {isSubmitting ? "Submitting..." : "Submit Study / Food Rating"}
       </button>

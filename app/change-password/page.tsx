@@ -22,7 +22,7 @@ export default function ChangePasswordPage() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (!user) {
-        router.replace("/login");
+        router.replace("/");
         return;
       }
       setReady(true);
@@ -37,7 +37,7 @@ export default function ChangePasswordPage() {
 
     if (!auth.currentUser) {
       setError("You must be logged in.");
-      router.replace("/login");
+      router.replace("/");
       return;
     }
 

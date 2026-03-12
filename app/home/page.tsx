@@ -3,7 +3,6 @@
 import { useState } from "react";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
-import Link from "next/link";
 
 
 const reviews = [
@@ -42,26 +41,6 @@ export default function HomePage() {
     if (container) container.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const cardStyle: React.CSSProperties = {
-    background: "var(--card)",
-    border: "2px solid var(--border)",
-    color: "var(--text)",
-  };
-
-  const primaryButtonStyle: React.CSSProperties = {
-    background: "var(--text)",
-    color: "var(--bg)",
-    border: "1px solid var(--border)",
-    fontWeight: 900,
-  };
-
-  const secondaryButtonStyle: React.CSSProperties = {
-    background: "var(--tile-bg)",
-    color: "var(--tile-text)",
-    border: "1px solid var(--border)",
-    fontWeight: 900,
-  };
-
   return (
     <main className="snap-container" style={{ background: "var(--bg)" }}>
       <GlobalHeader
@@ -77,18 +56,35 @@ export default function HomePage() {
             ))}
 
             <div className="snap-item flex flex-col items-center justify-center text-center px-10">
-              <div className="rounded-[3rem] p-10 shadow-xl max-w-[400px]" style={cardStyle}>
-                <h2 className="text-2xl font-black uppercase italic mb-2">
+              <div
+                className="rounded-[2rem] p-10 max-w-[400px]"
+                style={{
+                  background: "var(--card)",
+                  border: "1px solid var(--border)",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+                }}
+              >
+                <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
                   No more ratings
                 </h2>
-                <p style={{ color: "var(--muted)", fontWeight: 800, lineHeight: 1.2 }}>
+                <p className="text-sm font-medium" style={{ color: "var(--muted)", lineHeight: 1.5 }}>
                   You&apos;ve reached the end! <br /> Check back later for more updates.
                 </p>
 
                 <button
                   onClick={scrollTop}
-                  className="mt-6 px-6 py-2 rounded-full text-xs uppercase tracking-widest hover:scale-105 transition-transform active:scale-95"
-                  style={primaryButtonStyle}
+                  className="mt-6 px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-200 active:scale-95"
+                  style={{
+                    background: "var(--text)",
+                    color: "var(--bg)",
+                    border: "1px solid var(--border)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = "0 0 16px rgba(197,107,255,0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
                 >
                   Back to Top
                 </button>
@@ -97,14 +93,21 @@ export default function HomePage() {
           </>
         ) : (
           <div className="snap-item flex flex-col items-center justify-center text-center px-10">
-            <div className="rounded-[3rem] p-10 shadow-xl max-w-[400px]" style={cardStyle}>
+            <div
+              className="rounded-[2rem] p-10 max-w-[400px]"
+              style={{
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+              }}
+            >
               <div className="text-4xl mb-4">🔍</div>
-              <h2 className="text-2xl font-black uppercase italic mb-2">
+              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
                 Empty Category
               </h2>
-              <p style={{ color: "var(--muted)", fontWeight: 800, lineHeight: 1.2 }}>
+              <p className="text-sm font-medium" style={{ color: "var(--muted)", lineHeight: 1.5 }}>
                 There are currently no ratings for{" "}
-                <span style={{ color: "var(--text)" }}>
+                <span style={{ color: "var(--accent)" }}>
                   &quot;{activeCategory}&quot;
                 </span>
                 .
@@ -112,8 +115,20 @@ export default function HomePage() {
 
               <button
                 onClick={() => setActiveCategory("All")}
-                className="mt-6 px-6 py-2 rounded-full text-xs uppercase tracking-widest hover:scale-105 transition-transform active:scale-95"
-                style={secondaryButtonStyle}
+                className="mt-6 px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-200 active:scale-95"
+                style={{
+                  background: "transparent",
+                  color: "var(--text)",
+                  border: "1px solid var(--border)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(197,107,255,0.3)";
+                  e.currentTarget.style.boxShadow = "0 0 16px rgba(197,107,255,0.1)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--border)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
               >
                 View All Ratings
               </button>

@@ -30,17 +30,26 @@ export default function ThemeToggle() {
         top: 14,
         right: 14,
         zIndex: 9999,
-        width: 44,
-        height: 44,
-        borderRadius: 14,
+        width: 40,
+        height: 40,
+        borderRadius: 12,
         border: "1px solid var(--border)",
         background: "var(--card)",
         color: "var(--text)",
         display: "grid",
         placeItems: "center",
         cursor: "pointer",
-        boxShadow: "0 6px 18px rgba(0,0,0,0.18)",
-        backdropFilter: "blur(10px)",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+        backdropFilter: "blur(12px)",
+        transition: "border-color 0.2s, box-shadow 0.2s",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "rgba(197,107,255,0.3)";
+        e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.3), 0 0 12px rgba(197,107,255,0.08)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = "var(--border)";
+        e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.3)";
       }}
     >
       <AppleThemeIcon theme={theme} />

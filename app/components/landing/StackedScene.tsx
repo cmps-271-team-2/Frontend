@@ -8,48 +8,64 @@ interface StackedSceneProps {
   zIndex: number;
   /** Total outer height — the "scroll runway" for the sticky phase. */
   sceneHeightVh?: number;
-  /** Negative overlap with the previous section (creates layering). */
+  /** Negative top-margin overlap with the previous section (creates layering). */
   overlapVh?: number;
   panelBackground?: string;
-  glowGradient?: string;
-  /** If true, skip the enter animation (used for the very first panel). */
+  /** If true, skip the entrance fade (used for the very first panel). */
   isFirst?: boolean;
   children: React.ReactNode;
 }
 
+/**
+ * Stacked-sticky scene wrapper.
+ *
+ * Architecture:
+ *   • Each scene is a tall <section> (the "scroll runway") with a sticky
+ *     viewport-height child that pins the content.
+ *   • Scenes stack via ascending z-index — each new scene naturally covers
+ *     the previous one as the user scrolls.
+ *   • The only scroll-linked effect is a gentle opacity cross-fade (0 → 1).
+ *     No scale, no translateY, no borderRadius — the natural scroll physics
+ *     and sticky stacking provide all the "motion" needed.
+ *   • This keeps the GPU workload minimal and avoids the sub-pixel jitter
+ *     that scale transforms cause on viewport-sized elements.
+ */
 export default function StackedScene({
   id,
   zIndex,
-  sceneHeightVh = 160,
+  sceneHeightVh = 180,
   overlapVh = 0,
   panelBackground = "var(--background)",
-  glowGradient = "radial-gradient(circle at 50% 100%, rgba(197,107,255,0.22) 0%, rgba(91,200,255,0.14) 36%, transparent 72%)",
   isFirst = false,
   children,
 }: StackedSceneProps) {
-  const rootRef = useRef<HTMLElement | null>(null);
+  const ref = useRef<HTMLElement>(null);
 
-  // Track how far this section has scrolled into view
+  /* scrollYProgress: 0 = section top at viewport bottom
+   *                  1 = section bottom at viewport top           */
   const { scrollYProgress } = useScroll({
-    target: rootRef,
+    target: ref,
     offset: ["start end", "end start"],
   });
 
-  // Map early portion of scroll to 0→1 for the entrance animation
-  const enterProgress = useTransform(scrollYProgress, [0.0, 0.35], [0, 1]);
-
-  // --- Entrance motion values (disabled for the first panel) ---
-  const translateY = useTransform(enterProgress, [0, 1], isFirst ? [0, 0] : [60, 0]);
-  const scaleVal   = useTransform(enterProgress, [0, 1], isFirst ? [1, 1] : [0.97, 1]);
-  const enterOpacity = useTransform(enterProgress, [0, 1], isFirst ? [1, 1] : [0.6, 1]);
-
-  // Subtle glow at the seam between this panel and previous
-  const seamOpacity = useTransform(enterProgress, [0, 1], [0.4, 0.05]);
+  /*
+   * Soft cross-fade.
+   * – Starts at progress 0.02 (section top is just above the very bottom
+   *   edge of the viewport) so there's no flash at the exact pixel.
+   * – Completes at progress 0.22 (~55 vh of scroll for a 180 vh section),
+   *   giving a long, gentle ramp that feels cinematic rather than abrupt.
+   * – Hero panel is always fully opaque (no entrance needed).
+   */
+  const opacity = useTransform(
+    scrollYProgress,
+    [0.02, 0.22],
+    isFirst ? [1, 1] : [0, 1],
+  );
 
   return (
     <section
       id={id}
-      ref={rootRef}
+      ref={ref}
       style={{
         height: `${sceneHeightVh}vh`,
         position: "relative",
@@ -59,30 +75,13 @@ export default function StackedScene({
         scrollMarginTop: "72px",
       }}
     >
-      {/* Sticky wrapper — keeps the panel pinned during its scroll runway */}
-      <div className="sticky top-0 h-screen" style={{ zIndex: 1 }}>
-        {/* Soft glow at bottom edge (seam blender) */}
+      {/* Sticky wrapper — pins panel at the top during its scroll runway */}
+      <div className="sticky top-0 h-screen overflow-hidden">
         <motion.div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-10 md:inset-x-16 bottom-4 md:bottom-8 h-36 blur-3xl"
-          style={{ background: glowGradient, opacity: seamOpacity }}
-        />
-
-        {/* Animated panel */}
-        <motion.div
-          className="h-full w-full overflow-hidden"
-          style={{
-            y: translateY,
-            scale: scaleVal,
-            opacity: enterOpacity,
-            background: panelBackground,
-            borderRadius: 16,
-            willChange: "transform, opacity",
-          }}
+          className="h-full w-full"
+          style={{ opacity, background: panelBackground }}
         >
-          <div className="relative h-full w-full" style={{ borderRadius: "inherit", overflow: "hidden" }}>
-            {children}
-          </div>
+          {children}
         </motion.div>
       </div>
     </section>

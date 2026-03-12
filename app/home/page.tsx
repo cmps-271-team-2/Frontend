@@ -3,7 +3,6 @@
 import { useState } from "react";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
-import Link from "next/link";
 
 
 const reviews = [

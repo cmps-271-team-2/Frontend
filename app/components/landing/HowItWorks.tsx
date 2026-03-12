@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Star, Coffee, BookOpen, type LucideIcon } from "lucide-react";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.15 } } };
-const item = { hidden: { opacity: 0, y: 20, scale: 0.97 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.55, ease: "easeOut" as const } } };
+const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 1, 0.5, 1] } } };
 
 interface StepCardProps {
   icon: LucideIcon;

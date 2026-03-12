@@ -12,8 +12,8 @@ const container: Variants = {
 };
 
 const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 18, scale: 0.995 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: [0.2,0.9,0.3,1] } },
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 1, 0.5, 1] } },
 };
 
 export default function Hero({ onOpenAuth }: Props) {

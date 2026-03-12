@@ -40,16 +40,3 @@ export function detectTags(text: string): string[] {
 
   return Array.from(detected);
 }
-
-/**
- * Merges manual tags and auto-detected tags while filtering out blocked tags.
- * Returns a unique list of final tags.
- */
-export function mergeTags(
-  manualTags: string[],
-  autoTags: string[],
-  blockedTags: string[]
-): string[] {
-  const filtered = autoTags.filter((tag) => !blockedTags.includes(tag));
-  return Array.from(new Set([...manualTags, ...filtered]));
-}

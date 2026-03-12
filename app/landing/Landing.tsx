@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { apiFetch } from "@/lib/api";
-import { aubEmailSchema, requestOtpSchema, verifyOtpSchema } from "@/lib/validators";
+import { aubEmailSchema, requestOtpSchema } from "@/lib/validators";
 import { Star, Coffee, BookOpen, ShieldCheck, X, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "../components/landing/Navbar";
@@ -116,11 +116,9 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
       <StackedScene
         id="hero"
         zIndex={10}
-        sceneHeightVh={140}
-        overlapVh={0}
+        sceneHeightVh={160}
         isFirst
         panelBackground="var(--background)"
-        glowGradient="radial-gradient(circle at 50% 100%, rgba(197,107,255,0.24) 0%, rgba(91,200,255,0.16) 42%, transparent 74%)"
       >
         <Hero onOpenAuth={() => setShowLogin(true)} />
       </StackedScene>
@@ -129,10 +127,9 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
       <StackedScene
         id="categories"
         zIndex={20}
-        sceneHeightVh={150}
-        overlapVh={30}
+        sceneHeightVh={180}
+        overlapVh={15}
         panelBackground="var(--background-soft)"
-        glowGradient="radial-gradient(circle at 50% 100%, rgba(197,107,255,0.22) 0%, rgba(255,79,203,0.14) 38%, transparent 72%)"
       >
         <section
           className="w-full flex items-center justify-center px-6 relative overflow-hidden"
@@ -148,10 +145,10 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
 
           <div className="max-w-6xl w-full mx-auto text-center relative z-10">
             <motion.div
-              initial={{ opacity: 0, y: 28, scale: 0.97 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.65, ease: [0.2, 0.9, 0.3, 1] }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }}
             >
               <p style={{ color: 'var(--neon-purple)' }} className="font-bold tracking-[0.3em] text-xs mb-4 uppercase">What you can do</p>
               <h2 className="text-4xl md:text-6xl font-black mb-16 display-font">
@@ -195,10 +192,9 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
       <StackedScene
         id="how"
         zIndex={30}
-        sceneHeightVh={150}
-        overlapVh={30}
+        sceneHeightVh={180}
+        overlapVh={15}
         panelBackground="var(--background)"
-        glowGradient="radial-gradient(circle at 50% 100%, rgba(255,155,84,0.24) 0%, rgba(255,216,77,0.16) 44%, transparent 75%)"
       >
         <HowItWorks />
       </StackedScene>
@@ -207,10 +203,9 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
       <StackedScene
         id="reviews"
         zIndex={40}
-        sceneHeightVh={150}
-        overlapVh={30}
+        sceneHeightVh={180}
+        overlapVh={15}
         panelBackground="var(--background-soft)"
-        glowGradient="radial-gradient(circle at 50% 100%, rgba(105,242,140,0.24) 0%, rgba(91,200,255,0.14) 42%, transparent 75%)"
       >
         <ReviewsSection />
       </StackedScene>
@@ -219,10 +214,9 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
       <StackedScene
         id="why"
         zIndex={50}
-        sceneHeightVh={150}
-        overlapVh={30}
+        sceneHeightVh={180}
+        overlapVh={15}
         panelBackground="var(--background)"
-        glowGradient="radial-gradient(circle at 50% 100%, rgba(91,200,255,0.18) 0%, rgba(197,107,255,0.14) 42%, transparent 74%)"
       >
         <section
           className="w-full flex items-center justify-center px-6"
@@ -230,10 +224,10 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
         >
           <div className="max-w-6xl w-full mx-auto">
             <motion.div
-              initial={{ opacity: 0, y: 28, scale: 0.97 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.65, ease: [0.2, 0.9, 0.3, 1] }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }}
               className="text-center"
             >
               <div className="inline-block px-4 py-1 rounded-full border text-sm font-bold uppercase tracking-widest mb-6" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>Why UniTok</div>
@@ -262,10 +256,9 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
       <StackedScene
         id="final-cta"
         zIndex={60}
-        sceneHeightVh={140}
-        overlapVh={30}
+        sceneHeightVh={160}
+        overlapVh={15}
         panelBackground="var(--background)"
-        glowGradient="radial-gradient(circle at 50% 100%, rgba(197,107,255,0.22) 0%, rgba(255,79,203,0.14) 36%, transparent 72%)"
       >
         <FinalCTA onOpenAuth={() => setShowLogin(true)} />
       </StackedScene>

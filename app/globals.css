@@ -200,25 +200,6 @@ textarea::placeholder {
   scrollbar-width: none;
 }
 
-/* Category card hover glow */
-.category-card-glow-layer {
-  pointer-events: none;
-  position: absolute;
-  inset: -8px;
-  border-radius: calc(var(--radius-lg) + 0.25rem);
-  opacity: 0;
-  transition: opacity 300ms ease, transform 300ms ease;
-}
-.group:hover .category-card-glow-layer {
-  opacity: 1;
-  transform: translateY(-4px);
-}
-
-.category-card-glow--purple { box-shadow: 0 0 52px 8px rgba(197,107,255,0.16); }
-.category-card-glow--orange { box-shadow: 0 0 52px 8px rgba(255,155,84,0.13); }
-.category-card-glow--green  { box-shadow: 0 0 52px 8px rgba(105,242,140,0.13); }
-.category-card-glow--blue   { box-shadow: 0 0 52px 8px rgba(91,200,255,0.13); }
-
 /* Utility: neon underline on hover */
 .neon-underline {
   position: relative;
@@ -242,7 +223,6 @@ textarea::placeholder {
 .neon-underline--blue::after   { background: linear-gradient(90deg,var(--neon-blue),#7dd8ff) !important; }
 .neon-underline--green::after  { background: linear-gradient(90deg,var(--neon-green),#a5f5c0) !important; }
 .neon-underline--orange::after { background: linear-gradient(90deg,var(--neon-orange),#ffb87a) !important; }
-.neon-underline--yellow::after { background: linear-gradient(90deg,var(--neon-yellow),var(--neon-orange)) !important; }
 
 /* Glass navbar */
 .nav-glass { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); backdrop-filter: blur(8px); border: 1px solid var(--border-subtle); }
@@ -270,6 +250,4 @@ textarea::placeholder {
 .accent-phrase-blue     { background: linear-gradient(90deg,var(--neon-blue),var(--neon-green));  -webkit-background-clip: text; background-clip: text; color: transparent; }
 .accent-phrase-cta      { background: linear-gradient(105deg,var(--neon-blue),var(--neon-purple),var(--neon-hotpink)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
-/* motion utility classes (fallback when JS motion isn't loaded) */
-.reveal { opacity: 0; transform: translateY(14px) scale(0.98); transition: opacity 600ms ease, transform 600ms cubic-bezier(.2,.9,.3,1); }
-.reveal.show { opacity: 1; transform: translateY(0) scale(1); }
+

@@ -36,8 +36,8 @@ export default function MultiSelectChips({
               onClick={() => toggleOption(option)}
               className="rounded-full border px-3 py-1.5 text-sm font-medium transition"
               style={{
-                borderColor: isSelected ? "#3b82f6" : "var(--border)",
-                background: isSelected ? "rgba(59, 130, 246, 0.18)" : "transparent",
+                borderColor: isSelected ? "var(--accent)" : "var(--border)",
+                background: isSelected ? "rgba(197, 107, 255, 0.08)" : "transparent",
                 color: "var(--text)",
               }}
             >

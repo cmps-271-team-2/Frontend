@@ -17,6 +17,9 @@
     "requirements": "^3.0.0",
     "three": "^0.183.2"
   },
+  "optionalDependencies": {
+    "framer-motion": "^12.35.2"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

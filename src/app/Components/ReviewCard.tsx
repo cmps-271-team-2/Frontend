@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ThumbsUp, ThumbsDown, Star, Bookmark } from "lucide-react";
-import toast from "react-hot-toast";
 
 type Review = {
   id: number;
@@ -13,129 +12,128 @@ type Review = {
   category: string;
   major: string;
   year: string;
-  has_liked?: boolean;
-  has_disliked?: boolean;
-  has_saved?: boolean; // NEW
 };
 
-export default function ReviewCard({
-  review,
-  setReviews,
-}: {
-  review: Review;
-  setReviews: React.Dispatch<React.SetStateAction<Review[]>>;
-}) {
-  const [userAction, setUserAction] = useState<"liked" | "disliked" | null>(
-    review.has_liked ? "liked" : review.has_disliked ? "disliked" : null
-  );
-  
-  // Initialize from backend data
-  const [isFavorite, setFavorite] = useState(review.has_saved || false);
+const CATEGORY_COLORS: Record<string, string> = {
+  Professor: "var(--accent-blue)",
+  Cafeteria: "var(--accent-orange)",
+  "Study Spot": "var(--accent-green)",
+};
 
-  // Keep state in sync when reviews are re-fetched or sorted
-  useEffect(() => {
-    setUserAction(review.has_liked ? "liked" : review.has_disliked ? "disliked" : null);
-    setFavorite(review.has_saved || false);
-  }, [review.has_liked, review.has_disliked, review.has_saved]);
+export default function ReviewCard({ review }: { review: Review }) {
+  const [userAction, setUserAction] = useState<"liked" | "disliked" | null>(null);
+  const [isFavorite, setFavorite] = useState(false);
 
-  const handleAction = async (action: "like" | "dislike" | "save") => {
-    try {
-      const res = await fetch("http://localhost:8000/reviews/action", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          review_id: review.id,
-          user_id: "myUser123", 
-          action,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Update failed");
-      const data = await res.json();
-
-      // Update global state
-      setReviews((prev) =>
-        prev.map((r) =>
-          r.id === review.id
-            ? { 
-                ...r, 
-                likes: data.likes, 
-                dislikes: data.dislikes,
-                has_liked: action === "like" ? !r.has_liked : (action === "dislike" ? false : r.has_liked),
-                has_disliked: action === "dislike" ? !r.has_disliked : (action === "like" ? false : r.has_disliked),
-                has_saved: action === "save" ? !r.has_saved : r.has_saved
-              }
-            : r
-        )
-      );
-
-      if (action === "save") {
-        toast.success(!isFavorite ? "Review Bookmarked" : "Removed Bookmark");
-      }
-    } catch (err) {
-      toast.error("Could not reach server");
-    }
-  };
+  const displayLikes = review.likes + (userAction === "liked" ? 1 : 0);
+  const displayDislikes = review.dislikes + (userAction === "disliked" ? 1 : 0);
+  const catColor = CATEGORY_COLORS[review.category] || "var(--accent)";
 
   return (
-    <div className="snap-item bg-transparent py-10 flex justify-center">
-      <div className="relative z-20 flex flex-col items-center w-[500px] max-w-[90vw]">
-        <div className="w-full bg-white border-[3px] border-black rounded-[4rem] p-10 shadow-[8px_8px_0px_rgba(0,0,0,1)] flex flex-col items-center">
-          
-          <div className="mb-4 px-6 py-1 rounded-full border-2 border-black bg-blue-50 text-blue-900 text-[10px] font-black uppercase tracking-widest">
+    <div className="snap-item bg-transparent">
+      <div className="relative z-20 flex flex-col items-center w-[480px] max-w-[90vw]">
+        <div
+          className="w-full rounded-[2.5rem] p-9 flex flex-col items-center transition-shadow duration-300"
+          style={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            color: "var(--text)",
+            boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
+          }}
+        >
+          {/* Category chip */}
+          <div
+            className="mb-4 px-5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest"
+            style={{
+              border: `1px solid ${catColor}30`,
+              background: `${catColor}10`,
+              color: catColor,
+            }}
+          >
             {review.category}
           </div>
 
-          <div className="flex gap-2 mb-6">
+          {/* Stars */}
+          <div className="flex gap-1.5 mb-5">
             {[...Array(5)].map((_, i) => (
-              <Star 
-                key={i} size={28} 
-                fill={i < review.rating ? "#facc15" : "none"} 
-                stroke="black" strokeWidth={2} 
+              <Star
+                key={i}
+                size={24}
+                fill={i < review.rating ? "var(--accent-yellow)" : "none"}
+                stroke={i < review.rating ? "var(--accent-yellow)" : "var(--muted)"}
+                strokeWidth={2}
               />
             ))}
           </div>
 
-          <div className="w-full max-h-[35vh] overflow-y-auto mb-8 px-4 scrollbar-hide">
-             <p className="text-black text-xl md:text-2xl font-bold text-center leading-tight italic">
-              "{review.text}"
+          {/* Review text */}
+          <div className="w-full max-h-[35vh] overflow-y-auto mb-7 px-2 scrollbar-hide">
+            <p
+              className="text-lg md:text-xl font-semibold text-center leading-relaxed break-words"
+              style={{ color: "var(--text)", opacity: 0.92 }}
+            >
+              &ldquo;{review.text}&rdquo;
             </p>
           </div>
 
-          <div className="flex items-center justify-center gap-14 w-full mb-6">
+          {/* Action buttons */}
+          <div className="flex items-center justify-center gap-12 w-full mb-5">
             <button
-              onClick={() => handleAction("like")}
-              className={`flex flex-col items-center gap-2 transition-all active:scale-90 ${userAction === "liked" ? "text-green-600" : "text-black"}`}
+              onClick={() => setUserAction(userAction === "liked" ? null : "liked")}
+              className="flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-90"
+              style={{ color: userAction === "liked" ? "var(--accent-green)" : "var(--muted)" }}
             >
-              <ThumbsUp size={36} fill={userAction === "liked" ? "currentColor" : "none"} strokeWidth={3} />
-              <span className="text-sm font-black">{review.likes}</span>
+              <ThumbsUp
+                size={30}
+                fill={userAction === "liked" ? "currentColor" : "none"}
+                strokeWidth={2}
+              />
+              <span className="text-xs font-bold">{displayLikes}</span>
             </button>
 
             <button
-              onClick={() => handleAction("dislike")}
-              className={`flex flex-col items-center gap-2 transition-all active:scale-90 ${userAction === "disliked" ? "text-red-600" : "text-black"}`}
+              onClick={() => setUserAction(userAction === "disliked" ? null : "disliked")}
+              className="flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-90"
+              style={{ color: userAction === "disliked" ? "#ff6b6b" : "var(--muted)" }}
             >
-              <ThumbsDown size={36} fill={userAction === "disliked" ? "currentColor" : "none"} strokeWidth={3} />
-              <span className="text-sm font-black">{review.dislikes}</span>
+              <ThumbsDown
+                size={30}
+                fill={userAction === "disliked" ? "currentColor" : "none"}
+                strokeWidth={2}
+              />
+              <span className="text-xs font-bold">{displayDislikes}</span>
             </button>
 
             <button
-              onClick={() => handleAction("save")}
-              className={`flex flex-col items-center gap-2 transition-all active:scale-90 ${isFavorite ? "text-yellow-500" : "text-black"}`}
+              onClick={() => setFavorite(!isFavorite)}
+              className="flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-90"
+              style={{ color: isFavorite ? "var(--accent-yellow)" : "var(--muted)" }}
             >
-              <Bookmark size={36} fill={isFavorite ? "currentColor" : "none"} strokeWidth={3} />
-              <span className="text-[10px] font-black uppercase tracking-tighter">{isFavorite ? "Saved" : "Save"}</span>
+              <Bookmark
+                size={30}
+                fill={isFavorite ? "currentColor" : "none"}
+                strokeWidth={2}
+              />
+              <span className="text-[9px] font-bold uppercase tracking-widest">
+                {isFavorite ? "Saved" : "Save"}
+              </span>
             </button>
           </div>
 
-          <div className="pt-4 border-t-2 border-black w-full flex flex-col items-center">
-            <span className="text-zinc-400 text-[10px] font-black uppercase mb-1">Posted by</span>
-            <div className="text-black font-black text-sm uppercase italic">
-              {review.major} • {review.year}
+          {/* Footer */}
+          <div
+            className="pt-4 w-full flex flex-col items-center"
+            style={{ borderTop: "1px solid var(--border)" }}
+          >
+            <span className="text-[9px] font-bold uppercase tracking-[0.2em] mb-1" style={{ color: "var(--muted)" }}>
+              Posted by
+            </span>
+            <div className="flex gap-2 items-center font-semibold text-sm">
+              <span style={{ color: "var(--text)" }}>{review.major}</span>
+              <span className="w-1 h-1 rounded-full" style={{ background: "var(--border)" }} />
+              <span style={{ color: "var(--muted)" }}>{review.year}</span>
             </div>
           </div>
         </div>
-        <div className="w-0 h-0 border-l-[35px] border-l-transparent border-r-[35px] border-r-transparent border-t-[35px] border-t-black -mt-[1px]" />
       </div>
     </div>
   );

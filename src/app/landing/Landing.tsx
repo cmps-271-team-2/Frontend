@@ -1,48 +1,46 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { useRouter } from "next/navigation";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { apiFetch } from "@/lib/api";
-import { aubEmailSchema, requestOtpSchema, verifyOtpSchema } from "@/lib/validators";
-import { 
-  Star, Coffee, BookOpen, Eye, EyeOff, ShieldCheck, X, Mail 
-} from "lucide-react";
+import { aubEmailSchema, requestOtpSchema } from "@/lib/validators";
+import { Star, Coffee, BookOpen, ShieldCheck, X, Eye, EyeOff } from "lucide-react";
+import { motion } from "framer-motion";
+import Navbar from "../components/landing/Navbar";
+import Hero from "../components/landing/Hero";
+import CategoryCard from "../components/landing/CategoryCard";
+import FinalCTA from "../components/landing/FinalCTA";
+import Footer from "../components/landing/Footer";
+import HowItWorks from "../components/landing/HowItWorks";
+import ReviewsSection from "../components/landing/ReviewsSection";
+import StackedScene from "../components/landing/StackedScene";
+import FloatingBackground from "../components/landing/FloatingBackground";
 
 interface LandingProps {
   onLoginSuccess: () => void;
 }
 
 export default function Landing({ onLoginSuccess }: LandingProps) {
+  const router = useRouter();
   const [showLogin, setShowLogin] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [step, setStep] = useState<"auth" | "verify" | "forgot_success">("auth");
+  const [step, setStep] = useState<"auth" | "verify">("auth");
   
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [verificationCode, setVerificationCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleForgotPassword = async () => {
-    if (!formData.email) {
-      setError("Please enter your email address first.");
-      return;
-    }
-    try {
-      setLoading(true);
-      await sendPasswordResetEmail(auth, formData.email);
-      setStep("forgot_success"); 
-      setError(null);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  const handleForgotPassword = () => {
+    setShowLogin(false);
+    router.push("/forgot-password");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,357 +97,382 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
     setLoading(false);
   };
 
+  useEffect(() => {
+    // Lock body scroll when auth modal is open
+    if (showLogin) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [showLogin]);
+
   return (
-    <div className="h-screen overflow-y-auto snap-y snap-mandatory bg-black bg-gradient-to-b from-black via-[#1a0b2e] to-black text-white scrollbar-hide">
-      
-      {/*our website's logo*/}
-      <div className="fixed top-2 left-8 z-[100] cursor-pointer">
-        <img src="/logo.png" alt="Logo" className="h-40 md:h-48 w-auto object-contain" />
-      </div>
+    <div style={{ background: 'var(--background)' }}>
+      {/* Navbar floats above everything */}
+      <Navbar />
 
-      {/*first page*/}
-        <section className="snap-start h-screen w-full flex items-center justify-center relative overflow-hidden bg-black">
-        <div className="absolute inset-0 opacity-60 bg-[radial-gradient(circle_at_20%_30%,_rgba(147,51,234,0.4)_0%,transparent_50%),radial-gradient(circle_at_80%_70%,_rgba(192,38,211,0.2)_0%,transparent_50%)]" />
-        <div className="relative z-10 text-center px-6">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8">
-            <span className="text-pink-500 text-sm">📍</span>
-            <span className="text-zinc-400 text-sm font-medium tracking-wide">Your campus, your voice</span>
-          </div>
-          <h1 className="text-6xl md:text-8xl font-black leading-[0.9] tracking-tighter mb-8 italic">
-            RATE <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">EVERYTHING</span> <br />
-            ON CAMPUS
-          </h1>
-          <p className="text-white text-lg md:text-2xl max-w-xl mx-auto font-medium leading-relaxed">
-            Professors, cafeterias, study spots — honest reviews from students who've been there.
-          </p>
-          <div className="mt-12 animate-bounce text-zinc-600 font-bold">
-             <p className="text-xs uppercase tracking-[0.2em] mb-2">Scroll to explore</p>
-             <span>↓</span>
-          </div>
-        </div>
-      </section>
+      {/* ── Panel 1: Hero ─────────────────────────────── z:10 */}
+      <StackedScene
+        id="hero"
+        zIndex={10}
+        sceneHeightVh={160}
+        isFirst
+        panelBackground="var(--background)"
+      >
+        <Hero onOpenAuth={() => setShowLogin(true)} />
+      </StackedScene>
 
-
-      {/*page 2*/}
-      <section className="snap-start h-screen w-full flex items-center justify-center bg-[#0d0612] px-6 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_50%_50%,_rgba(147,51,234,0.2)_0%,transparent_70%)]" />
-        <div className="max-w-6xl mx-auto text-center relative z-10">
-          <p className="text-purple-500 font-bold tracking-[0.3em] text-xs mb-4 uppercase">What you can do</p>
-          <h2 className="text-4xl md:text-6xl font-black mb-16 italic">
-            Three categories, <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">endless reviews</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <CategoryCard icon={<Star fill="currentColor"/>} color="bg-purple-600" title="Rate Professors" desc="Share honest reviews about teaching style, grading, and more." />
-            <CategoryCard icon={<Coffee fill="currentColor"/>} color="bg-orange-500" title="Review Cafeterias" desc="Find the best food, coffee, and hangout spots on campus." />
-            <CategoryCard icon={<BookOpen />} color="bg-green-600" title="Discover Study Spots" desc="Uncover quiet libraries, cozy corners, and productive spaces." />
-          </div>
-        </div>
-      </section>
-
-
-      {/*page 3: how it works section*/}
-      <section className="snap-start h-screen w-full flex items-center justify-center bg-[#08040a] px-6 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_80%_20%,_rgba(147,51,234,0.3)_0%,transparent_60%)]" />
-      <div className="max-w-6xl mx-auto w-full text-center relative z-10">
-      <h2 className="text-4xl md:text-6xl font-black mb-16 italic text-white">
-        How it <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">works</span>
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-      <FeatureCard 
-        img="/feature1.png" 
-        label="Post and edit your ratings" 
-        glowColor="group-hover:shadow-purple-500/50"
-      />
-      <FeatureCard 
-        img="/feature2.jpg" 
-        label="The ratings are anonymous" 
-        glowColor="group-hover:shadow-pink-500/50"
-      />
-      <FeatureCard 
-        img="/feature3.png" 
-        label="Like and dislike ratings" 
-        glowColor="group-hover:shadow-purple-500/50"
-      />
-      </div>
-    </div>
-    </section>
-
-      
- {/*page 4*/}
-<section className="snap-start h-screen w-full flex items-center justify-center bg-[#0a050a] relative overflow-hidden px-6 md:px-20">
-  
-  {/*the stars background*/}
-  <div className="absolute inset-0 z-0 pointer-events-none">
-    <StarsBackground />
-  </div>
-  
-  <div className="max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center relative z-10">
-    <div className="hidden md:flex flex-col items-center justify-center relative">
-
-      {/*glow behind the star */}
-      <div className="absolute w-[300px] h-[300px] bg-purple-600/20 blur-[100px] rounded-full animate-pulse" />
-      
-      {/*a big star*/}
-      <div className="relative group cursor-pointer hover:scale-110 transition-transform duration-500">
-        <Star 
-          size={240} 
-          fill="url(#starGradient)" 
-          className="drop-shadow-[0_0_50px_rgba(168,85,247,0.4)] animate-[bounce_4s_easeInOut_infinite]"
-        />
-        <svg width="0" height="0">
-          <linearGradient id="starGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#9333ea" />
-            <stop offset="100%" stopColor="#db2777" />
-          </linearGradient>
-        </svg>
-      </div>
-      
-      {/*labels around the star*/}
-      <div className="absolute top-0 -right-4 bg-white/5 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest animate-bounce delay-75">
-        ⭐ Top Rated
-      </div>
-      <div className="absolute bottom-10 -left-10 bg-white/5 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest animate-bounce delay-300">
-        🔥 Best Spot!
-      </div>
-    </div>
-
-    {/*the right side of the big star*/}
-    <div className="text-center md:text-left space-y-8">
-      <div className="inline-block px-4 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-bold uppercase tracking-widest">
-        Join the community
-      </div>
-      
-      <h2 className="text-5xl md:text-8xl font-black italic leading-[1.1] text-white">
-        READY TO <br />
-        <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent px-4 -ml-4">
-        RATE?
-        </span>
-      </h2>
-      
-      <p className="text-zinc-400 text-lg md:text-xl font-medium max-w-md md:mx-0 mx-auto leading-relaxed">
-        Share your experience and help others find the best of campus life!
-      </p>
-      
-      <div className="flex flex-col md:flex-row gap-4 justify-center md:justify-start">
-        <button 
-          onClick={() => { setStep("auth"); setIsSignUp(false); setShowLogin(true); setError(null); }}
-          className="px-12 py-5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full font-black text-xl hover:scale-105 transition-all shadow-[0_0_40px_rgba(147,51,234,0.4)] active:scale-95 uppercase tracking-widest"
+      {/* ── Panel 2: Categories ───────────────────────── z:20 */}
+      <StackedScene
+        id="categories"
+        zIndex={20}
+        sceneHeightVh={180}
+        overlapVh={15}
+        panelBackground="var(--background-soft)"
+      >
+        <section
+          className="w-full flex items-center justify-center px-6 relative overflow-hidden"
+          style={{ minHeight: '100vh', paddingTop: '7rem', paddingBottom: '7rem' }}
         >
-          Get Started →
-        </button>
-      </div>
-    </div>
+          {/* Ambient radial glow */}
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_40%,_rgba(197,107,255,0.12)_0%,transparent_70%)]" />
 
-  </div>
-</section>
+          {/* Floating UniTok symbol particles (Star / Coffee / Book) */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
+            <FloatingBackground variant="symbols" count={24} />
+          </div>
+
+          <div className="max-w-6xl w-full mx-auto text-center relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }}
+            >
+              <p style={{ color: 'var(--neon-purple)' }} className="font-bold tracking-[0.3em] text-xs mb-4 uppercase">What you can do</p>
+              <h2 className="text-4xl md:text-6xl font-black mb-16 display-font">
+                Three categories, <span className="accent-phrase">endless reviews</span>
+              </h2>
+              <motion.div
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true }}
+                variants={{ hidden: {}, show: { transition: { staggerChildren: 0.13 } } }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-8"
+              >
+                <CategoryCard
+                  icon={<Star fill="currentColor" />}
+                  color="purple"
+                  title="Professors"
+                  desc="Share honest reviews about teaching style, grading, and more."
+                  backText="Rate teaching quality, fairness, and accessibility — help classmates choose wisely."
+                />
+                <CategoryCard
+                  icon={<Coffee fill="currentColor" />}
+                  color="orange"
+                  title="Cafeterias"
+                  desc="Find the best food, coffee, and hangout spots on campus."
+                  backText="Compare menus, ambiance, and value across every campus eatery."
+                />
+                <CategoryCard
+                  icon={<BookOpen />}
+                  color="green"
+                  title="Study Spots"
+                  desc="Uncover quiet libraries, cozy corners, and productive spaces."
+                  backText="Discover the best places to focus, collaborate, and recharge."
+                />
+              </motion.div>
+            </motion.div>
+          </div>
+        </section>
+      </StackedScene>
+
+      {/* ── Panel 3: How it works ─────────────────────── z:30 */}
+      <StackedScene
+        id="how"
+        zIndex={30}
+        sceneHeightVh={180}
+        overlapVh={15}
+        panelBackground="var(--background)"
+      >
+        <HowItWorks />
+      </StackedScene>
+
+      {/* ── Panel 4: Reviews ──────────────────────────── z:40 */}
+      <StackedScene
+        id="reviews"
+        zIndex={40}
+        sceneHeightVh={180}
+        overlapVh={15}
+        panelBackground="var(--background-soft)"
+      >
+        <ReviewsSection />
+      </StackedScene>
+
+      {/* ── Panel 5: Why UniTok ───────────────────────── z:50 */}
+      <StackedScene
+        id="why"
+        zIndex={50}
+        sceneHeightVh={180}
+        overlapVh={15}
+        panelBackground="var(--background)"
+      >
+        <section
+          className="w-full flex items-center justify-center px-6"
+          style={{ minHeight: '100vh', paddingTop: '7rem', paddingBottom: '7rem' }}
+        >
+          <div className="max-w-6xl w-full mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }}
+              className="text-center"
+            >
+              <div className="inline-block px-4 py-1 rounded-full border text-sm font-bold uppercase tracking-widest mb-6" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>Why UniTok</div>
+              <h2 className="text-3xl md:text-5xl font-black display-font mb-6">Trusted student <span className="accent-phrase-blue">voices</span> for better campus decisions</h2>
+              <p style={{ color: 'var(--text-secondary)' }} className="max-w-2xl mx-auto">Real students, honest ratings, and quick insights so you can pick the best spots and professors faster.</p>
+              <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="card-surface p-6 rounded-lg text-left">
+                  <div className="w-10 h-10 rounded-lg mb-3 flex items-center justify-center" style={{ background: 'rgba(197,107,255,0.1)', color: 'var(--neon-purple)' }}>💬</div>
+                  <h4 className="font-bold">Real Voices</h4><p style={{ color: 'var(--text-muted)' }} className="mt-2 text-sm">Anonymous, verified student reviews you can trust.</p>
+                </div>
+                <div className="card-surface p-6 rounded-lg text-left">
+                  <div className="w-10 h-10 rounded-lg mb-3 flex items-center justify-center" style={{ background: 'rgba(255,216,77,0.1)', color: 'var(--neon-yellow)' }}>⚡</div>
+                  <h4 className="font-bold">Save Time</h4><p style={{ color: 'var(--text-muted)' }} className="mt-2 text-sm">Discover top-rated spots and courses quickly.</p>
+                </div>
+                <div className="card-surface p-6 rounded-lg text-left">
+                  <div className="w-10 h-10 rounded-lg mb-3 flex items-center justify-center" style={{ background: 'rgba(105,242,140,0.1)', color: 'var(--neon-green)' }}>🎓</div>
+                  <h4 className="font-bold">Built for Campus</h4><p style={{ color: 'var(--text-muted)' }} className="mt-2 text-sm">Designed around student needs and AUB life.</p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      </StackedScene>
+
+      {/* ── Panel 6: Final CTA ────────────────────────── z:60 */}
+      <StackedScene
+        id="final-cta"
+        zIndex={60}
+        sceneHeightVh={160}
+        overlapVh={15}
+        panelBackground="var(--background)"
+      >
+        <FinalCTA onOpenAuth={() => setShowLogin(true)} />
+      </StackedScene>
+
+      {/* ── Footer: free flow after all stacked panels ─ z:70 */}
+      <div style={{ position: "relative", zIndex: 100 }}>
+        <Footer />
+      </div>
 
 
       {/*auth*/}
       {showLogin && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center px-6">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowLogin(false)} />
+          <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={() => setShowLogin(false)} />
           
-          <div className="relative w-full max-w-[850px] min-h-[550px] bg-[#f0f2f5] rounded-[2.5rem] shadow-2xl overflow-hidden text-zinc-900 flex">
+          <div
+            className="relative w-full max-w-[880px] min-h-[560px] rounded-[2rem] overflow-hidden flex"
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              boxShadow: '0 0 80px rgba(197,107,255,0.08), 0 32px 80px rgba(0,0,0,0.6)',
+            }}
+          >
             
-            <button onClick={() => setShowLogin(false)} className="absolute top-6 right-6 z-50 p-2 text-zinc-400 hover:text-zinc-900 transition-colors"><X size={24}/></button>
+            <button
+              onClick={() => setShowLogin(false)}
+              className="absolute top-5 right-5 z-50 p-2 rounded-lg transition-all duration-200 hover:bg-white/5"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <X size={22}/>
+            </button>
 
-            {/*OTP page overlay*/}
+            {/* ── OTP verification overlay ── */}
             {step === "verify" && (
-              <div className="absolute inset-0 z-[60] bg-white flex flex-col items-center justify-center p-10 animate-in fade-in zoom-in duration-300 text-center">
-                    <div className="w-20 h-20 bg-purple-50 rounded-3xl flex items-center justify-center mb-6"><ShieldCheck className="text-purple-600" size={40}/></div>
-                    <h3 className="text-2xl font-black mb-2">Confirm OTP</h3>
-                    <p className="text-zinc-500 mb-8 text-sm">Sent to <b>{formData.email}</b></p>
-                    <form onSubmit={handleVerify} className="w-full max-w-xs">
-                        <input required maxLength={6} placeholder="000000" value={verificationCode} onChange={(e) => setVerificationCode(e.target.value)} className="w-full bg-zinc-100 border-2 border-transparent rounded-2xl py-4 text-center text-4xl font-black tracking-widest focus:border-purple-500 outline-none mb-6" />
-                        <button type="submit" disabled={loading} className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-bold uppercase tracking-widest shadow-lg shadow-purple-200">Verify & Enter</button>
-                    </form>
+              <div
+                className="absolute inset-0 z-[60] flex flex-col items-center justify-center p-10 animate-in fade-in zoom-in duration-300 text-center"
+                style={{ background: 'var(--background)' }}
+              >
+                <div
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6"
+                  style={{ background: 'rgba(91,200,255,0.08)', border: '1px solid rgba(91,200,255,0.15)' }}
+                >
+                  <ShieldCheck style={{ color: 'var(--neon-blue)' }} size={38}/>
+                </div>
+                <h3 className="text-2xl font-black mb-2" style={{ color: 'var(--text-primary)' }}>Confirm OTP</h3>
+                <p className="mb-8 text-sm" style={{ color: 'var(--text-muted)' }}>Sent to <b style={{ color: 'var(--text-secondary)' }}>{formData.email}</b></p>
+                <form onSubmit={handleVerify} className="w-full max-w-xs">
+                  <input
+                    required maxLength={6} placeholder="000000"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    className="w-full rounded-xl py-4 text-center text-3xl font-black tracking-[0.3em] outline-none mb-6 transition-colors duration-200"
+                    style={{
+                      background: 'var(--surface-elevated)',
+                      border: '1px solid var(--border-subtle)',
+                      color: 'var(--text-primary)',
+                      caretColor: 'var(--neon-blue)',
+                    }}
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(91,200,255,0.5)'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-subtle)'}
+                  />
+                  <button
+                    type="submit" disabled={loading}
+                    className="w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all active:scale-[0.98]"
+                    style={{
+                      background: 'white',
+                      color: 'var(--text-on-light)',
+                      boxShadow: '0 4px 24px rgba(91,200,255,0.12)',
+                    }}
+                  >
+                    Verify &amp; Enter
+                  </button>
+                </form>
               </div>
             )}
 
-            {/*forget password*/}
-            {step === "forgot_success" && (
-              <div className="absolute inset-0 z-[60] bg-white flex flex-col items-center justify-center p-10 animate-in fade-in duration-300 text-center">
-                    <div className="w-20 h-20 bg-pink-50 rounded-3xl flex items-center justify-center mb-6"><Mail className="text-pink-600" size={40}/></div>
-                    <h3 className="text-2xl font-black mb-2 italic">Check Email</h3>
-                    <p className="text-zinc-500 mb-8">Recovery link sent to <b>{formData.email}</b></p>
-                    <button onClick={() => setStep("auth")} className="px-10 py-3 bg-zinc-900 text-white rounded-xl font-bold uppercase tracking-widest">Back to Sign In</button>
-              </div>
-            )}
-
-            {/*login*/}
+            {/* ── Sign In form ── */}
             <div className={`w-1/2 flex flex-col items-center justify-center p-12 transition-all duration-700 ease-in-out ${isSignUp ? "translate-x-full opacity-0 pointer-events-none" : "translate-x-0 opacity-100"}`}>
-               <h3 className="text-4xl font-black mb-8 italic">Sign In</h3>
-               {error && !isSignUp && <p className="text-red-500 text-xs mb-4 font-bold">{error}</p>}
-               <form onSubmit={handleSubmit} className="w-full space-y-4">
-                  <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={formData.email} onChange={handleChange} className="w-full bg-zinc-100 p-4 rounded-xl outline-none border border-transparent focus:border-purple-300" required />
-                  <input name="password" type={showPassword ? "text" : "password"} placeholder="Password" value={formData.password} onChange={handleChange} className="w-full bg-zinc-100 p-4 rounded-xl outline-none border border-transparent focus:border-purple-300" required />
-                  <button type="button" onClick={handleForgotPassword} className="text-xs font-bold text-zinc-400 hover:text-purple-600 uppercase transition-colors tracking-tight">Forgot password?</button>
-                  <button type="submit" className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-purple-200 active:scale-95 transition-all">Sign In</button>
-               </form>
+              <h3 className="text-3xl font-black mb-8 display-font" style={{ color: 'var(--text-primary)' }}>
+                Sign <span className="accent-phrase">In</span>
+              </h3>
+              {error && !isSignUp && (
+                <p className="text-xs mb-4 font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(255,80,80,0.08)', color: '#ff6b6b', border: '1px solid rgba(255,80,80,0.15)' }}>{error}</p>
+              )}
+              <form onSubmit={handleSubmit} className="w-full space-y-4">
+                <input
+                  name="email" type="email" placeholder="abc00@mail.aub.edu"
+                  value={formData.email} onChange={handleChange} required
+                  className="auth-field w-full p-4 rounded-xl outline-none transition-colors duration-200"
+                />
+                <div className="relative w-full">
+                  <input
+                    name="password" type={showPassword ? "text" : "password"} placeholder="Password"
+                    value={formData.password} onChange={handleChange} required
+                    className="auth-field w-full p-4 pr-12 rounded-xl outline-none transition-colors duration-200"
+                  />
+                  <button
+                    type="button" onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors"
+                    style={{ color: 'var(--text-muted)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--neon-purple)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                  >
+                    {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
+                  </button>
+                </div>
+                <button
+                  type="button" onClick={handleForgotPassword}
+                  className="text-xs font-bold uppercase tracking-tight transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--neon-purple)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                >
+                  Forgot password?
+                </button>
+                <button
+                  type="submit"
+                  className="w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all active:scale-[0.98]"
+                  style={{
+                    background: 'white',
+                    color: 'var(--text-on-light)',
+                    boxShadow: '0 4px 24px rgba(197,107,255,0.10)',
+                  }}
+                >
+                  Sign In
+                </button>
+              </form>
             </div>
 
-            {/*sign up*/}
+            {/* ── Sign Up form ── */}
             <div className={`w-1/2 flex flex-col items-center justify-center p-12 transition-all duration-700 ease-in-out ${isSignUp ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"}`}>
-               <h3 className="text-4xl font-black mb-8 italic">Sign Up</h3>
-               {error && isSignUp && <p className="text-red-500 text-xs mb-4 font-bold">{error}</p>}
-               <form onSubmit={handleSubmit} className="w-full space-y-4">
-                  <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={formData.email} onChange={handleChange} className="w-full bg-zinc-100 p-4 rounded-xl outline-none border border-transparent focus:border-purple-300" required />
-                  <input name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} className="w-full bg-zinc-100 p-4 rounded-xl outline-none border border-transparent focus:border-purple-300" required />
-                  <button type="submit" className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-purple-200 active:scale-95 transition-all">Request OTP</button>
-               </form>
+              <h3 className="text-3xl font-black mb-8 display-font" style={{ color: 'var(--text-primary)' }}>
+                Sign <span className="accent-phrase-blue">Up</span>
+              </h3>
+              {error && isSignUp && (
+                <p className="text-xs mb-4 font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(255,80,80,0.08)', color: '#ff6b6b', border: '1px solid rgba(255,80,80,0.15)' }}>{error}</p>
+              )}
+              <form onSubmit={handleSubmit} className="w-full space-y-4">
+                <input
+                  name="email" type="email" placeholder="abc00@mail.aub.edu"
+                  value={formData.email} onChange={handleChange} required
+                  className="auth-field w-full p-4 rounded-xl outline-none transition-colors duration-200"
+                />
+                <div className="relative w-full">
+                  <input
+                    name="password" type={showPassword ? "text" : "password"} placeholder="Password"
+                    value={formData.password} onChange={handleChange} required
+                    className="auth-field w-full p-4 pr-12 rounded-xl outline-none transition-colors duration-200"
+                  />
+                  <button
+                    type="button" onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors"
+                    style={{ color: 'var(--text-muted)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--neon-purple)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                  >
+                    {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
+                  </button>
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-4 rounded-xl font-bold uppercase tracking-widest transition-all active:scale-[0.98]"
+                  style={{
+                    background: 'white',
+                    color: 'var(--text-on-light)',
+                    boxShadow: '0 4px 24px rgba(91,200,255,0.10)',
+                  }}
+                >
+                  Request OTP
+                </button>
+              </form>
             </div>
 
-            {/*animation for the login/sign up pages*/}
-            <div className={`absolute top-0 left-1/2 w-1/2 h-full bg-gradient-to-br from-purple-600 to-pink-600 text-white transition-transform duration-700 ease-in-out z-40 flex flex-col items-center justify-center p-12 text-center
-              ${isSignUp ? "-translate-x-full rounded-r-[80px]" : "translate-x-0 rounded-l-[80px]"}`}>
-              
+            {/* ── Animated switch panel ── */}
+            <div
+              className={`absolute top-0 left-1/2 w-1/2 h-full transition-transform duration-700 ease-in-out z-40 flex flex-col items-center justify-center p-12 text-center
+                ${isSignUp ? "-translate-x-full rounded-r-[3rem]" : "translate-x-0 rounded-l-[3rem]"}`}
+              style={{
+                background: 'var(--background)',
+                borderLeft: isSignUp ? 'none' : '1px solid var(--border-subtle)',
+                borderRight: isSignUp ? '1px solid var(--border-subtle)' : 'none',
+              }}
+            >
               {isSignUp ? (
                 <>
-                  <h3 className="text-3xl font-black mb-4 italic">Welcome Back!</h3>
-                  <p className="mb-8 text-purple-100 font-medium italic">Login to see your ratings and discover more</p>
-                  <button onClick={() => {setIsSignUp(false); setStep("auth"); setError(null);}} className="px-12 py-3 border-2 border-white rounded-full font-bold uppercase tracking-widest hover:bg-white hover:text-purple-600 transition-all">Sign In</button>
+                  <h3 className="text-2xl font-black mb-4 display-font" style={{ color: 'var(--text-primary)' }}>
+                    Welcome <span className="accent-phrase">Back!</span>
+                  </h3>
+                  <p className="mb-8 text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Login to see your ratings and discover more</p>
+                  <button
+                    onClick={() => {setIsSignUp(false); setStep("auth"); setError(null);}}
+                    className="auth-switch-btn px-10 py-3 rounded-full font-bold uppercase tracking-widest transition-all"
+                  >
+                    Sign In
+                  </button>
                 </>
               ) : (
                 <>
-                  <h3 className="text-3xl font-black mb-4 italic">New here?</h3>
-                  <p className="mb-8 text-purple-100 font-medium italic">Create an account and join the AUB rating community!</p>
-                  <button onClick={() => {setIsSignUp(true); setStep("auth"); setError(null);}} className="px-12 py-3 border-2 border-white rounded-full font-bold uppercase tracking-widest hover:bg-white hover:text-purple-600 transition-all">Sign Up</button>
+                  <h3 className="text-2xl font-black mb-4 display-font" style={{ color: 'var(--text-primary)' }}>
+                    New <span className="accent-phrase-blue">here?</span>
+                  </h3>
+                  <p className="mb-8 text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Create an account and join the AUB rating community!</p>
+                  <button
+                    onClick={() => {setIsSignUp(true); setStep("auth"); setError(null);}}
+                    className="auth-switch-btn-blue px-10 py-3 rounded-full font-bold uppercase tracking-widest transition-all"
+                  >
+                    Sign Up
+                  </button>
                 </>
               )}
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-{/*the design of the cards*/}
-function CategoryCard({ icon, color, title, desc }: any) {
-  return (
-    <div className="relative group">
-      {/* This is the "Lightening Border" / Glow effect */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-[2.5rem] blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-      
-      {/* The Actual Card */}
-      <div className="relative bg-[#111] border border-white/10 p-10 rounded-[2.5rem] text-left hover:border-white/20 transition-all group-hover:-translate-y-2 flex flex-col h-full">
-        <div className={`${color} w-14 h-14 rounded-2xl flex items-center justify-center mb-8 shadow-2xl group-hover:scale-110 transition-transform text-white`}>
-          {icon}
-        </div>
-        <h3 className="text-2xl font-bold mb-4 italic text-white">{title}</h3>
-        <p className="text-zinc-500 text-lg leading-relaxed">{desc}</p>
-      </div>
-    </div>
-  );
-}
-
-function FeatureItem({ img, label, color }: any) {
-  return (
-    <div className="bg-[#111] border border-white/10 rounded-[2.5rem] p-8">
-      <div className="w-full aspect-square mb-6 overflow-hidden rounded-2xl bg-zinc-900">
-        <img src={img} alt={label} className="w-full h-full object-cover" />
-      </div>
-      <span className={`inline-block px-4 py-2 rounded-full bg-white text-black text-xs font-black uppercase shadow-[5px_5px_0px_#7c3aed] ${color}`}>{label}</span>
-    </div>
-  );
-}
-
-
-{/* FLIPPING CARD COMPONENT */}
-function FeatureCard({ img, label, glowColor }: any) {
-  return (
-    <div className="group h-[400px] w-full [perspective:1000px]">
-      
-      <div className="relative h-full w-full transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
-        
-        {/*picture on the front side*/}
-        <div className="absolute inset-0">
-            <div className={`h-full w-full bg-[#111] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl transition-all ${glowColor}`}>
-                <img 
-                    src={img} 
-                    alt="Feature" 
-                    className="h-full w-full object-cover p-2 rounded-[2.5rem]" 
-                />
-            </div>
-        </div>
-
-        {/*writing on the back side*/}
-        <div className="absolute inset-0 h-full w-full rounded-[2.5rem] bg-gradient-to-br from-purple-600 to-pink-600 p-8 text-white [transform:rotateY(180deg)] [backface-visibility:hidden]">
-          <div className="flex h-full flex-col items-center justify-center text-center">
-            <div className="mb-6 rounded-full bg-white/20 p-4">
-               <Star className="text-white" fill="white" size={32} />
-            </div>
-            <p className="text-2xl font-black uppercase tracking-wider leading-tight">
-              {label}
-            </p>
-            <div className="mt-6 h-1 w-12 bg-white/50 rounded-full" />
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
-
-function StarsBackground() {
-  const [mounted, setMounted] = useState(false);
-  const [starData, setStarData] = useState<any[]>([]);
-
-  useEffect(() => {
-    // Generate star data only once on the client
-    const generatedStars = Array.from({ length: 50 }).map(() => ({
-      size: Math.random() * 20 + 10,
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      duration: Math.random() * 10 + 5,
-      delay: Math.random() * 5,
-      isPurple: Math.random() > 0.5
-    }));
-    
-    setStarData(generatedStars);
-    setMounted(true);
-  }, []);
-
-  // Don't render anything on the server to avoid the mismatch
-  if (!mounted) return null;
-
-  return (
-    <div className="relative w-full h-full overflow-hidden">
-      {starData.map((star, i) => (
-        <div
-          key={i}
-          className="absolute opacity-20"
-          style={{
-            left: `${star.left}%`,
-            top: `${star.top}%`,
-            animation: `floatStar ${star.duration}s ease-in-out infinite alternate`,
-            animationDelay: `${star.delay}s`,
-          }}
-        >
-          <Star 
-            size={star.size} 
-            fill={star.isPurple ? "#9333ea" : "#db2777"}
-            className="blur-[1px] transform rotate-12"
-          />
-        </div>
-      ))}
-
-      <style jsx>{`
-        @keyframes floatStar {
-          0% {
-            transform: translateY(0px) rotate(0deg) scale(1);
-            opacity: 0.1;
-          }
-          50% {
-            opacity: 0.4;
-          }
-          100% {
-            transform: translateY(-40px) rotate(20deg) scale(1.2);
-            opacity: 0.1;
-          }
-        }
-      `}</style>
     </div>
   );
 }

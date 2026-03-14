@@ -3,7 +3,7 @@
 import { useState } from "react";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
-import SortBar from "../components/sortBar";
+import sortBar from "../components/sortBar";
 
 
 

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
+import SortBar from "../components/sortBar";
+
 
 
 const reviews = [
@@ -30,6 +32,7 @@ const reviews = [
 
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [activeSort, setActiveSort] = useState("relevant");
 
   const filteredReviews =
     activeCategory === "All"
@@ -47,6 +50,8 @@ export default function HomePage() {
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
       />
+
+      <SortBar activeSort={activeSort} setActiveSort={setActiveSort} />
 
       <div className="w-full">
         {filteredReviews.length > 0 ? (

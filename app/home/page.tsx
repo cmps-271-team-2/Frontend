@@ -3,6 +3,8 @@
 import { useState } from "react";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
+import sortBar from "../components/sortBar";
+
 
 
 const reviews = [

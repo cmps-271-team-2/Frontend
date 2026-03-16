@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
 import SortBar from "../components/sortBar";
-import { apiFetch } from "@/lib/api";
 
 type StudyNoiseLevel = "quiet" | "moderate" | "busy";
 type FoodVenueCategory = "restaurant" | "food" | "fast-food" | "bakery";
@@ -67,17 +66,35 @@ export default function HomePage() {
       setIsLoading(true);
       setLoadError(null);
       try {
-        const posts = await apiFetch<BackendPost[]>("/posts", {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+        if (!apiBaseUrl) {
+          throw new Error("API URL is not configured.");
+        }
+
+        const response = await fetch(`${apiBaseUrl}/feed/posts`, {
           method: "GET",
           cache: "no-store",
         });
+
+        if (!response.ok) {
+          throw new Error(`Request failed (${response.status})`);
+        }
+
+        const posts = (await response.json()) as BackendPost[];
+
+        if (process.env.NODE_ENV === "development") {
+          console.debug("[home-feed] Loaded posts:", posts.length);
+        }
 
         if (!mounted) {
           return;
         }
 
         setReviews(posts.map(mapPostToHomeReview));
-      } catch {
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+          console.error("[home-feed] Failed to load posts", error);
+        }
         if (mounted) {
           setLoadError("Unable to load posts right now. Please try again.");
           setReviews([]);

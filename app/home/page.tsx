@@ -21,6 +21,7 @@ type HomeReview = {
   venueCategory?: FoodVenueCategory;
   title?: string;
   courseCode?: string;
+  targetId?: string;
   displayName?: string;
 };
 
@@ -29,6 +30,7 @@ type BackendPost = {
   rating?: number;
   text?: string;
   targetType?: string;
+  targetId?: string;
   targetName?: string;
   courseCode?: string;
   department?: string;
@@ -403,6 +405,7 @@ function mapPostToHomeReview(post: BackendPost): HomeReview {
     venueCategory: post.venueCategory,
     title: post.targetName || "",
     courseCode: post.courseCode || "",
+    targetId: post.targetId || "",
     displayName: post.displayName || post.authorName || "Anonymous",
   };
 }

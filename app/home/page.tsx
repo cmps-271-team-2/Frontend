@@ -12,6 +12,7 @@ type HomeReview = {
   id: string;
   rating: number;
   category: string;
+  kind?: "study-spot" | "food-spot" | "course-professor";
   text: string;
   likes: number;
   dislikes: number;
@@ -396,6 +397,7 @@ function mapPostToHomeReview(post: BackendPost): HomeReview {
     id: post.id,
     rating: Number(post.rating) || 0,
     category,
+    kind: targetType === "study-spot" || targetType === "food-spot" ? targetType : "course-professor",
     text: post.text || "",
     likes: Number(post.likes) || 0,
     dislikes: Number(post.dislikes) || 0,

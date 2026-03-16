@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
 import SortBar from "../components/sortBar";
@@ -56,6 +56,7 @@ export default function HomePage() {
   const [activeFoodCategory, setActiveFoodCategory] = useState<FoodVenueCategory | "all">("all");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [reviews, setReviews] = useState<HomeReview[]>([]);
+  const feedRef = useRef<HTMLElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -146,12 +147,15 @@ export default function HomePage() {
       : 0;
 
   function scrollTop() {
-    const container = document.querySelector(".snap-container") as HTMLElement | null;
-    if (container) container.scrollTo({ top: 0, behavior: "smooth" });
+    if (feedRef.current) feedRef.current.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
-    <main className="snap-container no-snap" style={{ background: "var(--bg)" }}>
+    <main
+      ref={feedRef}
+      className="h-screen w-full overflow-y-scroll snap-y snap-mandatory"
+      style={{ background: "var(--bg)" }}
+    >
       <GlobalHeader
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
@@ -263,28 +267,29 @@ export default function HomePage() {
         </div>
       ) : null}
 
-      <div className="w-full">
-        {isLoading ? (
-          <div className="snap-item flex flex-col items-center justify-center text-center px-10">
-            <p className="text-sm font-semibold" style={{ color: "var(--muted)" }}>
-              Loading posts...
-            </p>
-          </div>
-        ) : null}
+      {isLoading ? (
+        <div className="h-screen w-full flex flex-col items-center justify-center text-center px-10">
+          <p className="text-sm font-semibold" style={{ color: "var(--muted)" }}>
+            Loading posts...
+          </p>
+        </div>
+      ) : null}
 
-        {!isLoading && loadError ? (
-          <div className="snap-item flex flex-col items-center justify-center text-center px-10">
-            <p className="text-sm font-semibold text-red-500">{loadError}</p>
-          </div>
-        ) : null}
+      {!isLoading && loadError ? (
+        <div className="h-screen w-full snap-start flex flex-col items-center justify-center text-center px-10">
+          <p className="text-sm font-semibold text-red-500">{loadError}</p>
+        </div>
+      ) : null}
 
-        {!isLoading && !loadError && filteredReviews.length > 0 ? (
-          <>
-            {filteredReviews.map((review) => (
-              <ReviewCard key={review.id} review={review} />
-            ))}
+      {!isLoading && !loadError && filteredReviews.length > 0 ? (
+        <>
+          {filteredReviews.map((review) => (
+            <div key={review.id} className="h-screen w-full snap-start">
+              <ReviewCard review={review} />
+            </div>
+          ))}
 
-            <div className="snap-item flex flex-col items-center justify-center text-center px-10">
+            <div className="h-screen w-full snap-start flex flex-col items-center justify-center text-center px-10">
               <div
                 className="rounded-[2rem] p-10 max-w-[400px]"
                 style={{
@@ -319,9 +324,9 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
-          </>
-        ) : !isLoading && !loadError ? (
-          <div className="snap-item flex flex-col items-center justify-center text-center px-10">
+        </>
+      ) : !isLoading && !loadError ? (
+        <div className="h-screen w-full snap-start flex flex-col items-center justify-center text-center px-10">
             <div
               className="rounded-[2rem] p-10 max-w-[400px]"
               style={{
@@ -362,9 +367,8 @@ export default function HomePage() {
                 View All Ratings
               </button>
             </div>
-          </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </main>
   );
 }

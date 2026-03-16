@@ -21,6 +21,7 @@ type Review = {
   kind?: "study-spot" | "food-spot" | "course-professor";
   major: string;
   year: string;
+  spotName?: string;
   title?: string;
   courseCode?: string;
   targetId?: string;
@@ -35,11 +36,10 @@ export default function ReviewCard({ review }: { review: Review }) {
   const displayDislikes = review.dislikes + (userAction === "disliked" ? 1 : 0);
   const authorName = review.displayName || "Anonymous";
   const semesterLabel = review.year || "";
-  const shortTextFallback = review.text?.trim().slice(0, 30);
   const displayTitle =
     review.kind === "study-spot" || review.kind === "food-spot"
-      ? review.title || shortTextFallback || "Unknown Spot"
-      : review.courseCode || review.title || review.targetId || "Unknown Course";
+      ? review.spotName || review.title || "Unknown Spot"
+      : review.courseCode || review.title || review.targetId || "Unknown";
 
   return (
     <div className="snap-item bg-transparent">

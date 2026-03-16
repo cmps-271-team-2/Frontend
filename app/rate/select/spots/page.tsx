@@ -121,6 +121,17 @@ export default function SelectSpotPage() {
     return filterFoodSpotItems(foodItems, foodFilters);
   }, [foodFilters, foodItems, kind, studyFilters, studyItems]);
 
+  const activeSearchValue = kind === "study-spot" ? studyFilters.search : foodFilters.search;
+
+  function updateActiveSearch(search: string) {
+    if (kind === "study-spot") {
+      updateStudyFilters({ search });
+      return;
+    }
+
+    updateFoodFilters({ search });
+  }
+
   function updateStudyFilters(partial: Partial<StudySpotFilters>) {
     setStudyFilters((prev) => ({ ...prev, ...partial }));
   }
@@ -203,6 +214,20 @@ export default function SelectSpotPage() {
         >
           Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}
         </button>
+      </div>
+
+      <div className="mt-4">
+        <input
+          value={activeSearchValue}
+          onChange={(event) => updateActiveSearch(event.target.value)}
+          placeholder={
+            kind === "study-spot"
+              ? "Search study spots by name or area..."
+              : "Search food spots by name or area..."
+          }
+          className="w-full rounded-lg border px-3 py-2"
+          style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+        />
       </div>
 
       {isFiltersOpen ? (

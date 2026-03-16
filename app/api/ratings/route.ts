@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   const baseUrl = "https://api.unitok.app";
   if (!baseUrl) {
     return NextResponse.json(
-      { ok: false, error: "Base URL is incorrect." },
+      { ok: false, error: "Backend base URL not configured." },
       { status: 500 }
     );
   }

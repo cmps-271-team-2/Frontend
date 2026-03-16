@@ -1,9 +1,17 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import DarkSelect from "./dark-select";
 import RatingStars from "./rating-stars";
 import { CourseProfessorType, submitRating } from "@/lib/ratings";
+
+type FirestoreCourse = {
+  id: string;
+  code: string;
+  title: string;
+};
 
 const MIN_COMMENT_LENGTH = 20;
 
@@ -42,6 +50,8 @@ export default function CourseProfessorRatingForm({
   const [professorName, setProfessorName] = useState(
     initialType === "professor" ? initialName ?? "" : ""
   );
+  const [courses, setCourses] = useState<FirestoreCourse[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
   const [department, setDepartment] = useState("");
   const [semesterTaken, setSemesterTaken] = useState("");
   const [difficulty, setDifficulty] = useState(0);
@@ -53,6 +63,32 @@ export default function CourseProfessorRatingForm({
   const [comment, setComment] = useState("");
   const [errors, setErrors] = useState<CourseProfessorErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load courses from Firestore when the course type is active
+  useEffect(() => {
+    if (type !== "course") return;
+    let mounted = true;
+    setCoursesLoading(true);
+    getDocs(collection(db, "courses"))
+      .then((snapshot) => {
+        if (!mounted) return;
+        const list: FirestoreCourse[] = snapshot.docs.map((doc) => {
+          const d = doc.data() as { code?: string; title?: string };
+          return { id: doc.id, code: d.code ?? doc.id, title: d.title ?? "" };
+        });
+        list.sort((a, b) => a.code.localeCompare(b.code));
+        setCourses(list);
+      })
+      .catch(() => { /* silently fail – user can still type */ })
+      .finally(() => { if (mounted) setCoursesLoading(false); });
+    return () => { mounted = false; };
+  }, [type]);
+
+  function handleCourseSelect(selectedCode: string) {
+    setCourseCode(selectedCode);
+    const match = courses.find((c) => c.code === selectedCode);
+    setCourseName(match ? match.title : "");
+  }
 
   function resetForm() {
     setType(initialType ?? "");
@@ -86,8 +122,16 @@ export default function CourseProfessorRatingForm({
       nextErrors.courseName = "Course name is required.";
     }
 
+    if (type === "course" && !professorName.trim()) {
+      nextErrors.professorName = "Professor name is required.";
+    }
+
     if (type === "professor" && !professorName.trim()) {
       nextErrors.professorName = "Professor name is required.";
+    }
+
+    if (type === "professor" && !courseName.trim()) {
+      nextErrors.courseName = "Course name is required.";
     }
 
     if (difficulty < 1 || difficulty > 5) {
@@ -127,7 +171,7 @@ export default function CourseProfessorRatingForm({
         type: type as CourseProfessorType,
         courseCode: type === "course" ? courseCode.trim() : undefined,
         courseName: courseName.trim() || undefined,
-        professorName: type === "professor" ? professorName.trim() : professorName.trim() || undefined,
+        professorName: professorName.trim() || undefined,
         department: department.trim() || undefined,
         semesterTaken: semesterTaken.trim() || undefined,
         ratings: {
@@ -171,7 +215,11 @@ export default function CourseProfessorRatingForm({
               <button
                 key={item.value}
                 type="button"
-                onClick={() => setType(item.value as CourseProfessorType)}
+                onClick={() => {
+                  setType(item.value as CourseProfessorType);
+                  setCourseCode("");
+                  setCourseName("");
+                }}
                 className="rounded-full border px-4 py-2 text-sm font-semibold"
                 style={{
                   borderColor: type === item.value ? "var(--accent-blue)" : "var(--border)",
@@ -190,40 +238,47 @@ export default function CourseProfessorRatingForm({
       {type === "course" ? (
         <>
           <div className="space-y-2">
-            <label className="block text-sm font-semibold">Course code *</label>
-            <input
-              type="text"
-              value={courseCode}
-              onChange={(e) => setCourseCode(e.target.value)}
-              disabled={lockSelection}
-              placeholder="e.g. CMPS 202"
-              className="w-full rounded-lg border px-3 py-2"
-              style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
-            />
+            <label className="block text-sm font-semibold">Course *</label>
+            {coursesLoading ? (
+              <p className="text-xs" style={{ color: "var(--muted)" }}>Loading courses…</p>
+            ) : (
+              <DarkSelect
+                value={courseCode}
+                onChange={handleCourseSelect}
+                aria-label="Select course"
+              >
+                <option value="">Select a course</option>
+                {courses.map((c) => (
+                  <option key={c.id} value={c.code}>
+                    {c.code} – {c.title}
+                  </option>
+                ))}
+              </DarkSelect>
+            )}
             {errors.courseCode ? <p className="text-sm text-red-500">{errors.courseCode}</p> : null}
           </div>
           <div className="space-y-2">
-            <label className="block text-sm font-semibold">Course name *</label>
+            <label className="block text-sm font-semibold">Course name</label>
             <input
               type="text"
               value={courseName}
-              onChange={(e) => setCourseName(e.target.value)}
-              placeholder="e.g. Data Structures"
-              className="w-full rounded-lg border px-3 py-2"
-              style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+              disabled
+              readOnly
+              className="w-full rounded-lg border px-3 py-2 cursor-not-allowed"
+              style={{ borderColor: "var(--border)", background: "#0f0f0f", color: "var(--muted)" }}
             />
             {errors.courseName ? <p className="text-sm text-red-500">{errors.courseName}</p> : null}
           </div>
           <div className="space-y-2">
-            <label className="block text-sm font-semibold">Professor name <span style={{ color: "var(--muted)" }}>(optional)</span></label>
+            <label className="block text-sm font-semibold">Professor name *</label>
             <input
               type="text"
               value={professorName}
               onChange={(e) => setProfessorName(e.target.value)}
-              placeholder="e.g. Dr. Smith"
               className="w-full rounded-lg border px-3 py-2"
               style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
             />
+            {errors.professorName ? <p className="text-sm text-red-500">{errors.professorName}</p> : null}
           </div>
         </>
       ) : null}
@@ -238,22 +293,21 @@ export default function CourseProfessorRatingForm({
               value={professorName}
               onChange={(e) => setProfessorName(e.target.value)}
               disabled={lockSelection}
-              placeholder="e.g. Dr. Smith"
               className="w-full rounded-lg border px-3 py-2"
               style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
             />
             {errors.professorName ? <p className="text-sm text-red-500">{errors.professorName}</p> : null}
           </div>
           <div className="space-y-2">
-            <label className="block text-sm font-semibold">Course name <span style={{ color: "var(--muted)" }}>(optional)</span></label>
+            <label className="block text-sm font-semibold">Course name *</label>
             <input
               type="text"
               value={courseName}
               onChange={(e) => setCourseName(e.target.value)}
-              placeholder="e.g. Data Structures"
               className="w-full rounded-lg border px-3 py-2"
               style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
             />
+            {errors.courseName ? <p className="text-sm text-red-500">{errors.courseName}</p> : null}
           </div>
         </>
       ) : null}

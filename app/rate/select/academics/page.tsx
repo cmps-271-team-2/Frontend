@@ -32,6 +32,7 @@ export default function SelectAcademicPage() {
             id: doc.id,
             name: doc.data().code as string,
             subtitle: doc.data().title as string | undefined,
+            kind: "course",
           }));
         } else {
           // Professors from existing API route

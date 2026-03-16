@@ -12,7 +12,7 @@ export default function ReviewCard({ title, quote, score, tag }: any) {
         <div className="w-11 h-11 rounded-lg flex items-center justify-center font-bold text-sm" style={{ background: 'var(--surface-elevated)', color: 'var(--text-muted)' }}>A</div>
         <div className="flex-1">
           <div className="flex items-center justify-between">
-            <div className="text-xs uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: tag === 'Professors' ? 'rgba(197,107,255,0.1)' : tag === 'Cafeterias' ? 'rgba(255,155,84,0.1)' : 'rgba(105,242,140,0.1)', color: tag === 'Professors' ? 'var(--neon-purple)' : tag === 'Cafeterias' ? 'var(--neon-orange)' : 'var(--neon-green)' }}>{tag}</div>
+            <div className="text-xs uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: tag === 'Professors' ? 'rgba(197,107,255,0.1)' : tag === 'Food' ? 'rgba(255,155,84,0.1)' : 'rgba(105,242,140,0.1)', color: tag === 'Professors' ? 'var(--neon-purple)' : tag === 'Food' ? 'var(--neon-orange)' : 'var(--neon-green)' }}>{tag}</div>
             <div className="font-black" style={{ color: 'var(--neon-yellow)' }}>{score}</div>
           </div>
           <div className="mt-2 font-semibold">{title}</div>

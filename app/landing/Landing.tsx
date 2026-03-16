@@ -171,7 +171,7 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
                 <CategoryCard
                   icon={<Coffee fill="currentColor" />}
                   color="orange"
-                  title="Cafeterias"
+                  title="Food"
                   desc="Find the best food, coffee, and hangout spots on campus."
                   backText="Compare menus, ambiance, and value across every campus eatery."
                 />

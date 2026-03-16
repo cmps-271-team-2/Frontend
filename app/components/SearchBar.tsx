@@ -5,7 +5,7 @@ import { Search, LayoutGrid, GraduationCap, Coffee, BookOpen } from "lucide-reac
 const CATEGORIES = [
   { id: "All", label: "All", icon: <LayoutGrid size={18} />, color: "var(--accent)" },
   { id: "Professor", label: "Prof", icon: <GraduationCap size={18} />, color: "var(--accent-blue)" },
-  { id: "Cafeteria", label: "Café", icon: <Coffee size={18} />, color: "var(--accent-orange)" },
+  { id: "Food", label: "Food", icon: <Coffee size={18} />, color: "var(--accent-orange)" },
   { id: "Study Spot", label: "Study", icon: <BookOpen size={18} />, color: "var(--accent-green)" },
 ];
 

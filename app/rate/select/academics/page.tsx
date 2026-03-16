@@ -14,8 +14,8 @@ type AcademicItem = {
 
 export default function SelectAcademicPage() {
   const router = useRouter();
-  const [kind, setKind] = useState<AcademicKind>("course");
-  const [items, setItems] = useState<AcademicItem[]>([]);
+  const [kind, setKind] = useState<AcademicKind | "all">("all");
+  const [items, setItems] = useState<CatalogItem[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,16 +62,11 @@ export default function SelectAcademicPage() {
     return () => {
       mounted = false;
     };
-  }, [kind]);
+  }, []);
 
   const filteredItems = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return items;
-    return items.filter((item) => {
-      const text = `${item.name} ${item.subtitle || ""}`.toLowerCase();
-      return text.includes(query);
-    });
-  }, [items, search]);
+    return filterAcademicItems(items, kind, search);
+  }, [items, kind, search]);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 pb-32 pt-6" style={{ color: "var(--text)" }}>
@@ -82,6 +77,7 @@ export default function SelectAcademicPage() {
 
       <div className="mt-4 flex gap-2">
         {[
+          { label: "All", value: "all" as const },
           { label: "Courses", value: "course" as const },
           { label: "Professors", value: "professor" as const },
         ].map((option) => (
@@ -104,7 +100,7 @@ export default function SelectAcademicPage() {
       <input
         value={search}
         onChange={(event) => setSearch(event.target.value)}
-        placeholder="Search list..."
+        placeholder="Search by professor, course name, or code..."
         className="mt-4 w-full rounded-lg border px-3 py-2"
         style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
       />
@@ -115,7 +111,7 @@ export default function SelectAcademicPage() {
 
         {!loading && !error && filteredItems.length === 0 ? (
           <p className="text-sm" style={{ color: "var(--muted)" }}>
-            No items found.
+            No results found for your current search.
           </p>
         ) : null}
 
@@ -125,7 +121,7 @@ export default function SelectAcademicPage() {
             type="button"
             onClick={() =>
               router.push(
-                `/rate/create?flow=course-professor&type=${kind}&id=${encodeURIComponent(item.id)}&name=${encodeURIComponent(item.name)}`
+                `/rate/create?flow=course-professor&type=${item.kind}&id=${encodeURIComponent(item.id)}&name=${encodeURIComponent(item.name)}`
               )
             }
             className="w-full rounded-xl border px-4 py-3 text-left"
@@ -135,6 +131,11 @@ export default function SelectAcademicPage() {
             {item.subtitle ? (
               <div className="text-xs font-semibold" style={{ color: "var(--muted)" }}>
                 {item.subtitle}
+              </div>
+            ) : null}
+            {item.kind === "course" ? (
+              <div className="mt-1 text-xs font-semibold" style={{ color: "var(--muted)" }}>
+                {item.courseCode || "No code"}
               </div>
             ) : null}
           </button>

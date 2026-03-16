@@ -11,7 +11,7 @@ const item = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transiti
 export default function ReviewsSection() {
   const sample = [
     { title: "Great professor—clear lectures", quote: "Explains concepts well and holds helpful office hours.", score: 4.8, tag: "Professors" },
-    { title: "Cheap lunch, big portions", quote: "Cafeteria food is solid and affordable.", score: 4.4, tag: "Cafeterias" },
+    { title: "Cheap lunch, big portions", quote: "Campus food is solid and affordable.", score: 4.4, tag: "Food" },
     { title: "Quiet study corner", quote: "Found a cozy corner that’s perfect for exam prep.", score: 4.6, tag: "Study Spots" },
   ];
 
@@ -25,7 +25,7 @@ export default function ReviewsSection() {
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={container} className="text-center md:text-left">
           <motion.div variants={item} className="inline-block px-4 py-1 rounded-full border text-sm font-bold uppercase tracking-widest mb-6" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>Community</motion.div>
           <motion.h3 variants={item} className="text-5xl md:text-6xl font-black display-font mb-4"><span className="accent-phrase-blue">1,200+</span> reviews</motion.h3>
-          <motion.p variants={item} style={{ color: 'var(--text-secondary)' }} className="max-w-md">Students are rating professors, cafeterias, and study spots — real feedback from campus communities.</motion.p>
+          <motion.p variants={item} style={{ color: 'var(--text-secondary)' }} className="max-w-md">Students are rating professors, food spots, and study spots — real feedback from campus communities.</motion.p>
 
           <motion.div variants={item} className="mt-8 flex gap-4 flex-wrap">
             <div className="card-surface p-4 rounded-lg">

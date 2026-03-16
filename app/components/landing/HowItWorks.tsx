@@ -113,7 +113,7 @@ export default function HowItWorks() {
             icon={Star}
             step="Step 01"
             title="Pick a category"
-            desc="Professors, cafeterias, or study spots — choose where your review belongs."
+            desc="Professors, food spots, or study spots — choose where your review belongs."
             accentColor="var(--neon-purple)"
             accentRgb="197,107,255"
           />

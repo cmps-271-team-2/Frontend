@@ -200,6 +200,11 @@ textarea::placeholder {
   scrollbar-width: none;
 }
 
+/* Home page uses this to keep inline filter controls easy to click. */
+.no-snap {
+  scroll-snap-type: none !important;
+}
+
 /* Utility: neon underline on hover */
 .neon-underline {
   position: relative;

@@ -71,8 +71,8 @@ export default function Hero({ onOpenAuth }: Props) {
                   <div className="bg-[#0b0b0b] p-4 rounded-xl border border-white/6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-sm uppercase tracking-wider" style={{ color: 'var(--muted-on-dark)' }}>Cafe Review</div>
-                        <div className="text-lg font-bold" style={{ color: 'var(--text-on-dark)' }}>Midd Hall Café</div>
+                        <div className="text-sm uppercase tracking-wider" style={{ color: 'var(--muted-on-dark)' }}>Food Review</div>
+                        <div className="text-lg font-bold" style={{ color: 'var(--text-on-dark)' }}>Midd Hall Food</div>
                       </div>
                       <div className="font-black" style={{ color: 'var(--neon-yellow)' }}>4.7</div>
                     </div>

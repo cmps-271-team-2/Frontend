@@ -25,18 +25,35 @@ export default function SelectAcademicPage() {
       try {
         let data: AcademicItem[];
 
-        if (kind === "course") {
-          // Fetch live from Firestore "courses" collection
+        const loadCourses = async (): Promise<CatalogItem[]> => {
           const snapshot = await getDocs(collection(db, "courses"));
-          data = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            name: doc.data().code as string,
-            subtitle: doc.data().title as string | undefined,
-            kind: "course",
-          }));
+          return snapshot.docs.map((doc) => {
+            const course = doc.data() as {
+              title?: string;
+              department?: string;
+              code?: string;
+            };
+
+            return {
+              id: doc.id,
+              name: course.title as string,
+              subtitle: course.department || course.code,
+              kind: "course" as const,
+              courseCode: course.code,
+            };
+          });
+        };
+
+        if (kind === "course") {
+          data = await loadCourses();
+        } else if (kind === "professor") {
+          data = await fetchCatalogItems("academics", "professor");
         } else {
-          // Professors from existing API route
-          data = await fetchCatalogItems("academics", kind);
+          const [courses, professors] = await Promise.all([
+            loadCourses(),
+            fetchCatalogItems("academics", "professor"),
+          ]);
+          data = [...courses, ...professors];
         }
 
         if (mounted) {
@@ -59,7 +76,7 @@ export default function SelectAcademicPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [kind]);
 
   const filteredItems = useMemo(() => {
     return filterAcademicItems(items, kind, search);

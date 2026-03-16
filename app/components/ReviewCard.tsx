@@ -22,6 +22,7 @@ type Review = {
   year: string;
   title?: string;
   courseCode?: string;
+  targetId?: string;
   displayName?: string;
 };
 
@@ -33,6 +34,11 @@ export default function ReviewCard({ review }: { review: Review }) {
   const displayDislikes = review.dislikes + (userAction === "disliked" ? 1 : 0);
   const authorName = review.displayName || "Anonymous";
   const semesterLabel = review.year || "";
+  const displayTitle =
+    review.courseCode ||
+    review.title ||
+    review.targetId ||
+    "Unknown Course";
 
   return (
     <div className="snap-item bg-transparent">
@@ -47,14 +53,12 @@ export default function ReviewCard({ review }: { review: Review }) {
           }}
         >
           {/* Course / venue title */}
-          {(review.title || review.courseCode) ? (
-            <h2
-              className="mb-4 text-base font-bold text-center tracking-wide"
-              style={{ color: "var(--text)" }}
-            >
-              {review.title || review.courseCode}
-            </h2>
-          ) : null}
+          <h2
+            className="mb-4 text-lg font-semibold text-center"
+            style={{ color: "var(--text)" }}
+          >
+            {displayTitle}
+          </h2>
 
           {/* Stars – neon per-star colors matching the rating form */}
           <div className="flex items-center justify-center gap-2 mb-5">

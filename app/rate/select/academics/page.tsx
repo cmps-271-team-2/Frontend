@@ -112,7 +112,7 @@ export default function SelectAcademicPage() {
           </p>
         ) : null}
 
-        {filteredItems.map((item) => (
+        {filteredItems.map((item: CatalogItem) => (
           <button
             key={item.id}
             type="button"
@@ -140,4 +140,18 @@ export default function SelectAcademicPage() {
       </div>
     </main>
   );
+}
+
+function filterAcademicItems(
+  items: CatalogItem[],
+  kind: AcademicKind | "all",
+  search: string
+): CatalogItem[] {
+  const query = search.trim().toLowerCase();
+
+  return items.filter((item: CatalogItem) => {
+    const matchesKind = kind === "all" || item.kind === kind;
+    const matchesSearch = !query || item.name.toLowerCase().includes(query);
+    return matchesKind && matchesSearch;
+  });
 }

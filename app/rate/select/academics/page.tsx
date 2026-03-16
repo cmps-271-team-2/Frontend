@@ -4,13 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { AcademicKind, fetchCatalogItems } from "@/lib/rating-catalog";
+import { AcademicKind, fetchCatalogItems, type CatalogItem } from "@/lib/rating-catalog";
 
-type AcademicItem = {
-  id: string;
-  name: string;
-  subtitle?: string;
-};
+type AcademicItem = CatalogItem;
 
 export default function SelectAcademicPage() {
   const router = useRouter();

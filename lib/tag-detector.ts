@@ -10,7 +10,7 @@ const TAG_KEYWORDS: TagKeywords = {
   sleepy: ["zzz", "sleepy", "nap", "sleep"],
   quiet: ["quiet", "silent", "peaceful", "noise-free"],
   loud: ["loud", "noisy", "noise"],
-  coffee: ["coffee", "cafe", "latte", "espresso", "cappuccino"],
+  coffee: ["coffee", "food", "latte", "espresso", "cappuccino"],
   wifi: ["wifi", "internet", "connection", "network"],
   outlets: ["outlet", "outlets", "plug", "socket", "charger"],
   crowded: ["crowded", "packed", "busy", "full"],

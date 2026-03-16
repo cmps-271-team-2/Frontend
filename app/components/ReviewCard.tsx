@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ThumbsUp, ThumbsDown, Star, Bookmark } from "lucide-react";
 
 type Review = {
-  id: number;
+  id: string | number;
   rating: number;
   text: string;
   likes: number;

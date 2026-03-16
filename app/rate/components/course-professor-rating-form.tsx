@@ -177,46 +177,31 @@ export default function CourseProfessorRatingForm({
         {errors.type ? <p className="text-sm text-red-500">{errors.type}</p> : null}
       </div>
 
-      {type === "course" ? (
+      {type ? (
         <div className="space-y-2">
-          <label className="block text-sm font-semibold">Course code / name *</label>
+          <label className="block text-sm font-semibold">
+            {type === "course" ? "Course name *" : "Professor name *"}
+          </label>
           <input
             type="text"
-            value={courseName}
-            onChange={(event) => setCourseName(event.target.value)}
+            value={type === "course" ? courseName : professorName}
+            onChange={(event) =>
+              type === "course"
+                ? setCourseName(event.target.value)
+                : setProfessorName(event.target.value)
+            }
             disabled={lockSelection}
             className="w-full rounded-lg border px-3 py-2"
             style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
           />
-          {errors.courseName ? <p className="text-sm text-red-500">{errors.courseName}</p> : null}
+          {type === "course" && errors.courseName ? (
+            <p className="text-sm text-red-500">{errors.courseName}</p>
+          ) : null}
+          {type === "professor" && errors.professorName ? (
+            <p className="text-sm text-red-500">{errors.professorName}</p>
+          ) : null}
         </div>
       ) : null}
-
-      {type === "professor" ? (
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold">Professor name *</label>
-          <input
-            type="text"
-            value={professorName}
-            onChange={(event) => setProfessorName(event.target.value)}
-            disabled={lockSelection}
-            className="w-full rounded-lg border px-3 py-2"
-            style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
-          />
-          {errors.professorName ? <p className="text-sm text-red-500">{errors.professorName}</p> : null}
-        </div>
-      ) : null}
-
-      <div className="space-y-2">
-        <label className="block text-sm font-semibold">Department / faculty</label>
-        <input
-          type="text"
-          value={department}
-          onChange={(event) => setDepartment(event.target.value)}
-          className="w-full rounded-lg border px-3 py-2"
-          style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
-        />
-      </div>
 
       <div className="space-y-2">
         <label className="block text-sm font-semibold">Semester taken</label>

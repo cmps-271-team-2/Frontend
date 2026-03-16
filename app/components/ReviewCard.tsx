@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { ThumbsUp, ThumbsDown, Star, Bookmark } from "lucide-react";
 
+const STAR_COLORS = [
+  "#FFD84D", // 1 – neon yellow
+  "#FF9B54", // 2 – neon orange
+  "#5BC8FF", // 3 – neon blue
+  "#69F28C", // 4 – neon green
+  "#C56BFF", // 5 – neon purple
+];
+
 type Review = {
   id: string | number;
   rating: number;
@@ -12,12 +20,8 @@ type Review = {
   category: string;
   major: string;
   year: string;
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Professor: "var(--accent-blue)",
-  Food: "var(--accent-orange)",
-  "Study Spot": "var(--accent-green)",
+  title?: string;
+  displayName?: string;
 };
 
 export default function ReviewCard({ review }: { review: Review }) {
@@ -26,7 +30,8 @@ export default function ReviewCard({ review }: { review: Review }) {
 
   const displayLikes = review.likes + (userAction === "liked" ? 1 : 0);
   const displayDislikes = review.dislikes + (userAction === "disliked" ? 1 : 0);
-  const catColor = CATEGORY_COLORS[review.category] || "var(--accent)";
+  const authorName = review.displayName || "Anonymous";
+  const semesterLabel = review.year || "";
 
   return (
     <div className="snap-item bg-transparent">
@@ -40,29 +45,35 @@ export default function ReviewCard({ review }: { review: Review }) {
             boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
           }}
         >
-          {/* Category chip */}
-          <div
-            className="mb-4 px-5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest"
-            style={{
-              border: `1px solid ${catColor}30`,
-              background: `${catColor}10`,
-              color: catColor,
-            }}
-          >
-            {review.category}
-          </div>
+          {/* Course / venue title */}
+          {review.title ? (
+            <h2
+              className="mb-4 text-base font-bold text-center tracking-wide"
+              style={{ color: "var(--text)" }}
+            >
+              {review.title}
+            </h2>
+          ) : null}
 
-          {/* Stars */}
-          <div className="flex gap-1.5 mb-5">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                size={24}
-                fill={i < review.rating ? "var(--accent-yellow)" : "none"}
-                stroke={i < review.rating ? "var(--accent-yellow)" : "var(--muted)"}
-                strokeWidth={2}
-              />
-            ))}
+          {/* Stars – neon per-star colors matching the rating form */}
+          <div className="flex items-center justify-center gap-2 mb-5">
+            {Array.from({ length: 5 }, (_, i) => {
+              const isActive = i < review.rating;
+              const color = STAR_COLORS[i];
+              return (
+                <span
+                  key={i}
+                  style={isActive ? { filter: `drop-shadow(0 0 6px ${color})` } : undefined}
+                >
+                  <Star
+                    size={26}
+                    fill={isActive ? color : "none"}
+                    stroke={isActive ? color : "#555"}
+                    strokeWidth={2}
+                  />
+                </span>
+              );
+            })}
           </div>
 
           {/* Review text */}
@@ -121,17 +132,19 @@ export default function ReviewCard({ review }: { review: Review }) {
 
           {/* Footer */}
           <div
-            className="pt-4 w-full flex flex-col items-center"
+            className="pt-4 w-full flex flex-col items-center gap-1"
             style={{ borderTop: "1px solid var(--border)" }}
           >
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em] mb-1" style={{ color: "var(--muted)" }}>
-              Posted by
+            <span className="text-xs font-semibold" style={{ color: "var(--muted)" }}>
+              By:{" "}
+              <span style={{ color: "var(--text)" }}>{authorName}</span>
             </span>
-            <div className="flex gap-2 items-center font-semibold text-sm">
-              <span style={{ color: "var(--text)" }}>{review.major}</span>
-              <span className="w-1 h-1 rounded-full" style={{ background: "var(--border)" }} />
-              <span style={{ color: "var(--muted)" }}>{review.year}</span>
-            </div>
+            {semesterLabel ? (
+              <span className="text-xs" style={{ color: "var(--muted)" }}>
+                Taken in:{" "}
+                <span style={{ color: "var(--text)" }}>{semesterLabel}</span>
+              </span>
+            ) : null}
           </div>
         </div>
       </div>

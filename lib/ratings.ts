@@ -47,21 +47,33 @@ type SubmitRatingResponse = {
 };
 
 export async function submitRating(payload: RatingPayload): Promise<SubmitRatingResponse> {
-  const response = await fetch("/api/ratings", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const response = await fetch("/api/ratings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
 
-  const data = (await response.json().catch(() => ({}))) as SubmitRatingResponse & {
-    error?: string;
-  };
+    const data = (await response.json().catch(() => ({}))) as SubmitRatingResponse & {
+      error?: string;
+    };
 
-  if (!response.ok || !data.ok) {
-    throw new Error(data.error || data.message || "Failed to submit rating.");
+    if (!response.ok || !data.ok) {
+      const errorMessage = data.error || data.message || `HTTP ${response.status}: Failed to submit rating.`;
+      console.error("Submit rating failed:", {
+        status: response.status,
+        data,
+        message: errorMessage,
+      });
+      throw new Error(errorMessage);
+    }
+
+    return data;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error submitting rating.";
+    console.error("Submit rating error:", message);
+    throw error;
   }
-
-  return data;
 }

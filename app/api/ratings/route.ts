@@ -10,10 +10,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const baseUrl = "https://api.unitok.app/";
+  // Use environment variable with fallback to local development URL
+  const baseUrl =
+    process.env.BACKEND_BASE_URL ||
+    (typeof window === "undefined" ? "http://localhost:8000" : "http://localhost:8000");
+
   if (!baseUrl) {
     return NextResponse.json(
-      { ok: false, error: "Base URL is incorrect." },
+      { ok: false, error: "Backend base URL not configured." },
       { status: 500 }
     );
   }

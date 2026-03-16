@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { AcademicKind, fetchCatalogItems } from "@/lib/rating-catalog";
 
 type AcademicItem = {
@@ -25,7 +27,21 @@ export default function SelectAcademicPage() {
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchCatalogItems("academics", kind);
+        let data: AcademicItem[];
+
+        if (kind === "course") {
+          // Fetch live from Firestore "courses" collection
+          const snapshot = await getDocs(collection(db, "courses"));
+          data = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            name: doc.data().code as string,
+            subtitle: doc.data().title as string | undefined,
+          }));
+        } else {
+          // Professors from existing API route
+          data = await fetchCatalogItems("academics", kind);
+        }
+
         if (mounted) {
           setItems(data);
         }

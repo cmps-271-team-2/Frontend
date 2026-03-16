@@ -10,10 +10,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const baseUrl = "https://api.unitok.app/";
   if (!baseUrl) {
     return NextResponse.json(
-      { ok: false, error: "NEXT_PUBLIC_BACKEND_URL is missing." },
+      { ok: false, error: "Base URL is incorrect." },
       { status: 500 }
     );
   }

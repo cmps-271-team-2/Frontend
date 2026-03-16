@@ -9,6 +9,7 @@ const MIN_COMMENT_LENGTH = 20;
 type CourseProfessorFormProps = {
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
+  initialTargetId: string;
   initialType?: CourseProfessorType;
   initialName?: string;
   lockSelection?: boolean;
@@ -28,6 +29,7 @@ type CourseProfessorErrors = {
 export default function CourseProfessorRatingForm({
   onSuccess,
   onError,
+  initialTargetId,
   initialType,
   initialName,
   lockSelection = false,
@@ -113,6 +115,7 @@ export default function CourseProfessorRatingForm({
     try {
       await submitRating({
         ratingType: "course-professor",
+        targetId: initialTargetId,
         type: type as CourseProfessorType,
         courseName: type === "course" ? courseName.trim() : undefined,
         professorName: type === "professor" ? professorName.trim() : undefined,
@@ -129,7 +132,7 @@ export default function CourseProfessorRatingForm({
         comment: comment.trim(),
       });
 
-      onSuccess("Course/Professor rating submitted successfully.");
+      onSuccess("Course/Professor post submitted successfully.");
       resetForm();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to submit rating.";

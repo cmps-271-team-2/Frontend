@@ -13,47 +13,61 @@ import {
 export default function SortBar({ activeSort, setActiveSort }: any) {
 
   const sortOptions = [
-    { id: "relevant", label: "Relevant", icon: <Sparkles size={20} /> },
-    { id: "newest", label: "Newest", icon: <Clock size={20} /> },
-    { id: "oldest", label: "Oldest", icon: <ArrowUpDown size={20} /> },
-    { id: "highestRating", label: "Top Rated", icon: <Star size={20} /> },
-    { id: "lowestRating", label: "Low Rated", icon: <StarOff size={20} /> },
-    { id: "alphabetical", label: "A-Z", icon: <ArrowDownAZ size={20} /> }
+    { id: "relevant", label: "Relevant", icon: <Sparkles size={18} />, color: "var(--accent)" },
+    { id: "newest", label: "Newest", icon: <Clock size={18} />, color: "var(--accent-blue)" },
+    { id: "oldest", label: "Oldest", icon: <ArrowUpDown size={18} />, color: "var(--accent)" },
+    { id: "highestRating", label: "Top Rated", icon: <Star size={18} />, color: "var(--accent-orange)" },
+    { id: "lowestRating", label: "Low Rated", icon: <StarOff size={18} />, color: "var(--accent-orange)" }
   ];
 
   return (
-    <nav className="fixed top-0 left-8 h-screen z-[100] flex flex-col items-center justify-center gap-6">
+    <nav className="fixed top-0 left-6 h-screen z-[100] flex flex-col items-center justify-center gap-5">
 
-      <div className="flex flex-col gap-4">
-        {sortOptions.map((option) => (
-          <button
-            key={option.id}
-            onClick={() => setActiveSort(option.id)}
-            className={`flex flex-col items-center justify-center w-20 h-20 rounded-2xl border-2 border-black transition-all duration-200 group relative
-              ${
-                activeSort === option.id
-                  ? "bg-white shadow-none translate-x-[2px] translate-y-[2px]"
-                  : "bg-white shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
-              }`}
-          >
+      <div className="flex flex-col gap-3">
+        {sortOptions.map((option) => {
 
-            {activeSort === option.id && (
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 animate-pulse" />
-            )}
+          const isActive = activeSort === option.id;
 
-            <div className={`relative z-10 ${activeSort === option.id ? "text-purple-600" : "text-black"}`}>
-              {option.icon}
-            </div>
-
-            <span
-              className={`relative z-10 text-[10px] font-black uppercase mt-1 tracking-tighter
-              ${activeSort === option.id ? "text-purple-600" : "text-black"}`}
+          return (
+            <button
+              key={option.id}
+              onClick={() => setActiveSort(option.id)}
+              className="flex flex-col items-center justify-center w-[72px] h-[72px] rounded-2xl transition-all duration-200"
+              style={{
+                background: isActive ? "var(--card-elevated)" : "var(--card)",
+                border: `1px solid ${isActive ? option.color : "var(--border)"}`,
+                color: isActive ? option.color : "var(--muted)",
+                boxShadow: isActive
+                  ? `0 0 16px ${option.color}22, 0 4px 12px rgba(0,0,0,0.3)`
+                  : "0 2px 8px rgba(0,0,0,0.2)",
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.borderColor = `${option.color}60`;
+                  e.currentTarget.style.color = option.color;
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = `0 0 12px ${option.color}15, 0 4px 12px rgba(0,0,0,0.3)`;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.borderColor = "var(--border)";
+                  e.currentTarget.style.color = "var(--muted)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+                }
+              }}
             >
-              {option.label}
-            </span>
 
-          </button>
-        ))}
+              {option.icon}
+
+              <span className="text-[9px] font-bold uppercase mt-1 tracking-wider">
+                {option.label}
+              </span>
+
+            </button>
+          );
+        })}
       </div>
 
     </nav>

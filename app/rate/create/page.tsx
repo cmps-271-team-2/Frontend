@@ -31,6 +31,7 @@ function CreateRatingPageContent() {
   const [toast, setToast] = useState<ToastState>(null);
 
   const flow = searchParams.get("flow");
+  const selectedId = searchParams.get("id") || "";
   const selectedName = searchParams.get("name") || "";
   const category = searchParams.get("category") as StudyFoodCategory | null;
   const academicType = searchParams.get("type") as CourseProfessorType | null;
@@ -55,7 +56,7 @@ function CreateRatingPageContent() {
     window.setTimeout(() => setToast(null), 3000);
   }
 
-  if (!selectedName || (!isStudyFoodFlow && !isAcademicFlow)) {
+  if (!selectedId || !selectedName || (!isStudyFoodFlow && !isAcademicFlow)) {
     return (
       <main className="mx-auto w-full max-w-2xl px-4 pb-32 pt-6" style={{ color: "var(--text)" }}>
         <h1 className="text-2xl font-black">Invalid rating selection</h1>
@@ -82,6 +83,7 @@ function CreateRatingPageContent() {
       >
         {isStudyFoodFlow ? (
           <StudyFoodRatingForm
+            initialTargetId={selectedId}
             initialSpotName={selectedName}
             initialCategory={category as StudyFoodCategory}
             lockSelection
@@ -92,6 +94,7 @@ function CreateRatingPageContent() {
 
         {isAcademicFlow ? (
           <CourseProfessorRatingForm
+            initialTargetId={selectedId}
             initialType={academicType as CourseProfessorType}
             initialName={selectedName}
             lockSelection
@@ -103,7 +106,7 @@ function CreateRatingPageContent() {
 
       <div
         aria-live="polite"
-        className="pointer-events-none fixed left-1/2 top-4 z-[110] w-[90%] max-w-md -translate-x-1/2"
+        className="pointer-events-none fixed left-1/2 top-4 z-110 w-[90%] max-w-md -translate-x-1/2"
       >
         {toast ? (
           <div

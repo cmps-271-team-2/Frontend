@@ -26,6 +26,7 @@ const ATTRIBUTE_OPTIONS = [
 type StudyFoodFormProps = {
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
+  initialTargetId: string;
   initialSpotName?: string;
   initialCategory?: StudyFoodCategory;
   lockSelection?: boolean;
@@ -41,6 +42,7 @@ type StudyFoodFormErrors = {
 export default function StudyFoodRatingForm({
   onSuccess,
   onError,
+  initialTargetId,
   initialSpotName,
   initialCategory,
   lockSelection = false,
@@ -147,6 +149,7 @@ export default function StudyFoodRatingForm({
     try {
       await submitRating({
         ratingType: "study-food",
+        targetId: initialTargetId,
         spotName: spotName.trim(),
         category: category as StudyFoodCategory,
         location: location.trim() || undefined,
@@ -155,10 +158,10 @@ export default function StudyFoodRatingForm({
         priceRange: category === "food-spot" ? priceRange.trim() || undefined : undefined,
         bestTimeToGo: bestTimeToGo.trim() || undefined,
         comment: comment.trim(),
-        photos: photoFiles.map((file) => file.name),
+        media: photoFiles.map((file) => file.name),
       });
 
-      onSuccess("Study/Food rating submitted successfully.");
+      onSuccess("Study/Food post submitted successfully.");
       resetForm();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to submit rating.";

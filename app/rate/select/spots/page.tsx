@@ -109,7 +109,7 @@ export default function SelectSpotPage() {
             type="button"
             onClick={() =>
               router.push(
-                `/rate/create?flow=study-food&category=${kind}&name=${encodeURIComponent(item.name)}`
+                `/rate/create?flow=study-food&category=${kind}&id=${encodeURIComponent(item.id)}&name=${encodeURIComponent(item.name)}`
               )
             }
             className="w-full rounded-xl border px-4 py-3 text-left"

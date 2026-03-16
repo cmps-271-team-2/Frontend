@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import DarkSelect from "./dark-select";
 import RatingStars from "./rating-stars";
 import { CourseProfessorType, submitRating } from "@/lib/ratings";
 
@@ -17,6 +18,7 @@ type CourseProfessorFormProps = {
 
 type CourseProfessorErrors = {
   type?: string;
+  courseCode?: string;
   courseName?: string;
   professorName?: string;
   difficulty?: string;
@@ -35,7 +37,8 @@ export default function CourseProfessorRatingForm({
   lockSelection = false,
 }: CourseProfessorFormProps) {
   const [type, setType] = useState<CourseProfessorType | "">(initialType ?? "");
-  const [courseName, setCourseName] = useState(initialType === "course" ? initialName ?? "" : "");
+  const [courseCode, setCourseCode] = useState(initialType === "course" ? initialName ?? "" : "");
+  const [courseName, setCourseName] = useState("");
   const [professorName, setProfessorName] = useState(
     initialType === "professor" ? initialName ?? "" : ""
   );
@@ -53,7 +56,8 @@ export default function CourseProfessorRatingForm({
 
   function resetForm() {
     setType(initialType ?? "");
-    setCourseName(initialType === "course" ? initialName ?? "" : "");
+    setCourseCode(initialType === "course" ? initialName ?? "" : "");
+    setCourseName("");
     setProfessorName(initialType === "professor" ? initialName ?? "" : "");
     setDepartment("");
     setSemesterTaken("");
@@ -74,8 +78,12 @@ export default function CourseProfessorRatingForm({
       nextErrors.type = "Please select a type.";
     }
 
+    if (type === "course" && !courseCode.trim()) {
+      nextErrors.courseCode = "Course code is required.";
+    }
+
     if (type === "course" && !courseName.trim()) {
-      nextErrors.courseName = "Course code/name is required.";
+      nextErrors.courseName = "Course name is required.";
     }
 
     if (type === "professor" && !professorName.trim()) {
@@ -117,8 +125,9 @@ export default function CourseProfessorRatingForm({
         ratingType: "course-professor",
         targetId: initialTargetId,
         type: type as CourseProfessorType,
-        courseName: type === "course" ? courseName.trim() : undefined,
-        professorName: type === "professor" ? professorName.trim() : undefined,
+        courseCode: type === "course" ? courseCode.trim() : undefined,
+        courseName: courseName.trim() || undefined,
+        professorName: type === "professor" ? professorName.trim() : professorName.trim() || undefined,
         department: department.trim() || undefined,
         semesterTaken: semesterTaken.trim() || undefined,
         ratings: {
@@ -177,30 +186,76 @@ export default function CourseProfessorRatingForm({
         {errors.type ? <p className="text-sm text-red-500">{errors.type}</p> : null}
       </div>
 
-      {type ? (
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold">
-            {type === "course" ? "Course name *" : "Professor name *"}
-          </label>
-          <input
-            type="text"
-            value={type === "course" ? courseName : professorName}
-            onChange={(event) =>
-              type === "course"
-                ? setCourseName(event.target.value)
-                : setProfessorName(event.target.value)
-            }
-            disabled={lockSelection}
-            className="w-full rounded-lg border px-3 py-2"
-            style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
-          />
-          {type === "course" && errors.courseName ? (
-            <p className="text-sm text-red-500">{errors.courseName}</p>
-          ) : null}
-          {type === "professor" && errors.professorName ? (
-            <p className="text-sm text-red-500">{errors.professorName}</p>
-          ) : null}
-        </div>
+      {/* Course type fields */}
+      {type === "course" ? (
+        <>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold">Course code *</label>
+            <input
+              type="text"
+              value={courseCode}
+              onChange={(e) => setCourseCode(e.target.value)}
+              disabled={lockSelection}
+              placeholder="e.g. CMPS 202"
+              className="w-full rounded-lg border px-3 py-2"
+              style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+            />
+            {errors.courseCode ? <p className="text-sm text-red-500">{errors.courseCode}</p> : null}
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold">Course name *</label>
+            <input
+              type="text"
+              value={courseName}
+              onChange={(e) => setCourseName(e.target.value)}
+              placeholder="e.g. Data Structures"
+              className="w-full rounded-lg border px-3 py-2"
+              style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+            />
+            {errors.courseName ? <p className="text-sm text-red-500">{errors.courseName}</p> : null}
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold">Professor name <span style={{ color: "var(--muted)" }}>(optional)</span></label>
+            <input
+              type="text"
+              value={professorName}
+              onChange={(e) => setProfessorName(e.target.value)}
+              placeholder="e.g. Dr. Smith"
+              className="w-full rounded-lg border px-3 py-2"
+              style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+            />
+          </div>
+        </>
+      ) : null}
+
+      {/* Professor type fields */}
+      {type === "professor" ? (
+        <>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold">Professor name *</label>
+            <input
+              type="text"
+              value={professorName}
+              onChange={(e) => setProfessorName(e.target.value)}
+              disabled={lockSelection}
+              placeholder="e.g. Dr. Smith"
+              className="w-full rounded-lg border px-3 py-2"
+              style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+            />
+            {errors.professorName ? <p className="text-sm text-red-500">{errors.professorName}</p> : null}
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold">Course name <span style={{ color: "var(--muted)" }}>(optional)</span></label>
+            <input
+              type="text"
+              value={courseName}
+              onChange={(e) => setCourseName(e.target.value)}
+              placeholder="e.g. Data Structures"
+              className="w-full rounded-lg border px-3 py-2"
+              style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+            />
+          </div>
+        </>
       ) : null}
 
       <div className="space-y-2">
@@ -227,30 +282,28 @@ export default function CourseProfessorRatingForm({
 
       <div className="space-y-2">
         <label className="block text-sm font-semibold">Attendance mandatory?</label>
-        <select
+        <DarkSelect
           value={attendanceMandatory}
-          onChange={(event) => setAttendanceMandatory(event.target.value)}
-          className="w-full rounded-lg border px-3 py-2"
-          style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+          onChange={setAttendanceMandatory}
+          aria-label="Attendance mandatory"
         >
           <option value="">Select</option>
           <option value="yes">Yes</option>
           <option value="no">No</option>
-        </select>
+        </DarkSelect>
       </div>
 
       <div className="space-y-2">
         <label className="block text-sm font-semibold">Would recommend?</label>
-        <select
+        <DarkSelect
           value={wouldRecommend}
-          onChange={(event) => setWouldRecommend(event.target.value)}
-          className="w-full rounded-lg border px-3 py-2"
-          style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+          onChange={setWouldRecommend}
+          aria-label="Would recommend"
         >
           <option value="">Select</option>
           <option value="yes">Yes</option>
           <option value="no">No</option>
-        </select>
+        </DarkSelect>
       </div>
 
       <div className="space-y-2">

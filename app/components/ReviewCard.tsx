@@ -21,6 +21,7 @@ type Review = {
   major: string;
   year: string;
   title?: string;
+  courseCode?: string;
   displayName?: string;
 };
 
@@ -46,12 +47,12 @@ export default function ReviewCard({ review }: { review: Review }) {
           }}
         >
           {/* Course / venue title */}
-          {review.title ? (
+          {(review.title || review.courseCode) ? (
             <h2
               className="mb-4 text-base font-bold text-center tracking-wide"
               style={{ color: "var(--text)" }}
             >
-              {review.title}
+              {review.title || review.courseCode}
             </h2>
           ) : null}
 

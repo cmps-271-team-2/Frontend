@@ -20,6 +20,7 @@ type HomeReview = {
   noiseLevel?: StudyNoiseLevel;
   venueCategory?: FoodVenueCategory;
   title?: string;
+  courseCode?: string;
   displayName?: string;
 };
 
@@ -29,6 +30,7 @@ type BackendPost = {
   text?: string;
   targetType?: string;
   targetName?: string;
+  courseCode?: string;
   department?: string;
   semesterTaken?: string;
   likes?: number;
@@ -400,6 +402,7 @@ function mapPostToHomeReview(post: BackendPost): HomeReview {
     noiseLevel: post.noiseLevel,
     venueCategory: post.venueCategory,
     title: post.targetName || "",
+    courseCode: post.courseCode || "",
     displayName: post.displayName || post.authorName || "Anonymous",
   };
 }

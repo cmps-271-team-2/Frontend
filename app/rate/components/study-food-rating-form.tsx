@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState, useMemo } from "react";
+import DarkSelect from "./dark-select";
 import MultiSelectChips from "./multi-select-chips";
 import PhotoUpload from "./photo-upload";
 import RatingStars from "./rating-stars";
@@ -247,17 +248,16 @@ export default function StudyFoodRatingForm({
       {category === "food-spot" ? (
         <div className="space-y-2">
           <label className="block text-sm font-semibold">Price range</label>
-          <select
+          <DarkSelect
             value={priceRange}
-            onChange={(event) => setPriceRange(event.target.value)}
-            className="w-full rounded-lg border px-3 py-2"
-            style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+            onChange={setPriceRange}
+            aria-label="Price range"
           >
             <option value="">Select range</option>
             <option value="$">$</option>
             <option value="$$">$$</option>
             <option value="$$$">$$$</option>
-          </select>
+          </DarkSelect>
         </div>
       ) : null}
 

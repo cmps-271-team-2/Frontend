@@ -19,6 +19,8 @@ type HomeReview = {
   year: string;
   noiseLevel?: StudyNoiseLevel;
   venueCategory?: FoodVenueCategory;
+  title?: string;
+  displayName?: string;
 };
 
 type BackendPost = {
@@ -26,12 +28,15 @@ type BackendPost = {
   rating?: number;
   text?: string;
   targetType?: string;
+  targetName?: string;
   department?: string;
   semesterTaken?: string;
   likes?: number;
   dislikes?: number;
   noiseLevel?: StudyNoiseLevel;
   venueCategory?: FoodVenueCategory;
+  displayName?: string;
+  authorName?: string;
 };
 
 const NOISE_FILTERS: Array<{ label: string; value: StudyNoiseLevel | "all" }> = [
@@ -391,8 +396,10 @@ function mapPostToHomeReview(post: BackendPost): HomeReview {
     likes: Number(post.likes) || 0,
     dislikes: Number(post.dislikes) || 0,
     major: post.department || "Anonymous",
-    year: post.semesterTaken || "Student",
+    year: post.semesterTaken || "",
     noiseLevel: post.noiseLevel,
     venueCategory: post.venueCategory,
+    title: post.targetName || "",
+    displayName: post.displayName || post.authorName || "Anonymous",
   };
 }

@@ -15,9 +15,9 @@ export default function SortBar({ activeSort, setActiveSort }: any) {
   const sortOptions = [
     { id: "relevant", label: "Relevant", icon: <Sparkles size={18} />, color: "var(--accent)" },
     { id: "newest", label: "Newest", icon: <Clock size={18} />, color: "var(--accent-blue)" },
-    { id: "oldest", label: "Oldest", icon: <ArrowUpDown size={18} />, color: "var(--accent)" },
-    { id: "highestRating", label: "Top Rated", icon: <Star size={18} />, color: "var(--accent-orange)" },
-    { id: "lowestRating", label: "Low Rated", icon: <StarOff size={18} />, color: "var(--accent-orange)" }
+    { id: "oldest", label: "Oldest", icon: <ArrowUpDown size={18} />, color: "var(--accent-orange)" },
+    { id: "highestRating", label: "Top Rated", icon: <Star size={18} />, color: "var(--accent-green)" },
+    { id: "lowestRating", label: "Low Rated", icon: <StarOff size={18} />, color: "var(--accent)" }
   ];
 
   return (

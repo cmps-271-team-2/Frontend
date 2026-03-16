@@ -16,7 +16,7 @@ type Review = {
 
 const CATEGORY_COLORS: Record<string, string> = {
   Professor: "var(--accent-blue)",
-  Cafeteria: "var(--accent-orange)",
+  Food: "var(--accent-orange)",
   "Study Spot": "var(--accent-green)",
 };
 

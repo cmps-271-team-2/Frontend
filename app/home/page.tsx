@@ -71,7 +71,7 @@ export default function HomePage() {
           throw new Error("API URL is not configured.");
         }
 
-        const response = await fetch(`${apiBaseUrl}/feed/posts`, {
+        const response = await fetch(`${apiBaseUrl}/posts`, {
           method: "GET",
           cache: "no-store",
         });

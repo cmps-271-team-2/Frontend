@@ -36,8 +36,8 @@ export default function SelectAcademicPage() {
 
             return {
               id: doc.id,
-              name: course.title as string,
-              subtitle: course.department || course.code,
+              name: course.code as string,
+              subtitle: course.title as string,
               kind: "course" as const,
               courseCode: course.code,
             };
@@ -145,11 +145,6 @@ export default function SelectAcademicPage() {
             {item.subtitle ? (
               <div className="text-xs font-semibold" style={{ color: "var(--muted)" }}>
                 {item.subtitle}
-              </div>
-            ) : null}
-            {item.kind === "course" ? (
-              <div className="mt-1 text-xs font-semibold" style={{ color: "var(--muted)" }}>
-                {item.courseCode || "No code"}
               </div>
             ) : null}
           </button>

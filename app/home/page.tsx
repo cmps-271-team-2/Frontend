@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
 import SortBar from "../components/sortBar";
+import { apiFetch } from "@/lib/api";
 
 type StudyNoiseLevel = "quiet" | "moderate" | "busy";
 type FoodVenueCategory = "restaurant" | "food" | "fast-food" | "bakery";
 
 type HomeReview = {
-  id: number;
+  id: string;
   rating: number;
   category: string;
   text: string;
@@ -17,6 +18,19 @@ type HomeReview = {
   dislikes: number;
   major: string;
   year: string;
+  noiseLevel?: StudyNoiseLevel;
+  venueCategory?: FoodVenueCategory;
+};
+
+type BackendPost = {
+  id: string;
+  rating?: number;
+  text?: string;
+  targetType?: string;
+  department?: string;
+  semesterTaken?: string;
+  likes?: number;
+  dislikes?: number;
   noiseLevel?: StudyNoiseLevel;
   venueCategory?: FoodVenueCategory;
 };
@@ -36,58 +50,58 @@ const FOOD_FILTERS: Array<{ label: string; value: FoodVenueCategory | "all" }> =
   { label: "Bakery", value: "bakery" },
 ];
 
-const reviews: HomeReview[] = [
-  {
-    id: 1,
-    rating: 5,
-    category: "Professor",
-    text: "Professor John makes complex algorithms feel like a breeze. Best CS teacher I've ever had! The way he explains concepts makes even the most complicated topics feel manageable. Exams are based on what was taught, no weird surprises. They focus more on understanding than memorization, which I really appreciate. Overall, this is the type of professor that actually makes you want to attend class, not just go for attendance.",
-    likes: 0,
-    dislikes: 0,
-    major: "Computer Science",
-    year: "Senior",
-  },
-  {
-    id: 2,
-    rating: 4,
-    category: "Food",
-    text: "The food is decent, but the lines are way too long during peak hours. If you want the pasta, get there 10 minutes early!",
-    likes: 0,
-    dislikes: 0,
-    major: "Business",
-    year: "Sophomore",
-    venueCategory: "food",
-  },
-  {
-    id: 4,
-    rating: 5,
-    category: "Food",
-    text: "Great shawarma and quick service. Perfect when you're between lectures and need a fast meal.",
-    likes: 0,
-    dislikes: 0,
-    major: "Architecture",
-    year: "Senior",
-    venueCategory: "fast-food",
-  },
-  {
-    id: 3,
-    rating: 4,
-    category: "Study Spot",
-    text: "The engineering library basement is super calm in the morning and perfect for focused coding sessions.",
-    likes: 0,
-    dislikes: 0,
-    major: "Computer Engineering",
-    year: "Junior",
-    noiseLevel: "quiet",
-  },
-];
-
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeSort, setActiveSort] = useState("relevant");
   const [activeNoise, setActiveNoise] = useState<StudyNoiseLevel | "all">("all");
   const [activeFoodCategory, setActiveFoodCategory] = useState<FoodVenueCategory | "all">("all");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [reviews, setReviews] = useState<HomeReview[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadReviews() {
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        const posts = await apiFetch<BackendPost[]>("/posts", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (!mounted) {
+          return;
+        }
+
+        setReviews(posts.map(mapPostToHomeReview));
+      } catch {
+        if (mounted) {
+          setLoadError("Unable to load posts right now. Please try again.");
+          setReviews([]);
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadReviews();
+
+    const handleSubmitted = () => {
+      void loadReviews();
+    };
+
+    window.addEventListener("rating:submitted", handleSubmitted);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("rating:submitted", handleSubmitted);
+    };
+  }, []);
 
   const categoryFilteredReviews =
     activeCategory === "All"
@@ -233,7 +247,21 @@ export default function HomePage() {
       ) : null}
 
       <div className="w-full">
-        {filteredReviews.length > 0 ? (
+        {isLoading ? (
+          <div className="snap-item flex flex-col items-center justify-center text-center px-10">
+            <p className="text-sm font-semibold" style={{ color: "var(--muted)" }}>
+              Loading posts...
+            </p>
+          </div>
+        ) : null}
+
+        {!isLoading && loadError ? (
+          <div className="snap-item flex flex-col items-center justify-center text-center px-10">
+            <p className="text-sm font-semibold text-red-500">{loadError}</p>
+          </div>
+        ) : null}
+
+        {!isLoading && !loadError && filteredReviews.length > 0 ? (
           <>
             {filteredReviews.map((review) => (
               <ReviewCard key={review.id} review={review} />
@@ -275,7 +303,7 @@ export default function HomePage() {
               </div>
             </div>
           </>
-        ) : (
+        ) : !isLoading && !loadError ? (
           <div className="snap-item flex flex-col items-center justify-center text-center px-10">
             <div
               className="rounded-[2rem] p-10 max-w-[400px]"
@@ -318,8 +346,32 @@ export default function HomePage() {
               </button>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </main>
   );
+}
+
+function mapPostToHomeReview(post: BackendPost): HomeReview {
+  const targetType = (post.targetType || "").toLowerCase();
+
+  let category = "Professor";
+  if (targetType === "food-spot") {
+    category = "Food";
+  } else if (targetType === "study-spot") {
+    category = "Study Spot";
+  }
+
+  return {
+    id: post.id,
+    rating: Number(post.rating) || 0,
+    category,
+    text: post.text || "",
+    likes: Number(post.likes) || 0,
+    dislikes: Number(post.dislikes) || 0,
+    major: post.department || "Anonymous",
+    year: post.semesterTaken || "Student",
+    noiseLevel: post.noiseLevel,
+    venueCategory: post.venueCategory,
+  };
 }

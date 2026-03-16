@@ -70,6 +70,10 @@ export async function submitRating(payload: RatingPayload): Promise<SubmitRating
       throw new Error(errorMessage);
     }
 
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("rating:submitted"));
+    }
+
     return data;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error submitting rating.";

@@ -25,17 +25,13 @@ type Review = {
   spotName?: string;
   title?: string;
   courseCode?: string;
+  professorName?: string;
   targetId?: string;
   displayName?: string;
+  semester?: string;
 };
 
 type UserReaction = "liked" | "disliked" | null;
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Professor: "var(--accent-blue)",
-  Food: "var(--accent-orange)",
-  "Study Spot": "var(--accent-green)",
-};
 
 export default function ReviewCard({
   review,
@@ -53,8 +49,9 @@ export default function ReviewCard({
 
   const activeReaction = userReaction ?? localReaction;
   const resolvedRating = review.rating ?? review.stars ?? 0;
-  const resolvedCategory = review.category ?? review.type ?? "Other";
-  const catColor = CATEGORY_COLORS[resolvedCategory] || "var(--accent)";
+  
+  // Compute title based on card type
+  const displayTitle = review.courseCode || review.professorName || review.spotName || "Unknown";
 
   function handleLike() {
     if (onLike) {
@@ -88,29 +85,27 @@ export default function ReviewCard({
             boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
           }}
         >
-          {/* Category chip */}
-          <div
-            className="mb-4 px-5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest"
-            style={{
-              border: `1px solid ${catColor}30`,
-              background: `${catColor}10`,
-              color: catColor,
-            }}
-          >
-            {resolvedCategory}
-          </div>
+          {/* Title */}
+          <h2 className="text-lg font-semibold text-center mb-4" style={{ color: "var(--text)" }}>
+            {displayTitle}
+          </h2>
 
           {/* Stars */}
-          <div className="flex gap-1.5 mb-5">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                size={24}
-                fill={i < resolvedRating ? "var(--accent-yellow)" : "none"}
-                stroke={i < resolvedRating ? "var(--accent-yellow)" : "var(--muted)"}
-                strokeWidth={2}
-              />
-            ))}
+          <div className="flex gap-2 items-center justify-center mb-5">
+            {[...Array(5)].map((_, i) => {
+              const isActive = i < resolvedRating;
+              const color = STAR_COLORS[i];
+              return (
+                <Star
+                  key={i}
+                  size={26}
+                  fill={isActive ? color : "none"}
+                  stroke={isActive ? color : "var(--muted)"}
+                  strokeWidth={2}
+                  style={isActive ? { filter: `drop-shadow(0 0 6px ${color})` } : undefined}
+                />
+              );
+            })}
           </div>
 
           {/* Review text */}
@@ -173,17 +168,17 @@ export default function ReviewCard({
 
           {/* Footer */}
           <div
-            className="pt-4 w-full flex flex-col items-center gap-1"
+            className="pt-4 w-full text-center text-sm"
             style={{ borderTop: "1px solid var(--border)" }}
           >
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em] mb-1" style={{ color: "var(--muted)" }}>
-              Posted by
-            </span>
-            <div className="flex gap-2 items-center font-semibold text-sm">
-              <span style={{ color: "var(--text)" }}>{review.major}</span>
-              <span className="w-1 h-1 rounded-full" style={{ background: "var(--border)" }} />
-              <span style={{ color: "var(--muted)" }}>{review.year}</span>
-            </div>
+            <p style={{ color: "var(--muted)" }}>
+              By: {review.displayName || "Anonymous"}
+            </p>
+            {review.semester && (
+              <p style={{ color: "var(--muted)" }}>
+                Taken in: {review.semester}
+              </p>
+            )}
           </div>
         </div>
       </div>

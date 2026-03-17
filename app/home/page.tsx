@@ -216,14 +216,6 @@ export default function HomePage() {
 
       const ratingValue = getRatingValue(review);
 
-      if (selectedSortFilter === "highestRating" && ratingValue !== 5) {
-        return false;
-      }
-
-      if (selectedSortFilter === "lowestRating" && ratingValue !== 1) {
-        return false;
-      }
-
       return true;
     });
 
@@ -242,10 +234,18 @@ export default function HomePage() {
       }
 
       if (selectedSortFilter === "highestRating") {
+        const ratingDiff = getRatingValue(b) - getRatingValue(a);
+        if (ratingDiff !== 0) {
+          return ratingDiff;
+        }
         return getCreatedAtMs(b) - getCreatedAtMs(a);
       }
 
       if (selectedSortFilter === "lowestRating") {
+        const ratingDiff = getRatingValue(a) - getRatingValue(b);
+        if (ratingDiff !== 0) {
+          return ratingDiff;
+        }
         return getCreatedAtMs(b) - getCreatedAtMs(a);
       }
 

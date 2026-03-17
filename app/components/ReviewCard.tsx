@@ -25,6 +25,7 @@ type Review = {
   year: string;
   spotName?: string;
   title?: string;
+  code?: string;
   courseCode?: string;
   professorName?: string;
   targetId?: string;
@@ -55,7 +56,7 @@ export default function ReviewCard({
   const displayTitle =
     review.kind === "study-spot" || review.kind === "food-spot"
       ? review.spotName || "Unknown Spot"
-      : review.courseCode || "Unknown Course";
+      : review.code || "Unknown Course";
 
   function handleLike() {
     if (onLike) {

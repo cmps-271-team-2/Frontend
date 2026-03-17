@@ -13,12 +13,13 @@ const STAR_COLORS = [
 
 type Review = {
   id: string | number;
-  rating: number;
+  rating?: number;
+  stars?: number;
   text: string;
   likes: number;
   dislikes: number;
-  category: string;
-  kind?: "study-spot" | "food-spot" | "course-professor";
+  category?: string;
+  type?: string;
   major: string;
   year: string;
   spotName?: string;
@@ -28,22 +29,56 @@ type Review = {
   displayName?: string;
 };
 
-export default function ReviewCard({ review }: { review: Review }) {
-  const [userAction, setUserAction] = useState<"liked" | "disliked" | null>(null);
+type UserReaction = "liked" | "disliked" | null;
+
+const CATEGORY_COLORS: Record<string, string> = {
+  Professor: "var(--accent-blue)",
+  Food: "var(--accent-orange)",
+  "Study Spot": "var(--accent-green)",
+};
+
+export default function ReviewCard({
+  review,
+  userReaction,
+  onLike,
+  onDislike,
+}: {
+  review: Review;
+  userReaction?: UserReaction;
+  onLike?: () => void;
+  onDislike?: () => void;
+}) {
+  const [localReaction, setLocalReaction] = useState<UserReaction>(null);
   const [isFavorite, setFavorite] = useState(false);
 
-  const displayLikes = review.likes + (userAction === "liked" ? 1 : 0);
-  const displayDislikes = review.dislikes + (userAction === "disliked" ? 1 : 0);
-  const authorName = review.displayName || "Anonymous";
-  const semesterLabel = review.year || "";
-  const displayTitle =
-    review.kind === "study-spot" || review.kind === "food-spot"
-      ? review.spotName || review.title || "Unknown Spot"
-      : review.courseCode || review.title || review.targetId || "Unknown";
+  const activeReaction = userReaction ?? localReaction;
+  const resolvedRating = review.rating ?? review.stars ?? 0;
+  const resolvedCategory = review.category ?? review.type ?? "Other";
+  const catColor = CATEGORY_COLORS[resolvedCategory] || "var(--accent)";
+
+  function handleLike() {
+    if (onLike) {
+      onLike();
+      return;
+    }
+
+    // Local-only mode: toggle like on/off and clear any existing dislike
+    setLocalReaction((prev) => (prev === "liked" ? null : "liked"));
+  }
+
+  function handleDislike() {
+    if (onDislike) {
+      onDislike();
+      return;
+    }
+
+    // Local-only mode: toggle dislike on/off and clear any existing like
+    setLocalReaction((prev) => (prev === "disliked" ? null : "disliked"));
+  }
 
   return (
-    <div className="bg-transparent w-[480px] max-w-[90vw]">
-      <div className="relative z-20 flex flex-col items-center w-full">
+    <div className="snap-item bg-transparent">
+      <div className="relative z-20 flex flex-col items-center w-[480px] max-w-[90vw]">
         <div
           className="w-full rounded-[2.5rem] p-9 flex flex-col items-center transition-shadow duration-300"
           style={{
@@ -53,33 +88,29 @@ export default function ReviewCard({ review }: { review: Review }) {
             boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
           }}
         >
-          {/* Course / venue title */}
-          <h2
-            className="mb-4 text-lg font-semibold text-center"
-            style={{ color: "var(--text)" }}
+          {/* Category chip */}
+          <div
+            className="mb-4 px-5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest"
+            style={{
+              border: `1px solid ${catColor}30`,
+              background: `${catColor}10`,
+              color: catColor,
+            }}
           >
-            {displayTitle}
-          </h2>
+            {resolvedCategory}
+          </div>
 
-          {/* Stars – neon per-star colors matching the rating form */}
-          <div className="flex items-center justify-center gap-2 mb-5">
-            {Array.from({ length: 5 }, (_, i) => {
-              const isActive = i < review.rating;
-              const color = STAR_COLORS[i];
-              return (
-                <span
-                  key={i}
-                  style={isActive ? { filter: `drop-shadow(0 0 6px ${color})` } : undefined}
-                >
-                  <Star
-                    size={26}
-                    fill={isActive ? color : "none"}
-                    stroke={isActive ? color : "#555"}
-                    strokeWidth={2}
-                  />
-                </span>
-              );
-            })}
+          {/* Stars */}
+          <div className="flex gap-1.5 mb-5">
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                size={24}
+                fill={i < resolvedRating ? "var(--accent-yellow)" : "none"}
+                stroke={i < resolvedRating ? "var(--accent-yellow)" : "var(--muted)"}
+                strokeWidth={2}
+              />
+            ))}
           </div>
 
           {/* Review text */}
@@ -95,29 +126,33 @@ export default function ReviewCard({ review }: { review: Review }) {
           {/* Action buttons */}
           <div className="flex items-center justify-center gap-12 w-full mb-5">
             <button
-              onClick={() => setUserAction(userAction === "liked" ? null : "liked")}
+              onClick={handleLike}
               className="flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-90"
-              style={{ color: userAction === "liked" ? "var(--accent-green)" : "var(--muted)" }}
+              style={{ color: activeReaction === "liked" ? "var(--accent-green)" : "var(--muted)" }}
             >
               <ThumbsUp
                 size={30}
-                fill={userAction === "liked" ? "currentColor" : "none"}
+                fill={activeReaction === "liked" ? "currentColor" : "none"}
                 strokeWidth={2}
               />
-              <span className="text-xs font-bold">{displayLikes}</span>
+              <span className="text-xs font-bold">
+                {review.likes + (activeReaction === "liked" ? 1 : 0)}
+              </span>
             </button>
 
             <button
-              onClick={() => setUserAction(userAction === "disliked" ? null : "disliked")}
+              onClick={handleDislike}
               className="flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-90"
-              style={{ color: userAction === "disliked" ? "#ff6b6b" : "var(--muted)" }}
+              style={{ color: activeReaction === "disliked" ? "#ff6b6b" : "var(--muted)" }}
             >
               <ThumbsDown
                 size={30}
-                fill={userAction === "disliked" ? "currentColor" : "none"}
+                fill={activeReaction === "disliked" ? "currentColor" : "none"}
                 strokeWidth={2}
               />
-              <span className="text-xs font-bold">{displayDislikes}</span>
+              <span className="text-xs font-bold">
+                {review.dislikes + (activeReaction === "disliked" ? 1 : 0)}
+              </span>
             </button>
 
             <button
@@ -141,16 +176,14 @@ export default function ReviewCard({ review }: { review: Review }) {
             className="pt-4 w-full flex flex-col items-center gap-1"
             style={{ borderTop: "1px solid var(--border)" }}
           >
-            <span className="text-xs font-semibold" style={{ color: "var(--muted)" }}>
-              By:{" "}
-              <span style={{ color: "var(--text)" }}>{authorName}</span>
+            <span className="text-[9px] font-bold uppercase tracking-[0.2em] mb-1" style={{ color: "var(--muted)" }}>
+              Posted by
             </span>
-            {semesterLabel ? (
-              <span className="text-xs" style={{ color: "var(--muted)" }}>
-                Taken in:{" "}
-                <span style={{ color: "var(--text)" }}>{semesterLabel}</span>
-              </span>
-            ) : null}
+            <div className="flex gap-2 items-center font-semibold text-sm">
+              <span style={{ color: "var(--text)" }}>{review.major}</span>
+              <span className="w-1 h-1 rounded-full" style={{ background: "var(--border)" }} />
+              <span style={{ color: "var(--muted)" }}>{review.year}</span>
+            </div>
           </div>
         </div>
       </div>

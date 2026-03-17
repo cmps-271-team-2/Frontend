@@ -68,7 +68,6 @@ export default function HomePage() {
   const [activeFoodCategory, setActiveFoodCategory] = useState<FoodVenueCategory | "all">("all");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [reviews, setReviews] = useState<HomeReview[]>([]);
-  const feedRef = useRef<HTMLElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -138,36 +137,14 @@ export default function HomePage() {
       ? reviews
       : reviews.filter((r) => r.category === activeCategory);
 
-  const filteredReviews =
-    activeCategory === "Study Spot" && activeNoise !== "all"
-      ? categoryFilteredReviews.filter((r) => r.noiseLevel === activeNoise)
-      : activeCategory === "Food" && activeFoodCategory !== "all"
-      ? categoryFilteredReviews.filter((r) => r.venueCategory === activeFoodCategory)
-      : categoryFilteredReviews;
-
-  const hasStudyFilters = activeNoise !== "all";
-  const hasFoodFilters = activeFoodCategory !== "all";
-  const hasActiveFilters =
-    (activeCategory === "Study Spot" && hasStudyFilters) ||
-    (activeCategory === "Food" && hasFoodFilters);
-
-  const activeFilterCount =
-    activeCategory === "Study Spot"
-      ? (activeNoise !== "all" ? 1 : 0)
-      : activeCategory === "Food"
-      ? (activeFoodCategory !== "all" ? 1 : 0)
-      : 0;
-
-  function scrollTop() {
-    if (feedRef.current) feedRef.current.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
   return (
-    <main
-      ref={feedRef}
-      className="min-h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth overflow-x-hidden"
-      style={{ background: "var(--bg)" }}
-    >
+    <main className="w-full bg-black text-white min-h-screen">
+      {/* Debug: always render, even if CSS not loaded */}
+      {typeof window !== "undefined" && !document.documentElement.style.getPropertyValue("--bg") && (
+        <div className="fixed top-0 left-0 right-0 bg-yellow-900 text-yellow-200 p-2 text-xs z-50">
+          CSS not loaded - reload page
+        </div>
+      )}
       <GlobalHeader
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
@@ -175,6 +152,7 @@ export default function HomePage() {
 
       <SortBar activeSort={activeSort} setActiveSort={setActiveSort} />
 
+      {/* FILTERS MODAL */}
       {activeCategory === "Study Spot" || activeCategory === "Food" ? (
         <div className="fixed left-1/2 top-24 z-[110] -translate-x-1/2 px-3">
           <button
@@ -182,12 +160,12 @@ export default function HomePage() {
             onClick={() => setIsFiltersOpen(true)}
             className="rounded-full border px-4 py-2 text-sm font-bold"
             style={{
-              borderColor: hasActiveFilters ? "var(--accent)" : "var(--border)",
-              color: hasActiveFilters ? "var(--accent)" : "var(--text)",
-              background: hasActiveFilters ? "rgba(197,107,255,0.10)" : "var(--card)",
+              borderColor: "var(--border)",
+              color: "var(--text)",
+              background: "var(--card)",
             }}
           >
-            Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}
+            Filters
           </button>
         </div>
       ) : null}
@@ -213,11 +191,10 @@ export default function HomePage() {
                       setActiveFoodCategory("all");
                     }
                   }}
-                  disabled={!hasActiveFilters}
-                  className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50"
+                  className="rounded-full border px-3 py-1 text-xs font-bold"
                   style={{ borderColor: "var(--border)" }}
                 >
-                  Clear filters
+                  Clear
                 </button>
                 <button
                   type="button"
@@ -279,106 +256,96 @@ export default function HomePage() {
         </div>
       ) : null}
 
+      {/* LOADING STATE */}
       {isLoading ? (
-        <div className="min-h-screen w-full flex flex-col items-center justify-center text-center px-4">
-          <p className="text-sm font-semibold" style={{ color: "var(--muted)" }}>
-            Loading posts...
-          </p>
+        <div className="px-4 py-20 text-center">
+          <p className="text-sm font-semibold text-gray-400">Loading posts...</p>
         </div>
       ) : null}
 
+      {/* ERROR STATE */}
       {!isLoading && loadError ? (
-        <div className="min-h-screen w-full snap-start flex flex-col items-center justify-center text-center px-4">
+        <div className="px-4 py-20 text-center">
           <p className="text-sm font-semibold text-red-500">{loadError}</p>
+          <button
+            onClick={() => {
+              setLoadError(null);
+              setIsLoading(true);
+              // Reload posts
+              const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+              if (apiBaseUrl) {
+                fetch(`${apiBaseUrl}/posts`, { method: "GET", cache: "no-store" })
+                  .then((r) => r.json())
+                  .then((data) => {
+                    setReviews((Array.isArray(data) ? data : []).map(mapPostToHomeReview));
+                    setIsLoading(false);
+                  })
+                  .catch((err) => {
+                    console.error(err);
+                    setLoadError("Failed to reload. Try again later.");
+                    setIsLoading(false);
+                  });
+              }
+            }}
+            className="mt-4 px-4 py-2 rounded-lg border text-xs font-bold"
+            style={{ borderColor: "var(--border)" }}
+          >
+            Try Again
+          </button>
         </div>
       ) : null}
 
-      {!isLoading && !loadError && filteredReviews.length > 0 ? (
-        <>
-          {filteredReviews.map((review) => (
-            <div key={review.id} className="min-h-screen w-full snap-start flex items-center justify-center px-4">
-              <ReviewCard review={review} />
-            </div>
+      {/* POSTS LIST */}
+      {!isLoading && !loadError && reviews.length > 0 ? (
+        <div className="flex flex-col items-center gap-8 py-8 px-4">
+          {reviews.map((review) => (
+            <ReviewCard key={review.id} review={review} />
           ))}
-
-            <div className="min-h-screen w-full snap-start flex items-center justify-center px-4">
-              <div
-                className="rounded-[2rem] p-6 sm:p-10 w-full max-w-md"
-                style={{
-                  background: "var(--card)",
-                  border: "1px solid var(--border)",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
-                }}
-              >
-                <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
-                  No more ratings
-                </h2>
-                <p className="text-sm font-medium" style={{ color: "var(--muted)", lineHeight: 1.5 }}>
-                  You&apos;ve reached the end! <br /> Check back later for more updates.
-                </p>
-
-                <button
-                  onClick={scrollTop}
-                  className="mt-6 px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-200 active:scale-95"
-                  style={{
-                    background: "var(--text)",
-                    color: "var(--bg)",
-                    border: "1px solid var(--border)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = "0 0 16px rgba(197,107,255,0.15)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
-                >
-                  Back to Top
-                </button>
-              </div>
-            </div>
-        </>
-      ) : !isLoading && !loadError ? (
-        <div className="min-h-screen w-full snap-start flex items-center justify-center px-4">
-            <div
-              className="rounded-[2rem] p-6 sm:p-10 w-full max-w-md"
+          <div
+            className="rounded-[2rem] p-9 max-w-md text-center"
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+            }}
+          >
+            <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
+              No more ratings
+            </h2>
+            <p className="text-sm font-medium" style={{ color: "var(--muted)", lineHeight: 1.5 }}>
+              You&apos;ve reached the end! <br /> Check back later for more updates.
+            </p>
+          </div>
+        </div>
+      ) : !isLoading && !loadError && reviews.length === 0 ? (
+        <div className="px-4 py-20 text-center">
+          <div
+            className="rounded-[2rem] p-9 max-w-md mx-auto"
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+            }}
+          >
+            <div className="text-4xl mb-4">🔍</div>
+            <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
+              Empty Category
+            </h2>
+            <p className="text-sm font-medium mb-6" style={{ color: "var(--muted)", lineHeight: 1.5 }}>
+              There are currently no ratings for <strong>&quot;{activeCategory}&quot;</strong>.
+            </p>
+            <button
+              onClick={() => setActiveCategory("All")}
+              className="px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest"
               style={{
-                background: "var(--card)",
+                background: "transparent",
+                color: "var(--text)",
                 border: "1px solid var(--border)",
-                boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
               }}
             >
-              <div className="text-4xl mb-4">🔍</div>
-              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
-                Empty Category
-              </h2>
-              <p className="text-sm font-medium" style={{ color: "var(--muted)", lineHeight: 1.5 }}>
-                There are currently no ratings for{" "}
-                <span style={{ color: "var(--accent)" }}>
-                  &quot;{activeCategory}&quot;
-                </span>
-                .
-              </p>
-
-              <button
-                onClick={() => setActiveCategory("All")}
-                className="mt-6 px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-200 active:scale-95"
-                style={{
-                  background: "transparent",
-                  color: "var(--text)",
-                  border: "1px solid var(--border)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "rgba(197,107,255,0.3)";
-                  e.currentTarget.style.boxShadow = "0 0 16px rgba(197,107,255,0.1)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "var(--border)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
-              >
-                View All Ratings
-              </button>
-            </div>
+              View All Ratings
+            </button>
+          </div>
         </div>
       ) : null}
     </main>

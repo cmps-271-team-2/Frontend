@@ -198,7 +198,7 @@ export default function HomePage() {
         return false;
       }
 
-      if (selectedCategoryFilter === "Food" && mappedCategory !== "food") {
+      if ((selectedCategoryFilter === "Food" || selectedCategoryFilter === "Cafeteria") && mappedCategory !== "food") {
         return false;
       }
 
@@ -210,7 +210,7 @@ export default function HomePage() {
         return false;
       }
 
-      if (selectedCategoryFilter === "Food" && activeFoodCategory !== "all" && review.venueCategory !== activeFoodCategory) {
+      if ((selectedCategoryFilter === "Food" || selectedCategoryFilter === "Cafeteria") && activeFoodCategory !== "all" && review.venueCategory !== activeFoodCategory) {
         return false;
       }
 

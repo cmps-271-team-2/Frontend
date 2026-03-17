@@ -27,6 +27,7 @@ type Review = {
   title?: string;
   code?: string;
   courseCode?: string;
+  course?: { code?: string; codeName?: string };
   professorName?: string;
   targetId?: string;
   displayName?: string;
@@ -49,6 +50,8 @@ export default function ReviewCard({
   const [localReaction, setLocalReaction] = useState<UserReaction>(null);
   const [isFavorite, setFavorite] = useState(false);
 
+  console.log("REVIEW DATA:", review);
+
   const activeReaction = userReaction ?? localReaction;
   const resolvedRating = review.rating ?? review.stars ?? 0;
   
@@ -56,7 +59,7 @@ export default function ReviewCard({
   const displayTitle =
     review.kind === "study-spot" || review.kind === "food-spot"
       ? review.spotName || "Unknown Spot"
-      : review.code || "Unknown Course";
+      : review.code || review.courseCode || review.course?.code || review.course?.codeName || "Unknown Course";
 
   function handleLike() {
     if (onLike) {

@@ -138,13 +138,7 @@ export default function HomePage() {
       : reviews.filter((r) => r.category === activeCategory);
 
   return (
-    <main className="w-full bg-black text-white min-h-screen">
-      {/* Debug: always render, even if CSS not loaded */}
-      {typeof window !== "undefined" && !document.documentElement.style.getPropertyValue("--bg") && (
-        <div className="fixed top-0 left-0 right-0 bg-yellow-900 text-yellow-200 p-2 text-xs z-50">
-          CSS not loaded - reload page
-        </div>
-      )}
+    <main className="h-screen overflow-y-auto snap-y snap-mandatory">
       <GlobalHeader
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
@@ -258,69 +252,75 @@ export default function HomePage() {
 
       {/* LOADING STATE */}
       {isLoading ? (
-        <div className="px-4 py-20 text-center">
+        <div className="h-screen w-full snap-start flex items-center justify-center px-4">
           <p className="text-sm font-semibold text-gray-400">Loading posts...</p>
         </div>
       ) : null}
 
       {/* ERROR STATE */}
       {!isLoading && loadError ? (
-        <div className="px-4 py-20 text-center">
-          <p className="text-sm font-semibold text-red-500">{loadError}</p>
-          <button
-            onClick={() => {
-              setLoadError(null);
-              setIsLoading(true);
-              // Reload posts
-              const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-              if (apiBaseUrl) {
-                fetch(`${apiBaseUrl}/posts`, { method: "GET", cache: "no-store" })
-                  .then((r) => r.json())
-                  .then((data) => {
-                    setReviews((Array.isArray(data) ? data : []).map(mapPostToHomeReview));
-                    setIsLoading(false);
-                  })
-                  .catch((err) => {
-                    console.error(err);
-                    setLoadError("Failed to reload. Try again later.");
-                    setIsLoading(false);
-                  });
-              }
-            }}
-            className="mt-4 px-4 py-2 rounded-lg border text-xs font-bold"
-            style={{ borderColor: "var(--border)" }}
-          >
-            Try Again
-          </button>
+        <div className="h-screen w-full snap-start flex items-center justify-center px-4">
+          <div className="text-center">
+            <p className="text-sm font-semibold text-red-500 mb-4">{loadError}</p>
+            <button
+              onClick={() => {
+                setLoadError(null);
+                setIsLoading(true);
+                // Reload posts
+                const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+                if (apiBaseUrl) {
+                  fetch(`${apiBaseUrl}/posts`, { method: "GET", cache: "no-store" })
+                    .then((r) => r.json())
+                    .then((data) => {
+                      setReviews((Array.isArray(data) ? data : []).map(mapPostToHomeReview));
+                      setIsLoading(false);
+                    })
+                    .catch((err) => {
+                      console.error(err);
+                      setLoadError("Failed to reload. Try again later.");
+                      setIsLoading(false);
+                    });
+                }
+              }}
+              className="px-4 py-2 rounded-lg border text-xs font-bold"
+              style={{ borderColor: "var(--border)" }}
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       ) : null}
 
       {/* POSTS LIST */}
       {!isLoading && !loadError && reviews.length > 0 ? (
-        <div className="flex flex-col items-center gap-8 py-8 px-4">
+        <>
           {reviews.map((review) => (
-            <ReviewCard key={review.id} review={review} />
+            <div key={review.id} className="h-screen w-full snap-start flex items-center justify-center px-4">
+              <ReviewCard review={review} />
+            </div>
           ))}
+          <div className="h-screen w-full snap-start flex items-center justify-center px-4">
+            <div
+              className="rounded-[2rem] p-9 max-w-md text-center"
+              style={{
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+              }}
+            >
+              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
+                No more ratings
+              </h2>
+              <p className="text-sm font-medium" style={{ color: "var(--muted)", lineHeight: 1.5 }}>
+                You&apos;ve reached the end! <br /> Check back later for more updates.
+              </p>
+            </div>
+          </div>
+        </>
+      ) : !isLoading && !loadError && reviews.length === 0 ? (
+        <div className="h-screen w-full snap-start flex items-center justify-center px-4">
           <div
             className="rounded-[2rem] p-9 max-w-md text-center"
-            style={{
-              background: "var(--card)",
-              border: "1px solid var(--border)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
-            }}
-          >
-            <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
-              No more ratings
-            </h2>
-            <p className="text-sm font-medium" style={{ color: "var(--muted)", lineHeight: 1.5 }}>
-              You&apos;ve reached the end! <br /> Check back later for more updates.
-            </p>
-          </div>
-        </div>
-      ) : !isLoading && !loadError && reviews.length === 0 ? (
-        <div className="px-4 py-20 text-center">
-          <div
-            className="rounded-[2rem] p-9 max-w-md mx-auto"
             style={{
               background: "var(--card)",
               border: "1px solid var(--border)",

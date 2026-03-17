@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { apiFetch } from "@/lib/api";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
 import SortBar from "../components/sortBar";
@@ -8,42 +9,38 @@ import SortBar from "../components/sortBar";
 type StudyNoiseLevel = "quiet" | "moderate" | "busy";
 type FoodVenueCategory = "restaurant" | "food" | "fast-food" | "bakery";
 
+type BackendPost = {
+  id?: string | number;
+  rating?: number;
+  stars?: number;
+  category?: string;
+  type?: string;
+  targetType?: string;
+  text?: string;
+  comment?: string;
+  likes?: number;
+  dislikes?: number;
+  major?: string;
+  year?: string;
+  createdAt?: string | number | Date;
+  noiseLevel?: StudyNoiseLevel;
+  venueCategory?: FoodVenueCategory;
+};
+
 type HomeReview = {
   id: string;
-  rating: number;
-  category: string;
-  kind?: "study-spot" | "food-spot" | "course-professor";
+  rating?: number;
+  stars?: number;
+  category?: string;
+  type?: string;
   text: string;
   likes: number;
   dislikes: number;
   major: string;
   year: string;
+  createdAt?: string | number | Date;
   noiseLevel?: StudyNoiseLevel;
   venueCategory?: FoodVenueCategory;
-  spotName?: string;
-  title?: string;
-  courseCode?: string;
-  targetId?: string;
-  displayName?: string;
-};
-
-type BackendPost = {
-  id: string;
-  rating?: number;
-  text?: string;
-  targetType?: string;
-  targetId?: string;
-  targetName?: string;
-  spotName?: string;
-  courseCode?: string;
-  department?: string;
-  semesterTaken?: string;
-  likes?: number;
-  dislikes?: number;
-  noiseLevel?: StudyNoiseLevel;
-  venueCategory?: FoodVenueCategory;
-  displayName?: string;
-  authorName?: string;
 };
 
 const NOISE_FILTERS: Array<{ label: string; value: StudyNoiseLevel | "all" }> = [
@@ -61,116 +58,320 @@ const FOOD_FILTERS: Array<{ label: string; value: FoodVenueCategory | "all" }> =
   { label: "Bakery", value: "bakery" },
 ];
 
+type UserReaction = "liked" | "disliked" | null;
+type SortFilter = "relevant" | "newest" | "oldest" | "highestRating" | "lowestRating";
+
+function mapTargetTypeToCategory(targetType: string | undefined): string | undefined {
+  const normalized = (targetType || "").trim().toLowerCase();
+
+  if (normalized === "prof" || normalized === "professor" || normalized === "course") {
+    return "Professor";
+  }
+
+  if (normalized === "food" || normalized === "food-spot") {
+    return "Food";
+  }
+
+  if (normalized === "study" || normalized === "study-spot") {
+    return "Study Spot";
+  }
+
+  return undefined;
+}
+
+function mapPostToReview(post: BackendPost, index: number): HomeReview {
+  return {
+    id: String(post.id ?? `post-${index}`),
+    rating: post.rating,
+    stars: post.stars,
+    category: mapTargetTypeToCategory(post.targetType) ?? post.category ?? post.type,
+    type: post.type,
+    text: post.text ?? post.comment ?? "",
+    likes: Number(post.likes ?? 0),
+    dislikes: Number(post.dislikes ?? 0),
+    major: post.major ?? "Anonymous",
+    year: post.year ?? "Student",
+    createdAt: post.createdAt,
+    noiseLevel: post.noiseLevel,
+    venueCategory: post.venueCategory,
+  };
+}
+
+function normalizeCategory(value: string | undefined): "prof" | "food" | "study" | "other" {
+  const normalized = (value || "").trim().toLowerCase();
+
+  if (normalized === "prof" || normalized === "professor") {
+    return "prof";
+  }
+
+  if (normalized === "food") {
+    return "food";
+  }
+
+  if (normalized === "study" || normalized === "study spot" || normalized === "study-spot") {
+    return "study";
+  }
+
+  return "other";
+}
+
+function getRatingValue(review: HomeReview): number {
+  const value = review.rating ?? review.stars ?? 0;
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getCreatedAtMs(review: HomeReview): number {
+  const raw = review.createdAt;
+
+  if (typeof raw === "number") {
+    return raw;
+  }
+
+  if (raw instanceof Date) {
+    return raw.getTime();
+  }
+
+  if (typeof raw === "string") {
+    const parsed = Date.parse(raw);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+
+  return 0;
+}
+
 export default function HomePage() {
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [activeSort, setActiveSort] = useState("relevant");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
+  const [selectedSortFilter, setSelectedSortFilter] = useState<SortFilter>("relevant");
+  const [ratings, setRatings] = useState<HomeReview[]>([]);
+  const [userReactions, setUserReactions] = useState<Record<string, UserReaction>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeNoise, setActiveNoise] = useState<StudyNoiseLevel | "all">("all");
   const [activeFoodCategory, setActiveFoodCategory] = useState<FoodVenueCategory | "all">("all");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [reviews, setReviews] = useState<HomeReview[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
-    async function loadReviews() {
-      setIsLoading(true);
+    async function loadRatings() {
+      setLoading(true);
       setLoadError(null);
+
       try {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-        if (!apiBaseUrl) {
-          throw new Error("API URL is not configured.");
-        }
-
-        const response = await fetch(`${apiBaseUrl}/posts`, {
-          method: "GET",
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          throw new Error(`Request failed (${response.status})`);
-        }
-
-        const posts = (await response.json()) as BackendPost[];
-
-        if (process.env.NODE_ENV === "development") {
-          console.debug("[home-feed] Loaded posts:", posts.length);
-        }
-
+        const posts = await apiFetch<BackendPost[]>("/posts", { cache: "no-store" });
         if (!mounted) {
           return;
         }
 
-        setReviews(posts.map(mapPostToHomeReview));
+        const mapped = Array.isArray(posts)
+          ? posts.map((post, index) => mapPostToReview(post, index)).filter((item) => item.text.trim().length > 0)
+          : [];
+
+        setRatings(mapped);
       } catch (error) {
-        if (process.env.NODE_ENV === "development") {
-          console.error("[home-feed] Failed to load posts", error);
+        if (!mounted) {
+          return;
         }
-        if (mounted) {
-          setLoadError("Unable to load posts right now. Please try again.");
-          setReviews([]);
-        }
+
+        setRatings([]);
+        setLoadError(error instanceof Error ? error.message : "Failed to load ratings.");
       } finally {
         if (mounted) {
-          setIsLoading(false);
+          setLoading(false);
         }
       }
     }
 
-    loadReviews();
-
-    const handleSubmitted = () => {
-      void loadReviews();
-    };
-
-    window.addEventListener("rating:submitted", handleSubmitted);
+    loadRatings();
 
     return () => {
       mounted = false;
-      window.removeEventListener("rating:submitted", handleSubmitted);
     };
   }, []);
 
-  const categoryFilteredReviews =
-    activeCategory === "All"
-      ? reviews
-      : reviews.filter((r) => r.category === activeCategory);
+  const filteredReviews = useMemo(() => {
+    const next = ratings.filter((review) => {
+      const mappedCategory = normalizeCategory(review.category ?? review.type);
+
+      if (selectedCategoryFilter === "Professor" && mappedCategory !== "prof") {
+        return false;
+      }
+
+      if ((selectedCategoryFilter === "Food" || selectedCategoryFilter === "Cafeteria") && mappedCategory !== "food") {
+        return false;
+      }
+
+      if (selectedCategoryFilter === "Study Spot" && mappedCategory !== "study") {
+        return false;
+      }
+
+      if (selectedCategoryFilter === "Study Spot" && activeNoise !== "all" && review.noiseLevel !== activeNoise) {
+        return false;
+      }
+
+      if ((selectedCategoryFilter === "Food" || selectedCategoryFilter === "Cafeteria") && activeFoodCategory !== "all" && review.venueCategory !== activeFoodCategory) {
+        return false;
+      }
+
+      const ratingValue = getRatingValue(review);
+
+      return true;
+    });
+
+    const sorted = [...next];
+    sorted.sort((a, b) => {
+      if (selectedSortFilter === "relevant") {
+        return b.likes - a.likes;
+      }
+
+      if (selectedSortFilter === "newest") {
+        return getCreatedAtMs(b) - getCreatedAtMs(a);
+      }
+
+      if (selectedSortFilter === "oldest") {
+        return getCreatedAtMs(a) - getCreatedAtMs(b);
+      }
+
+      if (selectedSortFilter === "highestRating") {
+        const ratingDiff = getRatingValue(b) - getRatingValue(a);
+        if (ratingDiff !== 0) {
+          return ratingDiff;
+        }
+        return getCreatedAtMs(b) - getCreatedAtMs(a);
+      }
+
+      if (selectedSortFilter === "lowestRating") {
+        const ratingDiff = getRatingValue(a) - getRatingValue(b);
+        if (ratingDiff !== 0) {
+          return ratingDiff;
+        }
+        return getCreatedAtMs(b) - getCreatedAtMs(a);
+      }
+
+      return 0;
+    });
+
+    return sorted;
+  }, [
+    activeFoodCategory,
+    activeNoise,
+    ratings,
+    selectedCategoryFilter,
+    selectedSortFilter,
+  ]);
+
+  const hasStudyFilters = activeNoise !== "all";
+  const hasFoodFilters = activeFoodCategory !== "all";
+  const hasActiveFilters =
+    (selectedCategoryFilter === "Study Spot" && hasStudyFilters) ||
+    (selectedCategoryFilter === "Food" && hasFoodFilters);
+
+  const activeFilterCount =
+    selectedCategoryFilter === "Study Spot"
+      ? (activeNoise !== "all" ? 1 : 0)
+      : selectedCategoryFilter === "Food"
+      ? (activeFoodCategory !== "all" ? 1 : 0)
+      : 0;
+
+  function applyReaction(reviewId: string, nextReaction: Exclude<UserReaction, null>) {
+    setRatings((prev) => {
+      const currentReaction = userReactions[reviewId] ?? null;
+
+      return prev.map((review) => {
+        if (review.id !== reviewId) {
+          return review;
+        }
+
+        let likes = review.likes;
+        let dislikes = review.dislikes;
+
+        if (currentReaction === nextReaction) {
+          // Toggling off: remove existing reaction and decrement the corresponding count.
+          if (nextReaction === "liked") {
+            likes = Math.max(0, likes - 1);
+          } else if (nextReaction === "disliked") {
+            dislikes = Math.max(0, dislikes - 1);
+          }
+
+          return {
+            ...review,
+            likes,
+            dislikes,
+          };
+        }
+
+        if (currentReaction === "liked") {
+          likes = Math.max(0, likes - 1);
+        }
+
+        if (currentReaction === "disliked") {
+          dislikes = Math.max(0, dislikes - 1);
+        }
+
+        if (nextReaction === "liked") {
+          likes += 1;
+        }
+
+        if (nextReaction === "disliked") {
+          dislikes += 1;
+        }
+
+        return {
+          ...review,
+          likes,
+          dislikes,
+        };
+      });
+    });
+
+    setUserReactions((prev) => {
+      const currentReaction = prev[reviewId] ?? null;
+      const newReaction =
+        currentReaction === nextReaction ? null : nextReaction;
+
+      return {
+        ...prev,
+        [reviewId]: newReaction,
+      };
+    });
+
+    // TODO: replace this with a backend call when a like/dislike endpoint is available.
+  }
+
+  function scrollTop() {
+    const container = document.querySelector(".snap-container") as HTMLElement | null;
+    if (container) container.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   return (
-    <main className="w-full bg-black text-white min-h-screen">
-      {/* Debug: always render, even if CSS not loaded */}
-      {typeof window !== "undefined" && !document.documentElement.style.getPropertyValue("--bg") && (
-        <div className="fixed top-0 left-0 right-0 bg-yellow-900 text-yellow-200 p-2 text-xs z-50">
-          CSS not loaded - reload page
-        </div>
-      )}
+    <main className="snap-container no-snap" style={{ background: "var(--bg)" }}>
       <GlobalHeader
-        activeCategory={activeCategory}
-        setActiveCategory={setActiveCategory}
+        activeCategory={selectedCategoryFilter}
+        setActiveCategory={setSelectedCategoryFilter}
       />
 
-      <SortBar activeSort={activeSort} setActiveSort={setActiveSort} />
+      <SortBar activeSort={selectedSortFilter} setActiveSort={setSelectedSortFilter} />
 
-      {/* FILTERS MODAL */}
-      {activeCategory === "Study Spot" || activeCategory === "Food" ? (
+      {selectedCategoryFilter === "Study Spot" || selectedCategoryFilter === "Food" ? (
         <div className="fixed left-1/2 top-24 z-[110] -translate-x-1/2 px-3">
           <button
             type="button"
             onClick={() => setIsFiltersOpen(true)}
             className="rounded-full border px-4 py-2 text-sm font-bold"
             style={{
-              borderColor: "var(--border)",
-              color: "var(--text)",
-              background: "var(--card)",
+              borderColor: hasActiveFilters ? "var(--accent)" : "var(--border)",
+              color: hasActiveFilters ? "var(--accent)" : "var(--text)",
+              background: hasActiveFilters ? "rgba(197,107,255,0.10)" : "var(--card)",
             }}
           >
-            Filters
+            Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}
           </button>
         </div>
       ) : null}
 
-      {isFiltersOpen && (activeCategory === "Study Spot" || activeCategory === "Food") ? (
+      {isFiltersOpen && (selectedCategoryFilter === "Study Spot" || selectedCategoryFilter === "Food") ? (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/70 p-4" onClick={() => setIsFiltersOpen(false)}>
           <section
             className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl border p-3 sm:p-4"
@@ -179,22 +380,23 @@ export default function HomePage() {
           >
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-bold uppercase tracking-wide">
-                {activeCategory === "Study Spot" ? "Study filters" : "Food filters"}
+                {selectedCategoryFilter === "Study Spot" ? "Study filters" : "Food filters"}
               </h2>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    if (activeCategory === "Study Spot") {
+                    if (selectedCategoryFilter === "Study Spot") {
                       setActiveNoise("all");
                     } else {
                       setActiveFoodCategory("all");
                     }
                   }}
-                  className="rounded-full border px-3 py-1 text-xs font-bold"
+                  disabled={!hasActiveFilters}
+                  className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50"
                   style={{ borderColor: "var(--border)" }}
                 >
-                  Clear
+                  Clear filters
                 </button>
                 <button
                   type="button"
@@ -207,7 +409,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {activeCategory === "Study Spot" ? (
+            {selectedCategoryFilter === "Study Spot" ? (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {NOISE_FILTERS.map((option) => {
                   const isActive = activeNoise === option.value;
@@ -230,7 +432,7 @@ export default function HomePage() {
               </div>
             ) : null}
 
-            {activeCategory === "Food" ? (
+            {selectedCategoryFilter === "Food" ? (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {FOOD_FILTERS.map((option) => {
                   const isActive = activeFoodCategory === option.value;
@@ -256,128 +458,119 @@ export default function HomePage() {
         </div>
       ) : null}
 
-      {/* LOADING STATE */}
-      {isLoading ? (
-        <div className="px-4 py-20 text-center">
-          <p className="text-sm font-semibold text-gray-400">Loading posts...</p>
-        </div>
-      ) : null}
-
-      {/* ERROR STATE */}
-      {!isLoading && loadError ? (
-        <div className="px-4 py-20 text-center">
-          <p className="text-sm font-semibold text-red-500">{loadError}</p>
-          <button
-            onClick={() => {
-              setLoadError(null);
-              setIsLoading(true);
-              // Reload posts
-              const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-              if (apiBaseUrl) {
-                fetch(`${apiBaseUrl}/posts`, { method: "GET", cache: "no-store" })
-                  .then((r) => r.json())
-                  .then((data) => {
-                    setReviews((Array.isArray(data) ? data : []).map(mapPostToHomeReview));
-                    setIsLoading(false);
-                  })
-                  .catch((err) => {
-                    console.error(err);
-                    setLoadError("Failed to reload. Try again later.");
-                    setIsLoading(false);
-                  });
-              }
-            }}
-            className="mt-4 px-4 py-2 rounded-lg border text-xs font-bold"
-            style={{ borderColor: "var(--border)" }}
-          >
-            Try Again
-          </button>
-        </div>
-      ) : null}
-
-      {/* POSTS LIST */}
-      {!isLoading && !loadError && reviews.length > 0 ? (
-        <div className="flex flex-col items-center gap-8 py-8 px-4">
-          {reviews.map((review) => (
-            <ReviewCard key={review.id} review={review} />
-          ))}
-          <div
-            className="rounded-[2rem] p-9 max-w-md text-center"
-            style={{
-              background: "var(--card)",
-              border: "1px solid var(--border)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
-            }}
-          >
-            <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
-              No more ratings
-            </h2>
-            <p className="text-sm font-medium" style={{ color: "var(--muted)", lineHeight: 1.5 }}>
-              You&apos;ve reached the end! <br /> Check back later for more updates.
-            </p>
-          </div>
-        </div>
-      ) : !isLoading && !loadError && reviews.length === 0 ? (
-        <div className="px-4 py-20 text-center">
-          <div
-            className="rounded-[2rem] p-9 max-w-md mx-auto"
-            style={{
-              background: "var(--card)",
-              border: "1px solid var(--border)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
-            }}
-          >
-            <div className="text-4xl mb-4">🔍</div>
-            <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
-              Empty Category
-            </h2>
-            <p className="text-sm font-medium mb-6" style={{ color: "var(--muted)", lineHeight: 1.5 }}>
-              There are currently no ratings for <strong>&quot;{activeCategory}&quot;</strong>.
-            </p>
-            <button
-              onClick={() => setActiveCategory("All")}
-              className="px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest"
+      <div className="w-full">
+        {loading ? (
+          <div className="snap-item flex flex-col items-center justify-center text-center px-10">
+            <div
+              className="rounded-[2rem] p-10 max-w-[400px]"
               style={{
-                background: "transparent",
-                color: "var(--text)",
+                background: "var(--card)",
                 border: "1px solid var(--border)",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
               }}
             >
-              View All Ratings
-            </button>
+              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
+                Loading ratings...
+              </h2>
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : filteredReviews.length > 0 ? (
+          <>
+            {filteredReviews.map((review) => (
+              <ReviewCard
+                key={review.id}
+                review={review}
+                userReaction={userReactions[review.id] ?? null}
+                onLike={() => applyReaction(review.id, "liked")}
+                onDislike={() => applyReaction(review.id, "disliked")}
+              />
+            ))}
+
+            <div className="snap-item flex flex-col items-center justify-center text-center px-10">
+              <div
+                className="rounded-[2rem] p-10 max-w-[400px]"
+                style={{
+                  background: "var(--card)",
+                  border: "1px solid var(--border)",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+                }}
+              >
+                <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
+                  No more ratings
+                </h2>
+                <p className="text-sm font-medium" style={{ color: "var(--muted)", lineHeight: 1.5 }}>
+                  You&apos;ve reached the end! <br /> Check back later for more updates.
+                </p>
+
+                <button
+                  onClick={scrollTop}
+                  className="mt-6 px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-200 active:scale-95"
+                  style={{
+                    background: "var(--text)",
+                    color: "var(--bg)",
+                    border: "1px solid var(--border)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = "0 0 16px rgba(197,107,255,0.15)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  Back to Top
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="snap-item flex flex-col items-center justify-center text-center px-10">
+            <div
+              className="rounded-[2rem] p-10 max-w-[400px]"
+              style={{
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+              }}
+            >
+              <div className="text-4xl mb-4">🔍</div>
+              <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
+                Empty Category
+              </h2>
+              <p className="text-sm font-medium" style={{ color: "var(--muted)", lineHeight: 1.5 }}>
+                {loadError
+                  ? `Could not load ratings (${loadError}).`
+                  : "There are currently no ratings for "}
+                {!loadError ? (
+                <span style={{ color: "var(--accent)" }}>
+                  &quot;{selectedCategoryFilter}&quot;
+                </span>
+                ) : null}
+                {!loadError ? "." : null}
+              </p>
+
+              <button
+                onClick={() => setSelectedCategoryFilter("All")}
+                className="mt-6 px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-200 active:scale-95"
+                style={{
+                  background: "transparent",
+                  color: "var(--text)",
+                  border: "1px solid var(--border)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(197,107,255,0.3)";
+                  e.currentTarget.style.boxShadow = "0 0 16px rgba(197,107,255,0.1)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--border)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                View All Ratings
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </main>
   );
-}
-
-function mapPostToHomeReview(post: BackendPost): HomeReview {
-  const targetType = (post.targetType || "").toLowerCase();
-
-  let category = "Professor";
-  if (targetType === "food-spot") {
-    category = "Food";
-  } else if (targetType === "study-spot") {
-    category = "Study Spot";
-  }
-
-  return {
-    id: post.id,
-    rating: Number(post.rating) || 0,
-    category,
-    kind: targetType === "study-spot" || targetType === "food-spot" ? targetType : "course-professor",
-    text: post.text || "",
-    likes: Number(post.likes) || 0,
-    dislikes: Number(post.dislikes) || 0,
-    major: post.department || "Anonymous",
-    year: post.semesterTaken || "",
-    noiseLevel: post.noiseLevel,
-    venueCategory: post.venueCategory,
-    spotName: post.spotName || (targetType === "study-spot" || targetType === "food-spot" ? post.targetName || "" : ""),
-    title: post.targetName || "",
-    courseCode: post.courseCode || "",
-    targetId: post.targetId || "",
-    displayName: post.displayName || post.authorName || "Anonymous",
-  };
 }

@@ -133,7 +133,9 @@ export default function ReviewCard({
                 fill={activeReaction === "liked" ? "currentColor" : "none"}
                 strokeWidth={2}
               />
-              <span className="text-xs font-bold">{review.likes}</span>
+              <span className="text-xs font-bold">
+                {review.likes + (activeReaction === "liked" ? 1 : 0)}
+              </span>
             </button>
 
             <button
@@ -146,7 +148,9 @@ export default function ReviewCard({
                 fill={activeReaction === "disliked" ? "currentColor" : "none"}
                 strokeWidth={2}
               />
-              <span className="text-xs font-bold">{review.dislikes}</span>
+              <span className="text-xs font-bold">
+                {review.dislikes + (activeReaction === "disliked" ? 1 : 0)}
+              </span>
             </button>
 
             <button

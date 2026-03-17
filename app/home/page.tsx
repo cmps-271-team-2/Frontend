@@ -32,6 +32,7 @@ type BackendPost = {
   displayName?: string;
   authorName?: string;
   semesterTaken?: string;
+  title?: string;
 };
 
 type HomeReview = {
@@ -108,13 +109,25 @@ function mapTargetTypeToCategory(targetType: string | undefined): string | undef
 }
 
 function mapPostToReview(post: BackendPost, index: number): HomeReview {
-  return {
+  const extractedCode =
+    typeof post.title === "string"
+      ? post.title.split(" - ")[0]?.trim()
+      : undefined;
+
+  const mapped: HomeReview = {
     id: String(post.id ?? `post-${index}`),
     rating: post.rating,
     stars: post.stars,
     category: mapTargetTypeToCategory(post.targetType) ?? post.category ?? post.type,
     type: post.type,
-    code: post.code ?? post.courseCode,
+    code:
+      (typeof post.code === "string" && post.code.trim().length > 0
+        ? post.code.trim()
+        : undefined) ||
+      (typeof post.courseCode === "string" && post.courseCode.trim().length > 0
+        ? post.courseCode.trim()
+        : undefined) ||
+      extractedCode,
     text: post.text ?? post.comment ?? "",
     likes: Number(post.likes ?? 0),
     dislikes: Number(post.dislikes ?? 0),
@@ -130,6 +143,8 @@ function mapPostToReview(post: BackendPost, index: number): HomeReview {
     semester: post.semesterTaken ?? post.year,
     kind: getKindFromTargetType(post.targetType),
   };
+  console.log("Mapped review:", mapped);
+  return mapped;
 }
 
 function normalizeCategory(value: string | undefined): "prof" | "food" | "study" | "other" {

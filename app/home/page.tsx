@@ -341,12 +341,12 @@ export default function HomePage() {
   }
 
   function scrollTop() {
-    const container = document.querySelector(".snap-container") as HTMLElement | null;
+    const container = document.querySelector("main") as HTMLElement | null;
     if (container) container.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
-    <main className="snap-container no-snap" style={{ background: "var(--bg)" }}>
+    <main className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth" style={{ background: "var(--bg)" }}>
       <GlobalHeader
         activeCategory={selectedCategoryFilter}
         setActiveCategory={setSelectedCategoryFilter}
@@ -460,7 +460,7 @@ export default function HomePage() {
 
       <div className="w-full">
         {loading ? (
-          <div className="snap-item flex flex-col items-center justify-center text-center px-10">
+          <div className="h-screen w-full snap-start flex flex-col items-center justify-center text-center px-10">
             <div
               className="rounded-[2rem] p-10 max-w-[400px]"
               style={{
@@ -477,16 +477,17 @@ export default function HomePage() {
         ) : filteredReviews.length > 0 ? (
           <>
             {filteredReviews.map((review) => (
-              <ReviewCard
-                key={review.id}
-                review={review}
-                userReaction={userReactions[review.id] ?? null}
-                onLike={() => applyReaction(review.id, "liked")}
-                onDislike={() => applyReaction(review.id, "disliked")}
-              />
+              <div key={review.id} className="h-screen w-full snap-start">
+                <ReviewCard
+                  review={review}
+                  userReaction={userReactions[review.id] ?? null}
+                  onLike={() => applyReaction(review.id, "liked")}
+                  onDislike={() => applyReaction(review.id, "disliked")}
+                />
+              </div>
             ))}
 
-            <div className="snap-item flex flex-col items-center justify-center text-center px-10">
+            <div className="h-screen w-full snap-start flex flex-col items-center justify-center text-center px-10">
               <div
                 className="rounded-[2rem] p-10 max-w-[400px]"
                 style={{
@@ -523,7 +524,7 @@ export default function HomePage() {
             </div>
           </>
         ) : (
-          <div className="snap-item flex flex-col items-center justify-center text-center px-10">
+          <div className="h-screen w-full snap-start flex flex-col items-center justify-center text-center px-10">
             <div
               className="rounded-[2rem] p-10 max-w-[400px]"
               style={{

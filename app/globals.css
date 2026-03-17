@@ -66,13 +66,14 @@ html[data-theme="light"] {
   --accent-yellow: #eab308;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
 html,
 body {
+  overflow-x: hidden;
   height: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {

@@ -50,8 +50,6 @@ export default function ReviewCard({
   const [localReaction, setLocalReaction] = useState<UserReaction>(null);
   const [isFavorite, setFavorite] = useState(false);
 
-  console.log("REVIEW DATA:", review);
-
   const activeReaction = userReaction ?? localReaction;
   const resolvedRating = review.rating ?? review.stars ?? 0;
   
@@ -59,7 +57,7 @@ export default function ReviewCard({
   const displayTitle =
     review.kind === "study-spot" || review.kind === "food-spot"
       ? review.spotName || "Unknown Spot"
-      : review.code || review.courseCode || review.course?.code || review.course?.codeName || "Unknown Course";
+      : review.code || review.courseCode || "Unknown Course";
 
   function handleLike() {
     if (onLike) {
@@ -94,7 +92,7 @@ export default function ReviewCard({
           }}
         >
           {/* Title */}
-          <h2 className="text-lg font-semibold text-center mb-4" style={{ color: "var(--text)" }}>
+          <h2 className="text-lg font-semibold text-center text-white mb-2">
             {displayTitle}
           </h2>
 

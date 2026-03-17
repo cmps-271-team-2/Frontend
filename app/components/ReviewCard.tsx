@@ -62,7 +62,8 @@ export default function ReviewCard({
       return;
     }
 
-    setLocalReaction((prev) => (prev === "liked" ? "liked" : "liked"));
+    // Local-only mode: toggle like on/off and clear any existing dislike
+    setLocalReaction((prev) => (prev === "liked" ? null : "liked"));
   }
 
   function handleDislike() {
@@ -71,7 +72,8 @@ export default function ReviewCard({
       return;
     }
 
-    setLocalReaction((prev) => (prev === "disliked" ? "disliked" : "disliked"));
+    // Local-only mode: toggle dislike on/off and clear any existing like
+    setLocalReaction((prev) => (prev === "disliked" ? null : "disliked"));
   }
 
   return (

@@ -287,7 +287,18 @@ export default function HomePage() {
         let dislikes = review.dislikes;
 
         if (currentReaction === nextReaction) {
-          return review;
+          // Toggling off: remove existing reaction and decrement the corresponding count.
+          if (nextReaction === "liked") {
+            likes = Math.max(0, likes - 1);
+          } else if (nextReaction === "disliked") {
+            dislikes = Math.max(0, dislikes - 1);
+          }
+
+          return {
+            ...review,
+            likes,
+            dislikes,
+          };
         }
 
         if (currentReaction === "liked") {
@@ -314,10 +325,16 @@ export default function HomePage() {
       });
     });
 
-    setUserReactions((prev) => ({
-      ...prev,
-      [reviewId]: nextReaction,
-    }));
+    setUserReactions((prev) => {
+      const currentReaction = prev[reviewId] ?? null;
+      const newReaction =
+        currentReaction === nextReaction ? null : nextReaction;
+
+      return {
+        ...prev,
+        [reviewId]: newReaction,
+      };
+    });
 
     // TODO: replace this with a backend call when a like/dislike endpoint is available.
   }

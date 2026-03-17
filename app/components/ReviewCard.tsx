@@ -42,10 +42,10 @@ export default function ReviewCard({ review }: { review: Review }) {
       : review.courseCode || review.title || review.targetId || "Unknown";
 
   return (
-    <div className="snap-item bg-transparent">
-      <div className="relative z-20 flex flex-col items-center w-[480px] max-w-[90vw]">
+    <div className="snap-item bg-transparent w-full max-w-md">
+      <div className="relative z-20 flex flex-col items-center w-full">
         <div
-          className="w-full rounded-[2.5rem] p-9 flex flex-col items-center transition-shadow duration-300"
+          className="w-full rounded-[2.5rem] p-6 sm:p-9 flex flex-col items-center transition-shadow duration-300 break-words overflow-hidden"
           style={{
             background: "var(--card)",
             border: "1px solid var(--border)",

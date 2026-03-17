@@ -1,6 +1,18 @@
 ﻿@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800;900&display=swap');
 @import "tailwindcss";
 
+/* ===== Mobile responsiveness fixes ===== */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+
+/* Prevent horizontal scroll on all screens, especially iOS */
+* {
+  max-width: 100%;
+}
+
 /* ===== Design tokens (brand — derived from the UniTok logo) ===== */
 :root {
   /* Base palette */

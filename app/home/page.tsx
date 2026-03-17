@@ -16,6 +16,7 @@ type BackendPost = {
   category?: string;
   type?: string;
   targetType?: string;
+  code?: string;
   text?: string;
   comment?: string;
   likes?: number;
@@ -40,6 +41,7 @@ type HomeReview = {
   stars?: number;
   category?: string;
   type?: string;
+  code?: string;
   text: string;
   likes: number;
   dislikes: number;
@@ -112,6 +114,7 @@ function mapPostToReview(post: BackendPost, index: number): HomeReview {
     stars: post.stars,
     category: mapTargetTypeToCategory(post.targetType) ?? post.category ?? post.type,
     type: post.type,
+    code: post.code ?? post.courseCode,
     text: post.text ?? post.comment ?? "",
     likes: Number(post.likes ?? 0),
     dislikes: Number(post.dislikes ?? 0),

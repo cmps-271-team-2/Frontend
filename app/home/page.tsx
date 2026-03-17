@@ -34,6 +34,7 @@ type BackendPost = {
 };
 
 type HomeReview = {
+    kind?: "study-spot" | "food-spot" | "course-professor";
   id: string;
   rating?: number;
   stars?: number;
@@ -71,6 +72,20 @@ const FOOD_FILTERS: Array<{ label: string; value: FoodVenueCategory | "all" }> =
 
 type UserReaction = "liked" | "disliked" | null;
 type SortFilter = "relevant" | "newest" | "oldest" | "highestRating" | "lowestRating";
+function getKindFromTargetType(targetType: string | undefined): "study-spot" | "food-spot" | "course-professor" | undefined {
+  const normalized = (targetType || "").trim().toLowerCase();
+
+  if (normalized === "study" || normalized === "study-spot") {
+    return "study-spot";
+  }
+
+  if (normalized === "food" || normalized === "food-spot") {
+    return "food-spot";
+  }
+
+  return "course-professor";
+}
+
 
 function mapTargetTypeToCategory(targetType: string | undefined): string | undefined {
   const normalized = (targetType || "").trim().toLowerCase();
@@ -110,6 +125,7 @@ function mapPostToReview(post: BackendPost, index: number): HomeReview {
     spotName: post.spotName,
     displayName: post.displayName ?? post.authorName ?? "Anonymous",
     semester: post.semesterTaken ?? post.year,
+    kind: getKindFromTargetType(post.targetType),
   };
 }
 

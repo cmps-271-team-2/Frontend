@@ -52,12 +52,17 @@ export default function ReviewCard({
 
   const activeReaction = userReaction ?? localReaction;
   const resolvedRating = review.rating ?? review.stars ?? 0;
-  
+
+  const cleanCode = typeof review.code === "string" ? review.code.trim() : "";
+  console.log("Review code value:", review.code);
+
   // Compute title based on review kind
   const displayTitle =
     review.kind === "study-spot" || review.kind === "food-spot"
       ? review.spotName || "Unknown Spot"
-      : review.code || review.courseCode || "Unknown Course";
+      : cleanCode.length > 0
+        ? cleanCode
+        : "Unknown Course";
 
   function handleLike() {
     if (onLike) {

@@ -1,10 +1,12 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useMemo } from "react";
+import DarkSelect from "./dark-select";
 import MultiSelectChips from "./multi-select-chips";
 import PhotoUpload from "./photo-upload";
 import RatingStars from "./rating-stars";
 import { submitRating, StudyFoodCategory } from "@/lib/ratings";
+import { detectTags } from "@/lib/tag-detector";
 
 const MIN_COMMENT_LENGTH = 20;
 
@@ -16,11 +18,16 @@ const ATTRIBUTE_OPTIONS = [
   "good coffee",
   "group-friendly",
   "comfortable",
+  "sleepy",
+  "loud",
+  "coffee",
+  "crowded",
 ];
 
 type StudyFoodFormProps = {
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
+  initialTargetId: string;
   initialSpotName?: string;
   initialCategory?: StudyFoodCategory;
   lockSelection?: boolean;
@@ -36,6 +43,7 @@ type StudyFoodFormErrors = {
 export default function StudyFoodRatingForm({
   onSuccess,
   onError,
+  initialTargetId,
   initialSpotName,
   initialCategory,
   lockSelection = false,
@@ -45,6 +53,7 @@ export default function StudyFoodRatingForm({
   const [location, setLocation] = useState("");
   const [overallRating, setOverallRating] = useState(0);
   const [attributes, setAttributes] = useState<string[]>([]);
+  const [blockedAutoTags, setBlockedAutoTags] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState("");
   const [bestTimeToGo, setBestTimeToGo] = useState("");
   const [comment, setComment] = useState("");
@@ -53,6 +62,21 @@ export default function StudyFoodRatingForm({
   const [errors, setErrors] = useState<StudyFoodFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Auto-detect tags from comment text
+  const autoDetectedTags = useMemo(() => {
+    return detectTags(comment);
+  }, [comment]);
+
+  // Filter auto-detected tags by blocked list
+  const activeAutoTags = useMemo(() => {
+    return autoDetectedTags.filter((tag) => !blockedAutoTags.includes(tag));
+  }, [autoDetectedTags, blockedAutoTags]);
+
+  // Merge manual and auto-detected attributes (excluding blocked)
+  const finalAttributes = useMemo(() => {
+    return Array.from(new Set([...attributes, ...activeAutoTags]));
+  }, [attributes, activeAutoTags]);
+
   function resetForm() {
     photoPreviews.forEach((preview) => URL.revokeObjectURL(preview));
     setSpotName(initialSpotName ?? "");
@@ -60,6 +84,7 @@ export default function StudyFoodRatingForm({
     setLocation("");
     setOverallRating(0);
     setAttributes([]);
+    setBlockedAutoTags([]);
     setPriceRange("");
     setBestTimeToGo("");
     setComment("");
@@ -90,6 +115,28 @@ export default function StudyFoodRatingForm({
     return nextErrors;
   }
 
+  function handleAttributesChange(newAttributes: string[]) {
+    // Detect which tags were removed
+    for (const tag of attributes) {
+      if (!newAttributes.includes(tag) && autoDetectedTags.includes(tag)) {
+        // Tag was removed and it's auto-detected, so block it
+        setBlockedAutoTags((prev) =>
+          prev.includes(tag) ? prev : [...prev, tag]
+        );
+      }
+    }
+
+    // Detect which tags were added
+    for (const tag of newAttributes) {
+      if (!attributes.includes(tag) && blockedAutoTags.includes(tag)) {
+        // Tag was added back and it was blocked, remove from blocked
+        setBlockedAutoTags((prev) => prev.filter((t) => t !== tag));
+      }
+    }
+
+    setAttributes(newAttributes);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextErrors = validateForm();
@@ -103,18 +150,19 @@ export default function StudyFoodRatingForm({
     try {
       await submitRating({
         ratingType: "study-food",
+        targetId: initialTargetId,
         spotName: spotName.trim(),
         category: category as StudyFoodCategory,
         location: location.trim() || undefined,
         overallRating,
-        attributes,
+        attributes: finalAttributes,
         priceRange: category === "food-spot" ? priceRange.trim() || undefined : undefined,
         bestTimeToGo: bestTimeToGo.trim() || undefined,
         comment: comment.trim(),
-        photos: photoFiles.map((file) => file.name),
+        media: photoFiles.map((file) => file.name),
       });
 
-      onSuccess("Study/Food rating submitted successfully.");
+      onSuccess("Study/Food post submitted successfully.");
       resetForm();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to submit rating.";
@@ -144,7 +192,7 @@ export default function StudyFoodRatingForm({
         {lockSelection ? (
           <div
             className="inline-flex rounded-full border px-4 py-2 text-sm font-semibold"
-            style={{ borderColor: "#3b82f6", background: "rgba(59, 130, 246, 0.18)" }}
+            style={{ borderColor: "var(--accent-green)", background: "rgba(105, 242, 140, 0.08)" }}
           >
             {category === "food-spot" ? "Food spot" : "Study spot"}
           </div>
@@ -160,8 +208,8 @@ export default function StudyFoodRatingForm({
                 onClick={() => setCategory(item.value as StudyFoodCategory)}
                 className="rounded-full border px-4 py-2 text-sm font-semibold"
                 style={{
-                  borderColor: category === item.value ? "#3b82f6" : "var(--border)",
-                  background: category === item.value ? "rgba(59, 130, 246, 0.18)" : "transparent",
+                  borderColor: category === item.value ? "var(--accent-green)" : "var(--border)",
+                  background: category === item.value ? "rgba(105, 242, 140, 0.08)" : "transparent",
                 }}
               >
                 {item.label}
@@ -193,24 +241,23 @@ export default function StudyFoodRatingForm({
       <MultiSelectChips
         label="Attributes"
         options={ATTRIBUTE_OPTIONS}
-        selected={attributes}
-        onChange={setAttributes}
+        selected={finalAttributes}
+        onChange={handleAttributesChange}
       />
 
       {category === "food-spot" ? (
         <div className="space-y-2">
           <label className="block text-sm font-semibold">Price range</label>
-          <select
+          <DarkSelect
             value={priceRange}
-            onChange={(event) => setPriceRange(event.target.value)}
-            className="w-full rounded-lg border px-3 py-2"
-            style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+            onChange={setPriceRange}
+            aria-label="Price range"
           >
             <option value="">Select range</option>
             <option value="$">$</option>
             <option value="$$">$$</option>
             <option value="$$$">$$$</option>
-          </select>
+          </DarkSelect>
         </div>
       ) : null}
 
@@ -253,7 +300,7 @@ export default function StudyFoodRatingForm({
         type="submit"
         disabled={isSubmitting}
         className="w-full rounded-lg px-4 py-2 font-bold disabled:opacity-70"
-        style={{ background: "#2563eb", color: "white" }}
+        style={{ background: "var(--accent)", color: "white" }}
       >
         {isSubmitting ? "Submitting..." : "Submit Study / Food Rating"}
       </button>

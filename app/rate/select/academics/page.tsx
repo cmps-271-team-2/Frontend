@@ -2,18 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AcademicKind, fetchCatalogItems } from "@/lib/rating-catalog";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { AcademicKind, fetchCatalogItems, type CatalogItem } from "@/lib/rating-catalog";
 
-type AcademicItem = {
-  id: string;
-  name: string;
-  subtitle?: string;
-};
+type AcademicItem = CatalogItem;
 
 export default function SelectAcademicPage() {
   const router = useRouter();
-  const [kind, setKind] = useState<AcademicKind>("course");
-  const [items, setItems] = useState<AcademicItem[]>([]);
+  const [kind, setKind] = useState<AcademicKind | "all">("all");
+  const [items, setItems] = useState<CatalogItem[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +23,39 @@ export default function SelectAcademicPage() {
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchCatalogItems("academics", kind);
+        let data: AcademicItem[];
+
+        const loadCourses = async (): Promise<CatalogItem[]> => {
+          const snapshot = await getDocs(collection(db, "courses"));
+          return snapshot.docs.map((doc) => {
+            const course = doc.data() as {
+              title?: string;
+              department?: string;
+              code?: string;
+            };
+
+            return {
+              id: doc.id,
+              name: course.code as string,
+              subtitle: course.title as string,
+              kind: "course" as const,
+              courseCode: course.code,
+            };
+          });
+        };
+
+        if (kind === "course") {
+          data = await loadCourses();
+        } else if (kind === "professor") {
+          data = await fetchCatalogItems("academics", "professor");
+        } else {
+          const [courses, professors] = await Promise.all([
+            loadCourses(),
+            fetchCatalogItems("academics", "professor"),
+          ]);
+          data = [...courses, ...professors];
+        }
+
         if (mounted) {
           setItems(data);
         }
@@ -49,13 +79,8 @@ export default function SelectAcademicPage() {
   }, [kind]);
 
   const filteredItems = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return items;
-    return items.filter((item) => {
-      const text = `${item.name} ${item.subtitle || ""}`.toLowerCase();
-      return text.includes(query);
-    });
-  }, [items, search]);
+    return filterAcademicItems(items, kind, search);
+  }, [items, kind, search]);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 pb-32 pt-6" style={{ color: "var(--text)" }}>
@@ -66,6 +91,7 @@ export default function SelectAcademicPage() {
 
       <div className="mt-4 flex gap-2">
         {[
+          { label: "All", value: "all" as const },
           { label: "Courses", value: "course" as const },
           { label: "Professors", value: "professor" as const },
         ].map((option) => (
@@ -75,8 +101,9 @@ export default function SelectAcademicPage() {
             onClick={() => setKind(option.value)}
             className="rounded-full border px-4 py-2 text-sm font-bold"
             style={{
-              borderColor: kind === option.value ? "#3b82f6" : "var(--border)",
-              background: kind === option.value ? "rgba(59, 130, 246, 0.18)" : "transparent",
+              borderColor: kind === option.value ? "var(--accent-blue)" : "var(--border)",
+              background: kind === option.value ? "rgba(91,200,255,0.08)" : "transparent",
+              color: kind === option.value ? "var(--accent-blue)" : "var(--text)",
             }}
           >
             {option.label}
@@ -87,7 +114,7 @@ export default function SelectAcademicPage() {
       <input
         value={search}
         onChange={(event) => setSearch(event.target.value)}
-        placeholder="Search list..."
+        placeholder="Search by professor, course name, or code..."
         className="mt-4 w-full rounded-lg border px-3 py-2"
         style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
       />
@@ -98,17 +125,17 @@ export default function SelectAcademicPage() {
 
         {!loading && !error && filteredItems.length === 0 ? (
           <p className="text-sm" style={{ color: "var(--muted)" }}>
-            No items found.
+            No results found for your current search.
           </p>
         ) : null}
 
-        {filteredItems.map((item) => (
+        {filteredItems.map((item: CatalogItem) => (
           <button
             key={item.id}
             type="button"
             onClick={() =>
               router.push(
-                `/rate/create?flow=course-professor&type=${kind}&name=${encodeURIComponent(item.name)}`
+                `/rate/create?flow=course-professor&type=${item.kind}&id=${encodeURIComponent(item.id)}&name=${encodeURIComponent(item.name)}`
               )
             }
             className="w-full rounded-xl border px-4 py-3 text-left"
@@ -125,4 +152,18 @@ export default function SelectAcademicPage() {
       </div>
     </main>
   );
+}
+
+function filterAcademicItems(
+  items: CatalogItem[],
+  kind: AcademicKind | "all",
+  search: string
+): CatalogItem[] {
+  const query = search.trim().toLowerCase();
+
+  return items.filter((item: CatalogItem) => {
+    const matchesKind = kind === "all" || item.kind === kind;
+    const matchesSearch = !query || item.name.toLowerCase().includes(query);
+    return matchesKind && matchesSearch;
+  });
 }

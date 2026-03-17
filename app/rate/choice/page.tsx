@@ -36,7 +36,7 @@ export default function RatingChoicePage() {
             type="button"
             onClick={() => router.push("/rate/select/spots")}
             style={{
-              borderRadius: 14,
+              borderRadius: 16,
               border: "1px solid var(--border)",
               background: "var(--card)",
               color: "var(--text)",
@@ -45,19 +45,20 @@ export default function RatingChoicePage() {
               padding: 16,
               textAlign: "center",
               fontSize: 18,
-              fontWeight: 900,
+              fontWeight: 700,
               display: "grid",
               placeItems: "center",
-              transition: "all 120ms ease",
+              transition: "all 200ms ease",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)";
-              (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                "0 12px 24px rgba(0,0,0,0.2)";
+              (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-3px)";
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 24px rgba(0,0,0,0.3)";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,155,84,0.3)";
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0px)";
               (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
             }}
           >
             <div>
@@ -70,7 +71,7 @@ export default function RatingChoicePage() {
             type="button"
             onClick={() => router.push("/rate/select/academics")}
             style={{
-              borderRadius: 14,
+              borderRadius: 16,
               border: "1px solid var(--border)",
               background: "var(--card)",
               color: "var(--text)",
@@ -79,19 +80,20 @@ export default function RatingChoicePage() {
               padding: 16,
               textAlign: "center",
               fontSize: 18,
-              fontWeight: 900,
+              fontWeight: 700,
               display: "grid",
               placeItems: "center",
-              transition: "all 120ms ease",
+              transition: "all 200ms ease",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)";
-              (e.currentTarget as HTMLButtonElement).style.boxShadow =
-                "0 12px 24px rgba(0,0,0,0.2)";
+              (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-3px)";
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 24px rgba(0,0,0,0.3)";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(91,200,255,0.3)";
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0px)";
               (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
             }}
           >
             <div>

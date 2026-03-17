@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { ThumbsUp, ThumbsDown, Star, Bookmark } from "lucide-react";
 
+const STAR_COLORS = [
+  "#FFD84D", // 1 – neon yellow
+  "#FF9B54", // 2 – neon orange
+  "#5BC8FF", // 3 – neon blue
+  "#69F28C", // 4 – neon green
+  "#C56BFF", // 5 – neon purple
+];
+
 type Review = {
   id: string | number;
   rating?: number;
@@ -14,6 +22,11 @@ type Review = {
   type?: string;
   major: string;
   year: string;
+  spotName?: string;
+  title?: string;
+  courseCode?: string;
+  targetId?: string;
+  displayName?: string;
 };
 
 type UserReaction = "liked" | "disliked" | null;
@@ -154,7 +167,7 @@ export default function ReviewCard({
 
           {/* Footer */}
           <div
-            className="pt-4 w-full flex flex-col items-center"
+            className="pt-4 w-full flex flex-col items-center gap-1"
             style={{ borderTop: "1px solid var(--border)" }}
           >
             <span className="text-[9px] font-bold uppercase tracking-[0.2em] mb-1" style={{ color: "var(--muted)" }}>

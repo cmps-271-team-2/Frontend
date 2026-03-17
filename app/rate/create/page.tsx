@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import CourseProfessorRatingForm from "../components/course-professor-rating-form";
 import StudyFoodRatingForm from "../components/study-food-rating-form";
@@ -13,10 +13,25 @@ type ToastState = {
 } | null;
 
 export default function CreateRatingPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto w-full max-w-3xl px-4 pb-32 pt-6" style={{ color: "var(--text)" }}>
+          <h1 className="text-2xl font-black">Create rating</h1>
+        </main>
+      }
+    >
+      <CreateRatingPageContent />
+    </Suspense>
+  );
+}
+
+function CreateRatingPageContent() {
   const searchParams = useSearchParams();
   const [toast, setToast] = useState<ToastState>(null);
 
   const flow = searchParams.get("flow");
+  const selectedId = searchParams.get("id") || "";
   const selectedName = searchParams.get("name") || "";
   const category = searchParams.get("category") as StudyFoodCategory | null;
   const academicType = searchParams.get("type") as CourseProfessorType | null;
@@ -41,7 +56,7 @@ export default function CreateRatingPage() {
     window.setTimeout(() => setToast(null), 3000);
   }
 
-  if (!selectedName || (!isStudyFoodFlow && !isAcademicFlow)) {
+  if (!selectedId || !selectedName || (!isStudyFoodFlow && !isAcademicFlow)) {
     return (
       <main className="mx-auto w-full max-w-2xl px-4 pb-32 pt-6" style={{ color: "var(--text)" }}>
         <h1 className="text-2xl font-black">Invalid rating selection</h1>
@@ -68,6 +83,7 @@ export default function CreateRatingPage() {
       >
         {isStudyFoodFlow ? (
           <StudyFoodRatingForm
+            initialTargetId={selectedId}
             initialSpotName={selectedName}
             initialCategory={category as StudyFoodCategory}
             lockSelection
@@ -78,6 +94,7 @@ export default function CreateRatingPage() {
 
         {isAcademicFlow ? (
           <CourseProfessorRatingForm
+            initialTargetId={selectedId}
             initialType={academicType as CourseProfessorType}
             initialName={selectedName}
             lockSelection
@@ -89,7 +106,7 @@ export default function CreateRatingPage() {
 
       <div
         aria-live="polite"
-        className="pointer-events-none fixed left-1/2 top-4 z-[110] w-[90%] max-w-md -translate-x-1/2"
+        className="pointer-events-none fixed left-1/2 top-4 z-110 w-[90%] max-w-md -translate-x-1/2"
       >
         {toast ? (
           <div

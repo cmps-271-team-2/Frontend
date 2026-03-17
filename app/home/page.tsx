@@ -165,7 +165,7 @@ export default function HomePage() {
   return (
     <main
       ref={feedRef}
-      className="h-[100dvh] w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth overflow-x-hidden"
+      className="min-h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth overflow-x-hidden"
       style={{ background: "var(--bg)" }}
     >
       <GlobalHeader
@@ -280,7 +280,7 @@ export default function HomePage() {
       ) : null}
 
       {isLoading ? (
-        <div className="h-[100dvh] w-full flex flex-col items-center justify-center text-center px-4">
+        <div className="min-h-screen w-full flex flex-col items-center justify-center text-center px-4">
           <p className="text-sm font-semibold" style={{ color: "var(--muted)" }}>
             Loading posts...
           </p>
@@ -288,7 +288,7 @@ export default function HomePage() {
       ) : null}
 
       {!isLoading && loadError ? (
-        <div className="h-[100dvh] w-full snap-start flex flex-col items-center justify-center text-center px-4">
+        <div className="min-h-screen w-full snap-start flex flex-col items-center justify-center text-center px-4">
           <p className="text-sm font-semibold text-red-500">{loadError}</p>
         </div>
       ) : null}
@@ -296,12 +296,12 @@ export default function HomePage() {
       {!isLoading && !loadError && filteredReviews.length > 0 ? (
         <>
           {filteredReviews.map((review) => (
-            <div key={review.id} className="h-[100dvh] w-full snap-start flex items-center justify-center px-4">
+            <div key={review.id} className="min-h-screen w-full snap-start flex items-center justify-center px-4">
               <ReviewCard review={review} />
             </div>
           ))}
 
-            <div className="h-[100dvh] w-full snap-start flex items-center justify-center px-4">
+            <div className="min-h-screen w-full snap-start flex items-center justify-center px-4">
               <div
                 className="rounded-[2rem] p-6 sm:p-10 w-full max-w-md"
                 style={{
@@ -338,7 +338,7 @@ export default function HomePage() {
             </div>
         </>
       ) : !isLoading && !loadError ? (
-        <div className="h-[100dvh] w-full snap-start flex items-center justify-center px-4">
+        <div className="min-h-screen w-full snap-start flex items-center justify-center px-4">
             <div
               className="rounded-[2rem] p-6 sm:p-10 w-full max-w-md"
               style={{

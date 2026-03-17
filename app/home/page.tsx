@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
+import SortBar from "../components/sortBar";
 
 type StudyNoiseLevel = "quiet" | "moderate" | "busy";
 type FoodVenueCategory = "restaurant" | "food" | "fast-food" | "bakery";

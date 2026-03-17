@@ -63,6 +63,7 @@ export default function CourseProfessorRatingForm({
   const [comment, setComment] = useState("");
   const [errors, setErrors] = useState<CourseProfessorErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const selectedCourseTitle = courses.find((c) => c.code === courseCode)?.title ?? "";
 
   // Load courses from Firestore when the course type is active
   useEffect(() => {
@@ -83,6 +84,16 @@ export default function CourseProfessorRatingForm({
       .finally(() => { if (mounted) setCoursesLoading(false); });
     return () => { mounted = false; };
   }, [type]);
+
+  useEffect(() => {
+    if (type !== "course") {
+      return;
+    }
+
+    if (selectedCourseTitle) {
+      setCourseName(selectedCourseTitle);
+    }
+  }, [courseCode, selectedCourseTitle, type]);
 
   function handleCourseSelect(selectedCode: string) {
     setCourseCode(selectedCode);
@@ -118,10 +129,6 @@ export default function CourseProfessorRatingForm({
       nextErrors.courseCode = "Course code is required.";
     }
 
-    if (type === "course" && !courseName.trim()) {
-      nextErrors.courseName = "Course name is required.";
-    }
-
     if (type === "course" && !professorName.trim()) {
       nextErrors.professorName = "Professor name is required.";
     }
@@ -130,8 +137,8 @@ export default function CourseProfessorRatingForm({
       nextErrors.professorName = "Professor name is required.";
     }
 
-    if (type === "professor" && !courseName.trim()) {
-      nextErrors.courseName = "Course name is required.";
+    if (type === "professor" && !courseCode.trim() && !courseName.trim()) {
+      nextErrors.courseName = "Course is required.";
     }
 
     if (difficulty < 1 || difficulty > 5) {
@@ -165,12 +172,14 @@ export default function CourseProfessorRatingForm({
 
     setIsSubmitting(true);
     try {
+      const derivedCourseName = type === "course" ? (selectedCourseTitle || courseName.trim()) : courseName.trim();
+
       await submitRating({
         ratingType: "course-professor",
         targetId: initialTargetId,
         type: type as CourseProfessorType,
-        courseCode: type === "course" ? courseCode.trim() : undefined,
-        courseName: courseName.trim() || undefined,
+        courseCode: courseCode.trim() || undefined,
+        courseName: derivedCourseName || undefined,
         professorName: professorName.trim() || undefined,
         department: department.trim() || undefined,
         semesterTaken: semesterTaken.trim() || undefined,
@@ -256,18 +265,6 @@ export default function CourseProfessorRatingForm({
               </DarkSelect>
             )}
             {errors.courseCode ? <p className="text-sm text-red-500">{errors.courseCode}</p> : null}
-          </div>
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold">Course name</label>
-            <input
-              type="text"
-              value={courseName}
-              disabled
-              readOnly
-              className="w-full rounded-lg border px-3 py-2 cursor-not-allowed"
-              style={{ borderColor: "var(--border)", background: "#0f0f0f", color: "var(--muted)" }}
-            />
-            {errors.courseName ? <p className="text-sm text-red-500">{errors.courseName}</p> : null}
           </div>
           <div className="space-y-2">
             <label className="block text-sm font-semibold">Professor name *</label>

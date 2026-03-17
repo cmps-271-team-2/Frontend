@@ -20,6 +20,7 @@ type Review = {
   dislikes: number;
   category?: string;
   type?: string;
+    kind?: "study-spot" | "food-spot" | "course-professor";
   major: string;
   year: string;
   spotName?: string;
@@ -50,8 +51,11 @@ export default function ReviewCard({
   const activeReaction = userReaction ?? localReaction;
   const resolvedRating = review.rating ?? review.stars ?? 0;
   
-  // Compute title based on card type
-  const displayTitle = review.courseCode || review.professorName || review.spotName || "Unknown";
+  // Compute title based on review kind
+  const displayTitle =
+    review.kind === "study-spot" || review.kind === "food-spot"
+      ? review.spotName || "Unknown Spot"
+      : review.courseCode || "Unknown Course";
 
   function handleLike() {
     if (onLike) {

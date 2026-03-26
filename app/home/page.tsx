@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/api";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
 import SortBar from "../components/sortBar";
+import ThemeToggle from "../components/theme-toggle";
 
 type StudyNoiseLevel = "quiet" | "moderate" | "busy";
 type FoodVenueCategory = "restaurant" | "food" | "fast-food" | "bakery";
@@ -396,6 +397,11 @@ export default function HomePage() {
   }
 
   return (
+    <div 
+    className="relative w-full transition-colors duration-300" 
+    style={{ background: 'var(--bg)', color: 'var(--text)' }}
+  >
+    <ThemeToggle />
     <main className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth" style={{ background: "var(--bg)" }}>
       <GlobalHeader
         activeCategory={selectedCategoryFilter}
@@ -623,5 +629,6 @@ export default function HomePage() {
         )}
       </div>
     </main>
+    </div>
   );
 }

@@ -18,7 +18,6 @@ interface CategoryCardProps {
   accentColor?: string;
 }
 
-/* Accent fallback map keyed by color name */
 const ACCENT: Record<string, { rgb: string; css: string }> = {
   purple: { rgb: "197,107,255", css: "var(--neon-purple)" },
   orange: { rgb: "255,155,84",  css: "var(--neon-orange)" },
@@ -39,22 +38,22 @@ export default function CategoryCard({
   const rgb = accentRgb ?? ACCENT[color]?.rgb ?? ACCENT.purple.rgb;
   const css = accentColor ?? ACCENT[color]?.css ?? ACCENT.purple.css;
 
-  /* ── Shared glow variants (matches page 3 StepCard) ── */
   const glowRest = {
     y: 0,
-    boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
-    borderColor: "rgba(255,255,255,0.05)",
+    boxShadow: "0 4px 24px rgba(0,0,0,0.1)",
+    borderColor: "var(--border)",
   };
+  
   const glowHover = {
     y: -8,
-    boxShadow: `0 0 0 1px rgba(${rgb},0.55), 0 8px 48px rgba(${rgb},0.18), 0 24px 56px rgba(0,0,0,0.5)`,
+    boxShadow: `0 0 0 1px rgba(${rgb},0.55), 0 8px 48px rgba(${rgb},0.18), 0 24px 56px rgba(0,0,0,0.2)`,
     borderColor: `rgba(${rgb},0.55)`,
     transition: { duration: 0.28, ease: "easeOut" as const },
   };
 
   const faceBase: React.CSSProperties = {
-    background: "var(--surface)",
-    border: "1px solid rgba(255,255,255,0.05)",
+    background: "var(--card)", // ✅ Uses theme-aware background
+    border: "1px solid var(--border)", // ✅ Uses theme-aware border
     borderRadius: "var(--radius-lg)",
     padding: "2rem",
     height: 264,
@@ -63,26 +62,30 @@ export default function CategoryCard({
     userSelect: "none",
     backfaceVisibility: "hidden",
     WebkitBackfaceVisibility: "hidden",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
   };
 
   return (
     <motion.div
       variants={cardVariants}
-      style={{ perspective: 1000 }}
+      style={{ perspective: 1000, height: 264 }}
       onMouseEnter={() => setIsFlipped(true)}
       onMouseLeave={() => setIsFlipped(false)}
       onClick={() => setIsFlipped((f) => !f)}
     >
-      {/* Glow / lift wrapper — stays in 2-D so glow looks correct */}
       <motion.div
         animate={isFlipped ? "hovered" : "rest"}
         variants={{ rest: glowRest, hovered: glowHover }}
-        style={{ borderRadius: "var(--radius-lg)", position: "relative" }}
+        className="w-full h-full relative"
+        style={{ borderRadius: "var(--radius-lg)" }}
       >
-        {/* 3-D flip container */}
         <motion.div
           animate={{ rotateY: isFlipped ? 180 : 0 }}
           transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+          className="w-full h-full"
           style={{ transformStyle: "preserve-3d", position: "relative" }}
         >
           {/* ── Front face ── */}
@@ -96,18 +99,16 @@ export default function CategoryCard({
               </div>
             </div>
 
-            <h3
-              className="text-2xl font-bold display-font mb-3 leading-snug"
-              style={{ color: "var(--text-on-dark)" }}
-            >
+            {/* ✅ FIXED: Title uses theme-aware text color */}
+            <h3 className="text-2xl font-bold mb-3 leading-snug" style={{ color: "var(--text)" }}>
               {title}
             </h3>
 
-            <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
+            {/* ✅ FIXED: Description uses theme-aware muted color */}
+            <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
               {desc}
             </p>
 
-            {/* Accent line — matches page 3 */}
             <div className="mt-auto pt-4">
               <motion.div
                 animate={isFlipped ? { scaleX: 1 } : { scaleX: 0 }}
@@ -127,10 +128,6 @@ export default function CategoryCard({
             style={{
               ...faceBase,
               transform: "rotateY(180deg)",
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
               alignItems: "center",
               justifyContent: "center",
               textAlign: "center",
@@ -143,14 +140,10 @@ export default function CategoryCard({
               {icon}
             </div>
 
-            <p
-              className="text-base font-medium leading-relaxed max-w-[18rem]"
-              style={{ color: "var(--text-secondary)" }}
-            >
+            <p className="text-base font-medium leading-relaxed max-w-[18rem]" style={{ color: "var(--text)" }}>
               {backText || desc}
             </p>
 
-            {/* Centered accent bar */}
             <div className="w-full mt-auto pt-5 flex justify-center">
               <div
                 style={{

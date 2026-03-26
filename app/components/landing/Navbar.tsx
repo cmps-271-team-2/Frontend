@@ -1,100 +1,105 @@
 "use client";
-
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 
 const NAV_LINKS = [
-  { label: "How it works", id: "how", color: "orange" },
-  { label: "Categories", id: "categories", color: "purple" },
-  { label: "Reviews", id: "reviews", color: "blue" },
-  { label: "Why UniTok", id: "why", color: "green" },
+  { label: "Categories", id: "categories" },
+  { label: "How it works", id: "how" },
+  { label: "Reviews", id: "reviews" },
+  { label: "Get started", id: "start" },
 ];
-
-const NAVBAR_HEIGHT = 72; // px — accounts for top-4 offset + bar height
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [activeId, setActiveId] = useState<string>("");
+  const [activeId, setActiveId] = useState<string>("hero");
 
-  /* ── scroll shadow ── */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* ── active section via IntersectionObserver ── */
   useEffect(() => {
-    const ids = ["hero", ...NAV_LINKS.map((l) => l.id), "final-cta"];
-    const elements = ids
-      .map((id) => document.getElementById(id))
-      .filter((el): el is HTMLElement => !!el);
-    if (!elements.length) return;
+    const observerOptions = {
+      root: null,
+      rootMargin: "-40% 0px -40% 0px",
+      threshold: 0,
+    };
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // pick the entry that has the largest intersection ratio
-        let best: IntersectionObserverEntry | null = null;
-        for (const entry of entries) {
-          if (entry.isIntersecting && (!best || entry.intersectionRatio > best.intersectionRatio)) {
-            best = entry;
-          }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setActiveId(entry.target.id);
         }
-        if (best?.target.id) setActiveId(best.target.id);
-      },
-      { rootMargin: `-${NAVBAR_HEIGHT}px 0px -40% 0px`, threshold: [0, 0.25, 0.5] }
-    );
+      });
+    }, observerOptions);
 
-    elements.forEach((el) => observer.observe(el));
+    const hero = document.getElementById("hero");
+    if (hero) observer.observe(hero);
+
+    NAV_LINKS.forEach((link) => {
+      const el = document.getElementById(link.id);
+      if (el) observer.observe(el);
+    });
+
     return () => observer.disconnect();
   }, []);
 
-  /* ── smooth-scroll click handler (offsets for fixed navbar) ── */
-  const handleNavClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+  const handleNavClick = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     const el = document.getElementById(id);
-    if (!el) return;
-    const y = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT;
-    window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
-  }, []);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.history.pushState(null, "", `#${id}`);
+    }
+  };
 
   return (
     <header
-      className={`fixed top-4 left-1/2 -translate-x-1/2 w-[min(1100px,96%)] transition-all duration-300 ${
-        scrolled ? "nav-glass backdrop-blur-md py-2 rounded-xl" : "py-4"
+      className={`fixed top-4 left-1/2 -translate-x-1/2 w-[min(1100px,96%)] transition-all duration-300 z-[9999] ${
+        scrolled
+          ? "nav-glass backdrop-blur-md py-2 rounded-xl border border-white/10"
+          : "py-4"
       }`}
-      style={{ zIndex: 9999 }}    /* always above every stacked scene */
     >
       <nav className="flex items-center justify-between px-5">
+        {/* LOGO */}
         <a
           href="#hero"
           onClick={(e) => handleNavClick(e, "hero")}
-          className="neon-underline neon-underline--purple flex items-center gap-3 px-2 py-1 -ml-2 transition-colors duration-300 hover:text-white"
+          className="flex items-center gap-3 cursor-pointer group"
         >
-          <img src="/UniTokLogo.png" alt="UniTok" className="h-9 w-auto object-contain" />
-          <span className="text-sm font-semibold hidden md:inline" style={{ color: "inherit" }}>UniTok</span>
+          <img
+            src="/UniTokLogo.png"
+            alt="UniTok"
+            className="h-9 w-auto object-contain"
+          />
+          <span
+            className="text-sm font-bold transition-colors duration-300"
+            style={{ color: "var(--text)" }}
+          >
+            UniTok
+          </span>
         </a>
 
-        <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: "var(--text-secondary)" }}>
+        {/* NAV LINKS */}
+        <div className="hidden md:flex items-center gap-8 text-sm">
           {NAV_LINKS.map((link) => (
             <a
               key={link.id}
               href={`#${link.id}`}
               onClick={(e) => handleNavClick(e, link.id)}
-              className={`neon-underline neon-underline--${link.color} transition-colors ${activeId === link.id ? "text-white" : "hover:text-white"}`}
+              className="neon-underline transition-all duration-300 font-medium cursor-pointer relative py-1"
+              style={{
+                color:
+                  activeId === link.id
+                    ? "var(--text)"
+                    : "var(--text-muted)",
+              }}
             >
               {link.label}
             </a>
           ))}
         </div>
-
-        <a
-          href="#final-cta"
-          onClick={(e) => handleNavClick(e, "final-cta")}
-          className="explore-btn px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 hover:text-white"
-        >
-          Explore
-        </a>
       </nav>
     </header>
   );

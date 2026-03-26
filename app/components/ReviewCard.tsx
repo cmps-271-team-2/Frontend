@@ -20,7 +20,7 @@ type Review = {
   dislikes: number;
   category?: string;
   type?: string;
-    kind?: "study-spot" | "food-spot" | "course-professor";
+  kind?: "study-spot" | "food-spot" | "course-professor";
   major: string;
   year: string;
   spotName?: string;
@@ -54,7 +54,6 @@ export default function ReviewCard({
   const resolvedRating = review.rating ?? review.stars ?? 0;
 
   const cleanCode = typeof review.code === "string" ? review.code.trim() : "";
-  console.log("Review code value:", review.code);
 
   // Compute title based on review kind
   const displayTitle =
@@ -69,8 +68,6 @@ export default function ReviewCard({
       onLike();
       return;
     }
-
-    // Local-only mode: toggle like on/off and clear any existing dislike
     setLocalReaction((prev) => (prev === "liked" ? null : "liked"));
   }
 
@@ -79,13 +76,11 @@ export default function ReviewCard({
       onDislike();
       return;
     }
-
-    // Local-only mode: toggle dislike on/off and clear any existing like
     setLocalReaction((prev) => (prev === "disliked" ? null : "disliked"));
   }
 
   return (
-    <div className="snap-item bg-transparent">
+    <div className="snap-item bg-transparent w-full h-full flex flex-col justify-center items-center pt-20">
       <div className="relative z-20 flex flex-col items-center w-[480px] max-w-[90vw]">
         <div
           className="w-full rounded-[2.5rem] p-9 flex flex-col items-center transition-shadow duration-300"
@@ -96,8 +91,11 @@ export default function ReviewCard({
             boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
           }}
         >
-          {/* Title */}
-          <h2 className="text-lg font-semibold text-center text-white mb-2">
+          {/* FIXED: Title color now uses var(--text) to turn black in Light Mode */}
+          <h2 
+            className="text-lg font-semibold text-center mb-2"
+            style={{ color: "var(--text)" }}
+          >
             {displayTitle}
           </h2>
 
@@ -134,7 +132,7 @@ export default function ReviewCard({
             <button
               onClick={handleLike}
               className="flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-90"
-              style={{ color: activeReaction === "liked" ? "var(--accent-green)" : "var(--muted)" }}
+              style={{ color: activeReaction === "liked" ? "#69F28C" : "var(--muted)" }}
             >
               <ThumbsUp
                 size={30}
@@ -164,7 +162,7 @@ export default function ReviewCard({
             <button
               onClick={() => setFavorite(!isFavorite)}
               className="flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-90"
-              style={{ color: isFavorite ? "var(--accent-yellow)" : "var(--muted)" }}
+              style={{ color: isFavorite ? "#FFD84D" : "var(--muted)" }}
             >
               <Bookmark
                 size={30}

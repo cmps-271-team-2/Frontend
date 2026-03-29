@@ -10,13 +10,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const baseUrl = "https://api.unitok.app";
-  if (!baseUrl) {
-    return NextResponse.json(
-      { ok: false, error: "Backend base URL not configured." },
-      { status: 500 }
-    );
-  }
+  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://34.55.22.211.nip.io";
 
   const backendPayload = mapRatingPayloadToPost(body as Record<string, unknown>);
   if (!backendPayload) {
@@ -75,6 +69,7 @@ function mapRatingPayloadToPost(body: Record<string, unknown>) {
         : 0,
       kind: "course-professor",
       title: body.type === "professor" ? String(body.professorName || "") : String(body.courseName || ""),
+      courseCode: body.courseCode,
       department: body.department,
       semesterTaken: body.semesterTaken,
       ratings,

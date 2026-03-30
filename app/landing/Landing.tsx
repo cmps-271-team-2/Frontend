@@ -63,13 +63,22 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
         return;
       }
       try {
-        await apiFetch("/auth/register/request-otp", {
-          method: "POST",
-          body: JSON.stringify({ email: formData.email, password: formData.password }),
+        const otpPayload = parsed.data;
+        console.log("[OTP] request payload", {
+          email: otpPayload.email,
+          passwordLength: otpPayload.password.length,
         });
+
+        const otpResponse = await apiFetch<{ message?: string }>("/auth/register/request-otp", {
+          method: "POST",
+          body: JSON.stringify(otpPayload),
+        });
+        console.log("[OTP] request response", otpResponse);
+
         setStep("verify"); //show OTP screen
       } catch (err: any) {
-        setError(err.message || "Failed to request OTP");
+        console.error("[OTP] request error", err);
+        setError(err?.message || "Failed to request OTP");
       }
     } else {
       const emailCheck = aubEmailSchema.safeParse(formData.email);

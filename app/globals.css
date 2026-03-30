@@ -22,6 +22,18 @@
   --radius-lg: 1.5rem;
   --shadow-soft: 0 6px 24px rgba(2,6,23,0.6);
 }
+/* Chrome autofill override for dark mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #171717 inset !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+input:-webkit-autofill::first-line {
+  font-family: 'Sora', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
 
 /*dark*/
 html[data-theme="dark"] {

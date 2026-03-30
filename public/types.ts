@@ -5,6 +5,8 @@ export type Review = {
   likes: number;
   dislikes: number;
   category: string;
+  displayName: string;
   major: string;
+  showDisplayName: boolean;
   year: string;
 };

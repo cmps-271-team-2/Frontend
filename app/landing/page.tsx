@@ -386,8 +386,9 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
           doc(db, "users", userCredential.user.uid),
           {
             email: userCredential.user.email ?? parsed.data.email,
-            ...(userCredential.user.displayName ? { displayName: userCredential.user.displayName } : {}),
-            major: major.trim(),
+            displayName: userCredential.user.displayName?.trim() || "Student",
+            major: major.trim() || "Unknown Major",
+            showDisplayName: false,
             createdAt: serverTimestamp(),
           },
           { merge: true }

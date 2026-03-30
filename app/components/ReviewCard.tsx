@@ -31,6 +31,7 @@ type Review = {
   professorName?: string;
   targetId?: string;
   displayName?: string;
+  showDisplayName?: boolean;
   semester?: string;
 };
 
@@ -74,6 +75,9 @@ export default function ReviewCard({
   const cleanSpotName = typeof review.spotName === "string" ? review.spotName.trim() : "";
   const cleanProfessorName = typeof review.professorName === "string" ? review.professorName.trim() : "";
   const cleanTargetId = typeof review.targetId === "string" ? review.targetId.trim() : "";
+  const majorLabel = typeof review.major === "string" && review.major.trim().length > 0 ? review.major.trim() : "Unknown Major";
+  const displayName = typeof review.displayName === "string" && review.displayName.trim().length > 0 ? review.displayName.trim() : "Student";
+  const authorLabel = review.showDisplayName ? displayName : "Anonymous";
 
   // Compute title based on review kind
   const displayTitle =
@@ -260,7 +264,7 @@ export default function ReviewCard({
             style={{ borderTop: "1px solid var(--border)" }}
           >
             <p style={{ color: "var(--muted)" }}>
-              By: {review.displayName || "Anonymous"}
+              By: {authorLabel} - {majorLabel}
             </p>
             {review.semester && (
               <p style={{ color: "var(--muted)" }}>

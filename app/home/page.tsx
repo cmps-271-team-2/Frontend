@@ -45,6 +45,7 @@ type BackendPost = {
   userId?: string;
   major?: string;
   year?: string;
+  showDisplayName?: boolean;
   createdAt?: string | number | Date;
   noiseLevel?: StudyNoiseLevel;
   venueCategory?: FoodVenueCategory;
@@ -90,6 +91,7 @@ type HomeReview = {
   isFavorited?: boolean;
   major: string;
   year: string;
+  showDisplayName: boolean;
   createdAt?: string | number | Date;
   noiseLevel?: StudyNoiseLevel;
   venueCategory?: FoodVenueCategory;
@@ -225,6 +227,19 @@ function mapPostToReview(post: BackendPost, index: number, lookup: PostTargetLoo
   const normalizedTargetType = rawTargetType.toLowerCase();
   const resolvedTargetLabel = resolveTargetLabel(post, lookup);
   const normalizedTitle = rawTitle;
+  const authorDisplayName =
+    (typeof post.displayName === "string" && post.displayName.trim().length > 0
+      ? post.displayName.trim()
+      : "") ||
+    (typeof post.authorName === "string" && post.authorName.trim().length > 0
+      ? post.authorName.trim()
+      : "") ||
+    "Student";
+  const authorMajor =
+    (typeof post.major === "string" && post.major.trim().length > 0
+      ? post.major.trim()
+      : "") ||
+    "Unknown Major";
   const derivedSpotName =
     (typeof post.spotName === "string" && post.spotName.trim().length > 0
       ? post.spotName.trim()
@@ -268,15 +283,16 @@ function mapPostToReview(post: BackendPost, index: number, lookup: PostTargetLoo
     currentUserReaction: (post.currentUserReaction as UserReaction | undefined) ?? null,
     isOwner: Boolean(post.isOwner),
     isFavorited: Boolean(post.isFavorited),
-    major: post.major ?? "Anonymous",
+    major: authorMajor,
     year: post.year ?? "Student",
+    showDisplayName: Boolean(post.showDisplayName),
     createdAt: post.createdAt,
     noiseLevel: post.noiseLevel,
     venueCategory: post.venueCategory,
     courseCode: post.courseCode,
     professorName: post.professorName,
     spotName: derivedSpotName,
-    displayName: post.displayName ?? post.authorName ?? "Anonymous",
+    displayName: authorDisplayName,
     semester: post.semesterTaken ?? post.year,
     kind: getKindFromTargetType(rawTargetType),
     title: normalizedTitle || resolvedTargetLabel || undefined,

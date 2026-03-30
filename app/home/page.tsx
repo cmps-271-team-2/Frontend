@@ -350,7 +350,7 @@ export default function HomePage() {
   const anchorReviewIdRef = useRef<string | null>(null);
   const jumpToTopOnSortRef = useRef(false);
   const deepLinkHandledRef = useRef(false);
-  const deepLinkTargetRef = useRef<{ targetId: string; targetType: string }>({ targetId: "", targetType: "" });
+  const deepLinkTargetRef = useRef<{ targetId: string; targetType: string; postId: string }>({ targetId: "", targetType: "", postId: "" });
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -368,6 +368,7 @@ export default function HomePage() {
     deepLinkTargetRef.current = {
       targetId: (params.get("targetId") || "").trim(),
       targetType: (params.get("targetType") || "").trim().toLowerCase(),
+      postId: (params.get("postId") || "").trim(),
     };
   }, []);
 
@@ -542,11 +543,15 @@ export default function HomePage() {
 
     const targetIdParam = deepLinkTargetRef.current.targetId;
     const targetTypeParam = deepLinkTargetRef.current.targetType;
-    if (!targetIdParam) {
+    const postIdParam = deepLinkTargetRef.current.postId;
+    if (!targetIdParam && !postIdParam) {
       return;
     }
 
     const match = filteredReviews.find((item) => {
+      if (postIdParam) {
+        return String(item.id || "").trim() === postIdParam;
+      }
       const itemTargetId = (item.targetId || "").trim();
       if (!itemTargetId || itemTargetId !== targetIdParam) {
         return false;

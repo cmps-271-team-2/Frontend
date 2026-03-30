@@ -11,7 +11,6 @@ export default function ProfilePage() {
 
   const [displayName, setDisplayName] = useState("Student");
   const [emailNotifs, setEmailNotifs] = useState(false);
-  const [showMyRatingsPublicly, setShowMyRatingsPublicly] = useState(false);
 
   async function handleLogout() {
     try {
@@ -59,42 +58,6 @@ export default function ProfilePage() {
               onFocus={(e) => e.currentTarget.style.borderColor = "rgba(197,107,255,0.4)"}
               onBlur={(e) => e.currentTarget.style.borderColor = "var(--border)"}
             />
-          </div>
-
-          <div style={{ borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 0" }}>
-            <div style={{ color: "var(--muted)", fontWeight: 600, fontSize: 14 }}>Show my ratings on my profile</div>
-            <label style={{ position: "relative", width: 44, height: 24, flexShrink: 0 }}>
-              <input
-                type="checkbox"
-                checked={showMyRatingsPublicly}
-                onChange={(e) => setShowMyRatingsPublicly(e.target.checked)}
-                style={{ opacity: 0, width: 0, height: 0, position: "absolute" }}
-              />
-              <span
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: 12,
-                  cursor: "pointer",
-                  transition: "background 0.2s",
-                  background: showMyRatingsPublicly ? "var(--accent)" : "var(--card-elevated)",
-                  border: `1px solid ${showMyRatingsPublicly ? "var(--accent)" : "var(--border)"}`,
-                }}
-              />
-              <span
-                style={{
-                  position: "absolute",
-                  top: 3,
-                  left: showMyRatingsPublicly ? 22 : 3,
-                  width: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  background: "#fff",
-                  transition: "left 0.2s",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-                }}
-              />
-            </label>
           </div>
 
           <div style={{ borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 0" }}>

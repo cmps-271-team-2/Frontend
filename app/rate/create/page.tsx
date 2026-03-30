@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import CourseProfessorRatingForm from "../components/course-professor-rating-form";
 import StudyFoodRatingForm from "../components/study-food-rating-form";
 import { CourseProfessorType, StudyFoodCategory } from "@/lib/ratings";
@@ -27,6 +27,7 @@ export default function CreateRatingPage() {
 }
 
 function CreateRatingPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [toast, setToast] = useState<ToastState>(null);
 
@@ -87,7 +88,10 @@ function CreateRatingPageContent() {
             initialSpotName={selectedName}
             initialCategory={category as StudyFoodCategory}
             lockSelection
-            onSuccess={(message) => showToast("success", message)}
+            onSuccess={(message) => {
+              showToast("success", message);
+              window.setTimeout(() => router.push("/home"), 300);
+            }}
             onError={(message) => showToast("error", message)}
           />
         ) : null}
@@ -98,7 +102,10 @@ function CreateRatingPageContent() {
             initialType={academicType as CourseProfessorType}
             initialName={selectedName}
             lockSelection
-            onSuccess={(message) => showToast("success", message)}
+            onSuccess={(message) => {
+              showToast("success", message);
+              window.setTimeout(() => router.push("/home"), 300);
+            }}
             onError={(message) => showToast("error", message)}
           />
         ) : null}

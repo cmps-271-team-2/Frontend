@@ -129,6 +129,13 @@ export default function FavoritesPage() {
     router.push(`/home?${params.toString()}`);
   }
 
+  function openSavedPostInFeed(postId: string | number) {
+    const params = new URLSearchParams({
+      postId: String(postId),
+    });
+    router.push(`/home?${params.toString()}`);
+  }
+
   return (
     <main style={{ padding: 20, paddingBottom: 120, maxWidth: 860, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -237,7 +244,7 @@ export default function FavoritesPage() {
         </section>
       ) : (
         <div style={{ display: "grid", gap: 18, marginTop: 18 }}>
-          {savedPosts.length > 0 && <SavedPostsSection posts={savedPosts} busyKey={busyKey} onRemove={handleRemovePost} />}
+          {savedPosts.length > 0 && <SavedPostsSection posts={savedPosts} busyKey={busyKey} onRemove={handleRemovePost} onOpen={openSavedPostInFeed} />}
           {professorsAndCourses.length > 0 && <FavoriteSection title="Professors/Courses" items={professorsAndCourses} busyKey={busyKey} onRemove={handleRemove} onOpen={openInFeed} />}
           {spots.length > 0 && <FavoriteSection title="Spots" items={spots} busyKey={busyKey} onRemove={handleRemove} onOpen={openInFeed} />}
         </div>
@@ -351,9 +358,10 @@ type SavedPostsSectionProps = {
   posts: Array<Record<string, unknown>>;
   busyKey: string | null;
   onRemove: (postId: string | number) => Promise<void>;
+  onOpen: (postId: string | number) => void;
 };
 
-function SavedPostsSection({ posts, busyKey, onRemove }: SavedPostsSectionProps) {
+function SavedPostsSection({ posts, busyKey, onRemove, onOpen }: SavedPostsSectionProps) {
   return (
     <section
       style={{
@@ -403,7 +411,11 @@ function SavedPostsSection({ posts, busyKey, onRemove }: SavedPostsSectionProps)
                   gap: 12,
                 }}
               >
-                <div style={{ minWidth: 0, flex: 1 }}>
+                <button
+                  type="button"
+                  onClick={() => onOpen(postId)}
+                  style={{ minWidth: 0, flex: 1, textAlign: "left", background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
+                >
                   <p
                     style={{
                       margin: 0,
@@ -420,7 +432,7 @@ function SavedPostsSection({ posts, busyKey, onRemove }: SavedPostsSectionProps)
                   <p style={{ margin: "2px 0 0", color: "var(--muted)", fontSize: 12, fontWeight: 600 }}>
                     {rating ? `${rating}★ • ` : ""}{displayName}
                   </p>
-                </div>
+                </button>
                 <button
                   type="button"
                   disabled={isBusy}

@@ -1,11 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import { apiFetch } from "@/lib/api";
 import DarkSelect from "./dark-select";
 import RatingStars from "./rating-stars";
-import { CourseProfessorType, submitRating } from "@/lib/ratings";
+import { CourseProfessorType } from "@/lib/ratings";
 
 type FirestoreCourse = {
   id: string;
@@ -173,11 +174,22 @@ export default function CourseProfessorRatingForm({
     setIsSubmitting(true);
     try {
       const derivedCourseName = type === "course" ? (selectedCourseTitle || courseName.trim()) : courseName.trim();
+      const currentUser = auth.currentUser;
 
-      await submitRating({
-        ratingType: "course-professor",
+      if (!currentUser) {
+        onError("Please sign in first.");
+        return;
+      }
+
+      const userSnap = await getDoc(doc(db, "users", currentUser.uid));
+      const userData = userSnap.exists() ? (userSnap.data() as { displayName?: string; major?: string; showDisplayName?: boolean }) : {};
+
+      const payload = {
+        rating: Math.round((difficulty + teachingQuality + workload + fairness) / 4),
+        text: comment.trim(),
         targetId: initialTargetId,
-        type: type as CourseProfessorType,
+        targetType: type === "course" ? "course" : "professor",
+        title: derivedCourseName || professorName.trim() || courseCode.trim() || undefined,
         courseCode: courseCode.trim() || undefined,
         courseName: derivedCourseName || undefined,
         professorName: professorName.trim() || undefined,
@@ -191,7 +203,16 @@ export default function CourseProfessorRatingForm({
         },
         attendanceMandatory: attendanceMandatory ? attendanceMandatory === "yes" : undefined,
         wouldRecommend: wouldRecommend ? wouldRecommend === "yes" : undefined,
-        comment: comment.trim(),
+        userId: currentUser.uid,
+        displayName: userData.displayName || "Student",
+        major: userData.major || "Unknown Major",
+        showDisplayName: userData.showDisplayName === true,
+      };
+
+      await apiFetch<{ id: string; status?: string; message?: string; moderation?: { status?: string; allowed?: boolean } }>("/posts", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        authToken: await currentUser.getIdToken(),
       });
 
       onSuccess("Course/Professor post submitted successfully.");

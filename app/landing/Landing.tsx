@@ -16,7 +16,7 @@ import FinalCTA from "../components/landing/FinalCTA";
 import Footer from "../components/landing/Footer";
 import HowItWorks from "../components/landing/HowItWorks";
 import ReviewsSection from "../components/landing/ReviewsSection";
-import StackedScene from "../components/landing/StackedScene";
+import StackedScene from "@/app/components/landing/StackedScene";
 import FloatingBackground from "../components/landing/FloatingBackground";
 
 interface LandingProps {

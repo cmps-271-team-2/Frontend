@@ -1,38 +1,33 @@
-"use client";
+import { type ReactNode } from "react";
 
-import React from "react";
-
-interface StackedSceneProps {
+type StackedSceneProps = {
   id: string;
   zIndex: number;
   sceneHeightVh: number;
   overlapVh?: number;
-  isFirst?: boolean;
   panelBackground?: string;
-  children: React.ReactNode;
-}
+  isFirst?: boolean;
+  children: ReactNode;
+};
 
 export default function StackedScene({
   id,
   zIndex,
   sceneHeightVh,
   overlapVh = 0,
-  isFirst = false,
   panelBackground = "var(--background)",
+  isFirst = false,
   children,
 }: StackedSceneProps) {
-  const overlapMargin = overlapVh ? `-${overlapVh}vh` : "0";
-
   return (
     <section
       id={id}
+      className="relative w-full"
       style={{
-        position: "relative",
-        zIndex,
         minHeight: `${sceneHeightVh}vh`,
-        marginTop: isFirst ? 0 : overlapMargin,
+        marginTop: isFirst ? 0 : `-${overlapVh}vh`,
+        zIndex,
         background: panelBackground,
-        width: "100%",
       }}
     >
       {children}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import BottomBarWrapper from "./components/bottombar-wrapper";
 
 export const metadata: Metadata = { 
   title: "UniTok",
@@ -12,6 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased bg-white dark:bg-[#000000] text-black dark:text-white transition-colors duration-300">
         {children}
+        <BottomBarWrapper />
       </body>
     </html>
   );

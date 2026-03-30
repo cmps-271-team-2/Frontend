@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { auth, db } from "@/lib/firebase";
+import { apiFetch } from "@/lib/api";
+import { requestOtpSchema, verifyOtpSchema } from "@/lib/validators";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { X, Eye, EyeOff, Mail, ArrowLeft, Loader2, Star, Coffee, BookOpen } from "lucide-react";
@@ -25,9 +27,16 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
   const [authView, setAuthView] = useState<"auth" | "forgot">("auth");
   const [showPassword, setShowPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
   
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [signUpData, setSignUpData] = useState({ email: "", password: "" });
   const [major, setMajor] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [forgotCodeSent, setForgotCodeSent] = useState(false);
+  const [forgotOtp, setForgotOtp] = useState("");
+  const [forgotNewPassword, setForgotNewPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

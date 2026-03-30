@@ -1,5 +1,7 @@
 type ApiError = {
   detail?: string;
+  message?: string;
+  error?: string;
 };
 
 type ApiFetchOptions = RequestInit & {
@@ -10,7 +12,8 @@ export async function apiFetch<T>(
   path: string,
   options: ApiFetchOptions = {}
 ): Promise<T> {
-  const baseUrl = "https://api.unitok.app"; // Replace with your actual backend URL
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
+  const baseUrl = configuredBaseUrl.replace(/\/$/, "");
 
   const { authToken, ...fetchOptions } = options;
 
@@ -28,13 +31,22 @@ export async function apiFetch<T>(
   });
 
   if (!res.ok) {
-    let data: ApiError = {};
+    let parsedErrorMessage: string | null = null;
     try {
-      data = await res.json();
+      const data = (await res.json()) as ApiError | { detail?: Array<{ msg?: string }> };
+      if (typeof data.detail === "string") {
+        parsedErrorMessage = data.detail;
+      } else if (Array.isArray(data.detail)) {
+        parsedErrorMessage = data.detail.map((entry) => entry?.msg).filter(Boolean).join("; ");
+      } else if (typeof (data as ApiError).message === "string") {
+        parsedErrorMessage = (data as ApiError).message as string;
+      } else if (typeof (data as ApiError).error === "string") {
+        parsedErrorMessage = (data as ApiError).error as string;
+      }
     } catch {
       // ignore non-json
     }
-    throw new Error(data.detail || `Request failed (${res.status})`);
+    throw new Error(parsedErrorMessage || `Request failed (${res.status})`);
   }
 
   return (await res.json()) as T;

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { auth } from "@/lib/firebase";
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { apiFetch } from "@/lib/api";
+import { requestOtpSchema, verifyOtpSchema } from "@/lib/validators";
 import { X, Eye, EyeOff, Mail, ArrowLeft, Loader2, Star, Coffee, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -26,7 +28,11 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [signUpData, setSignUpData] = useState({ email: "", password: "" });
+  const [otp, setOtp] = useState("");
+  const [otpRequested, setOtpRequested] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
@@ -34,23 +40,52 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleSignUpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSignUpData({ ...signUpData, [e.target.name]: e.target.value });
+  };
+
+  const friendlyFirebaseAuthError = (err: unknown): string => {
+    const code = (err as { code?: string } | null)?.code;
+    if (!code) return "Sign in failed. Please try again.";
+    switch (code) {
+      case "auth/invalid-credential":
+      case "auth/wrong-password":
+      case "auth/user-not-found":
+      case "auth/invalid-email":
+        return "Invalid email or password.";
+      case "auth/too-many-requests":
+        return "Too many attempts. Please try again later.";
+      case "auth/network-request-failed":
+        return "Network error. Check your connection and try again.";
+      default:
+        return "Sign in failed. Please try again.";
+    }
+  };
+
   const toggleAuthMode = () => {
     setIsSignUp(!isSignUp);
     setError(null);
+    setSuccessMessage(null);
     setShowPassword(false);
     setShowSignUpPassword(false);
+    setOtp("");
+    setOtpRequested(false);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, formData.email.toLowerCase().trim(), formData.password);
-      onLoginSuccess();
-      setShowLogin(false);
-    } catch (err: any) {
-      setError("INVALID EMAIL OR PASSWORD");
+      setSuccessMessage("Signed in successfully. Redirecting...");
+      setTimeout(() => {
+        onLoginSuccess();
+        setShowLogin(false);
+      }, 350);
+    } catch (err: unknown) {
+      setError(friendlyFirebaseAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -59,12 +94,94 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
     setLoading(true);
     try {
       await sendPasswordResetEmail(auth, formData.email.toLowerCase().trim());
       setResetSent(true);
-    } catch (err: any) {
-      setError("COULD NOT SEND RESET EMAIL");
+      setSuccessMessage("Password reset email sent.");
+    } catch {
+      setError("Could not send reset email.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRequestOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMessage(null);
+
+    const payload = {
+      email: signUpData.email.toLowerCase().trim(),
+      password: signUpData.password,
+    };
+    const parsed = requestOtpSchema.safeParse(payload);
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message || "Please check your inputs.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await apiFetch<{ message: string }>("/auth/register/request-otp", {
+        method: "POST",
+        body: JSON.stringify(parsed.data),
+      });
+      setOtpRequested(true);
+      setSuccessMessage(res.message || "OTP sent. Check your email.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to request OTP.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMessage(null);
+
+    const payload = {
+      email: signUpData.email.toLowerCase().trim(),
+      otp: otp.trim(),
+    };
+    const parsed = verifyOtpSchema.safeParse(payload);
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message || "Please enter a valid OTP.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await apiFetch<{ message: string }>("/auth/register/verify-otp", {
+        method: "POST",
+        body: JSON.stringify(parsed.data),
+      });
+      setSuccessMessage(res.message || "Email verified successfully.");
+      setFormData({ email: signUpData.email.toLowerCase().trim(), password: signUpData.password });
+      setIsSignUp(false);
+      setOtpRequested(false);
+      setOtp("");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to verify OTP.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setError(null);
+    setSuccessMessage(null);
+    setLoading(true);
+    try {
+      const res = await apiFetch<{ message: string }>("/auth/register/resend-otp", {
+        method: "POST",
+        body: JSON.stringify({ email: signUpData.email.toLowerCase().trim() }),
+      });
+      setSuccessMessage(res.message || "OTP resent. Check your email.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to resend OTP.");
     } finally {
       setLoading(false);
     }
@@ -81,7 +198,7 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
         <Navbar />
         
         <div id="hero" className="scroll-mt-20">
-          <Hero onOpenAuth={() => { setAuthView("auth"); setIsSignUp(false); setShowLogin(true); setError(null); }} />
+          <Hero onOpenAuth={() => { setAuthView("auth"); setIsSignUp(false); setShowLogin(true); setError(null); setSuccessMessage(null); }} />
         </div>
 
         <section id="categories" className="py-24 px-6 text-center scroll-mt-20">
@@ -95,7 +212,7 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
 
         <section id="how" className="scroll-mt-20"><HowItWorks /></section>
         <section id="reviews" className="scroll-mt-20"><ReviewsSection /></section>
-        <section id="start" className="scroll-mt-20"><FinalCTA onOpenAuth={() => { setAuthView("auth"); setIsSignUp(true); setShowLogin(true); setError(null); }} /></section>
+        <section id="start" className="scroll-mt-20"><FinalCTA onOpenAuth={() => { setAuthView("auth"); setIsSignUp(true); setShowLogin(true); setError(null); setSuccessMessage(null); }} /></section>
         <Footer />
       </div>
 
@@ -126,6 +243,8 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                     </div>
                   ) : (
                     <form onSubmit={handleForgotPassword} className="w-full max-w-sm space-y-6">
+                      {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
+                      {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
                       <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={formData.email} onChange={handleChange} className="w-full px-5 py-4 rounded-xl outline-none font-bold border-2" style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--border)' }} required />
                       <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>{loading ? <Loader2 className="animate-spin" /> : "Send Link"}</button>
                       <button type="button" onClick={() => setAuthView("auth")} className="text-xs font-black uppercase tracking-widest opacity-50 block mx-auto" style={{ color: 'var(--text)' }}>Cancel</button>
@@ -138,6 +257,8 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                   <div className={`w-1/2 flex flex-col items-center justify-center p-8 transition-all duration-700 ease-in-out ${isSignUp ? "translate-x-full opacity-0 pointer-events-none" : "translate-x-0 opacity-100"}`}>
                     <h2 className="text-5xl font-black mb-8 italic">Sign <span className="accent-phrase pr-6">In</span></h2>
                     <form onSubmit={handleSignIn} className="w-full max-w-sm space-y-4">
+                      {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
+                      {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
                       <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={formData.email} onChange={handleChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
                       <div className="relative">
                         <input name="password" type={showPassword ? "text" : "password"} placeholder="Password" value={formData.password} onChange={handleChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
@@ -153,16 +274,40 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                   {/*sign up side*/}
                   <div className={`w-1/2 flex flex-col items-center justify-center p-8 transition-all duration-700 ease-in-out ${isSignUp ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"}`}>
                     <h2 className="text-5xl font-black mb-8 italic">Sign <span className="accent-phrase pr-6">Up</span></h2>
-                    <form className="w-full max-w-sm space-y-4">
-                      <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={formData.email} onChange={handleChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
-                      <div className="relative">
-                        <input name="password" type={showSignUpPassword ? "text" : "password"} placeholder="Create Password" value={formData.password} onChange={handleChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
-                        <button type="button" onClick={() => setShowSignUpPassword(!showSignUpPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">
-                          {showSignUpPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
-                        </button>
-                      </div>
-                      <button className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>Request OTP</button>
-                    </form>
+                    {otpRequested ? (
+                      <form onSubmit={handleVerifyOtp} className="w-full max-w-sm space-y-4">
+                        {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
+                        {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
+                        <input value={signUpData.email} readOnly className="w-full px-5 py-4 rounded-xl outline-none opacity-70" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} />
+                        <input
+                          name="otp"
+                          inputMode="numeric"
+                          maxLength={6}
+                          placeholder="Enter 6-digit OTP"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                          className="w-full px-5 py-4 rounded-xl outline-none"
+                          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+                          required
+                        />
+                        <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>{loading ? <Loader2 className="animate-spin" /> : "Verify OTP"}</button>
+                        <button type="button" onClick={handleResendOtp} className="w-full py-3 rounded-xl font-bold uppercase tracking-widest border" style={{ borderColor: 'var(--border)', color: 'var(--text)' }} disabled={loading}>Resend OTP</button>
+                        <button type="button" onClick={() => { setOtpRequested(false); setOtp(""); setError(null); setSuccessMessage(null); }} className="text-xs font-black uppercase tracking-widest opacity-70 block mx-auto" style={{ color: 'var(--text)' }}>Edit email/password</button>
+                      </form>
+                    ) : (
+                      <form onSubmit={handleRequestOtp} className="w-full max-w-sm space-y-4">
+                        {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
+                        {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
+                        <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={signUpData.email} onChange={handleSignUpChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
+                        <div className="relative">
+                          <input name="password" type={showSignUpPassword ? "text" : "password"} placeholder="Create Password" value={signUpData.password} onChange={handleSignUpChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
+                          <button type="button" onClick={() => setShowSignUpPassword(!showSignUpPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">
+                            {showSignUpPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
+                          </button>
+                        </div>
+                        <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : "Request OTP"}</button>
+                      </form>
+                    )}
                   </div>
 
                   {/* OVERLAY PANEL */}

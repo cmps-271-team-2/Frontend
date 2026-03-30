@@ -1,11 +1,14 @@
 "use client";
 
 import { FormEvent, useState, useMemo } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import { apiFetch } from "@/lib/api";
 import DarkSelect from "./dark-select";
 import MultiSelectChips from "./multi-select-chips";
 import PhotoUpload from "./photo-upload";
 import RatingStars from "./rating-stars";
-import { submitRating, StudyFoodCategory } from "@/lib/ratings";
+import { StudyFoodCategory } from "@/lib/ratings";
 import { detectTags } from "@/lib/tag-detector";
 
 const MIN_COMMENT_LENGTH = 20;
@@ -148,19 +151,43 @@ export default function StudyFoodRatingForm({
 
     setIsSubmitting(true);
     try {
-      await submitRating({
-        ratingType: "study-food",
-        targetId: initialTargetId,
-        spotName: spotName.trim(),
-        category: category as StudyFoodCategory,
-        location: location.trim() || undefined,
-        overallRating,
-        attributes: finalAttributes,
-        priceRange: category === "food-spot" ? priceRange.trim() || undefined : undefined,
-        bestTimeToGo: bestTimeToGo.trim() || undefined,
-        comment: comment.trim(),
-        media: photoFiles.map((file) => file.name),
-      });
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) {
+        onError("Please sign in first.");
+        return;
+      }
+
+      const userSnap = await getDoc(doc(db, "users", currentUser.uid));
+      const userData = userSnap.exists()
+        ? (userSnap.data() as { displayName?: string; major?: string; showDisplayName?: boolean })
+        : {};
+
+      await apiFetch<{ id: string; status?: string; message?: string; moderation?: { status?: string; allowed?: boolean } }>(
+        "/posts",
+        {
+          method: "POST",
+          authToken: await currentUser.getIdToken(),
+          body: JSON.stringify({
+            rating: overallRating,
+            text: comment.trim(),
+            targetId: initialTargetId,
+            targetType: category === "food-spot" ? "food-spot" : "study-spot",
+            title: spotName.trim(),
+            spotName: spotName.trim(),
+            category: category as StudyFoodCategory,
+            location: location.trim() || undefined,
+            attributes: finalAttributes,
+            priceRange: category === "food-spot" ? priceRange.trim() || undefined : undefined,
+            bestTimeToGo: bestTimeToGo.trim() || undefined,
+            media: photoFiles.map((file) => file.name),
+            userId: currentUser.uid,
+            displayName: userData.displayName || "Student",
+            major: userData.major || "Unknown Major",
+            showDisplayName: userData.showDisplayName === true,
+          }),
+        }
+      );
 
       onSuccess("Study/Food post submitted successfully.");
       resetForm();

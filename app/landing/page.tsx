@@ -8,6 +8,8 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswor
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { X, Eye, EyeOff, Mail, ArrowLeft, Loader2, Star, Coffee, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiFetch } from "@/lib/api";
+import { aubEmailSchema, requestOtpSchema, verifyOtpSchema } from "@/lib/validators";
 
 //components
 import Navbar from "../components/landing/Navbar";
@@ -31,6 +33,11 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
   
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({ email: "", password: "" });
+  const [otp, setOtp] = useState("");
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [forgotCodeSent, setForgotCodeSent] = useState(false);
+  const [forgotOtp, setForgotOtp] = useState("");
+  const [forgotNewPassword, setForgotNewPassword] = useState("");
   const [major, setMajor] = useState("");
   const [otp, setOtp] = useState("");
   const [otpRequested, setOtpRequested] = useState(false);

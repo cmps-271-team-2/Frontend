@@ -10,7 +10,7 @@ export type ReactionResponse = {
   dislikes: number;
 };
 
-export type FavoriteTargetType = "professor" | "course" | "spot";
+export type FavoriteTargetType = "professor" | "course" | "spot" | "post";
 
 export type FavoriteItem = {
   id: string;
@@ -78,6 +78,14 @@ export async function deletePost(postId: string, authToken: string): Promise<{ o
 
 export async function reportSpot(spotId: string, text: string, authToken: string): Promise<{ ok: boolean; id: string; message: string }> {
   return apiFetch<{ ok: boolean; id: string; message: string }>(`/spots/${encodeURIComponent(spotId)}/report`, {
+    method: "POST",
+    body: JSON.stringify({ text }),
+    authToken,
+  });
+}
+
+export async function reportPost(postId: string, text: string, authToken: string): Promise<{ ok: boolean; id: string; message: string }> {
+  return apiFetch<{ ok: boolean; id: string; message: string }>(`/posts/${encodeURIComponent(postId)}/report`, {
     method: "POST",
     body: JSON.stringify({ text }),
     authToken,

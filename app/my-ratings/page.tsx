@@ -105,6 +105,8 @@ export default function MyRatingsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const [posts, setPosts] = useState<MyPost[]>([]);
+  const [editDialog, setEditDialog] = useState<{ post: MyPost; text: string; rating: string } | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<MyPost | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -170,26 +172,37 @@ export default function MyRatingsPage() {
   }
 
   async function handleEdit(post: MyPost) {
+    setEditDialog({ post, text: post.text, rating: String(post.rating ?? "") });
+  }
+
+  async function handleDelete(post: MyPost) {
+    setDeleteDialog(post);
+  }
+
+  async function submitEditDialog() {
+    if (!editDialog) return;
+
     const token = await getToken();
     if (!token) return;
 
-    const nextText = window.prompt("Edit your rating text", post.text);
-    if (nextText === null) return;
+    const nextText = editDialog.text.trim();
+    if (!nextText) {
+      setToast({ type: "error", message: "Review text cannot be empty." });
+      return;
+    }
 
-    const ratingSeed = post.rating === null ? "" : String(post.rating);
-    const nextRatingRaw = window.prompt("Edit rating (1-5)", ratingSeed);
-    if (nextRatingRaw === null) return;
-
-    const parsedRating = Number(nextRatingRaw);
+    const parsedRating = Number(editDialog.rating);
     if (!Number.isFinite(parsedRating) || parsedRating < 1 || parsedRating > 5) {
       setToast({ type: "error", message: "Rating must be between 1 and 5." });
       return;
     }
 
+    const post = editDialog.post;
     setBusyId(post.id);
     try {
       await updatePost(post.id, { text: nextText, rating: parsedRating }, token);
       setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, text: nextText, rating: parsedRating } : p)));
+      setEditDialog(null);
       setToast({ type: "success", message: "Rating updated." });
     } catch (error) {
       setToast({ type: "error", message: error instanceof Error ? error.message : "Failed to update rating." });
@@ -198,17 +211,18 @@ export default function MyRatingsPage() {
     }
   }
 
-  async function handleDelete(post: MyPost) {
-    const confirmed = window.confirm("Delete this rating? This action cannot be undone.");
-    if (!confirmed) return;
+  async function submitDeleteDialog() {
+    if (!deleteDialog) return;
 
     const token = await getToken();
     if (!token) return;
 
+    const post = deleteDialog;
     setBusyId(post.id);
     try {
       await deletePost(post.id, token);
       setPosts((prev) => prev.filter((p) => p.id !== post.id));
+      setDeleteDialog(null);
       setToast({ type: "success", message: "Rating deleted." });
     } catch (error) {
       setToast({ type: "error", message: error instanceof Error ? error.message : "Failed to delete rating." });
@@ -452,6 +466,47 @@ export default function MyRatingsPage() {
           })}
         </div>
       )}
+
+      {editDialog ? (
+        <div style={{ position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setEditDialog(null)}>
+          <div style={{ width: "100%", maxWidth: 620, borderRadius: 16, border: "1px solid var(--border)", background: "var(--card)", padding: 16 }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: 0, color: "var(--text)", fontSize: 18, fontWeight: 800 }}>Edit rating</h3>
+            <p style={{ marginTop: 6, color: "var(--muted)", fontSize: 13 }}>Update your text and score.</p>
+            <textarea
+              value={editDialog.text}
+              onChange={(e) => setEditDialog((prev) => (prev ? { ...prev, text: e.target.value } : prev))}
+              rows={4}
+              style={{ width: "100%", marginTop: 10, borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", padding: 10 }}
+            />
+            <input
+              type="number"
+              min={1}
+              max={5}
+              step={1}
+              value={editDialog.rating}
+              onChange={(e) => setEditDialog((prev) => (prev ? { ...prev, rating: e.target.value } : prev))}
+              style={{ width: "100%", marginTop: 10, borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", padding: 10 }}
+            />
+            <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button type="button" onClick={() => setEditDialog(null)} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--text)", fontWeight: 700 }}>Cancel</button>
+              <button type="button" onClick={() => void submitEditDialog()} disabled={busyId === editDialog.post.id} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontWeight: 700 }}>{busyId === editDialog.post.id ? "Saving..." : "Save"}</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {deleteDialog ? (
+        <div style={{ position: "fixed", inset: 0, zIndex: 150, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setDeleteDialog(null)}>
+          <div style={{ width: "100%", maxWidth: 460, borderRadius: 16, border: "1px solid var(--border)", background: "var(--card)", padding: 16 }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: 0, color: "var(--text)", fontSize: 18, fontWeight: 800 }}>Delete rating</h3>
+            <p style={{ marginTop: 8, color: "var(--muted)", fontSize: 14 }}>This action cannot be undone.</p>
+            <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button type="button" onClick={() => setDeleteDialog(null)} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--text)", fontWeight: 700 }}>Cancel</button>
+              <button type="button" onClick={() => void submitDeleteDialog()} disabled={busyId === deleteDialog.id} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid rgba(255,120,120,0.45)", background: "rgba(255,120,120,0.08)", color: "#ff9f9f", fontWeight: 700 }}>{busyId === deleteDialog.id ? "Deleting..." : "Delete"}</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

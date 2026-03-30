@@ -8,7 +8,7 @@ import {
   clearPostReaction,
   deletePost,
   removeFavorite,
-  reportSpot,
+  reportPost,
   setPostReaction,
   updatePost,
 } from "@/lib/posts";
@@ -337,6 +337,9 @@ export default function HomePage() {
   const [userReactions, setUserReactions] = useState<Record<string, UserReaction>>({});
   const [busyPostId, setBusyPostId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [editDialog, setEditDialog] = useState<{ review: HomeReview; text: string; rating: string } | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<HomeReview | null>(null);
+  const [reportDialog, setReportDialog] = useState<{ review: HomeReview; text: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeNoise, setActiveNoise] = useState<StudyNoiseLevel | "all">("all");
@@ -686,16 +689,8 @@ export default function HomePage() {
       return;
     }
 
-    const rawTargetType = (review.targetType || "").trim().toLowerCase();
-    const targetType =
-      rawTargetType === "course"
-        ? "course"
-        : (rawTargetType === "professor" || rawTargetType === "prof" || rawTargetType === "profile"
-          ? "professor"
-          : (review.kind === "course-professor" ? "professor" : "spot"));
-    const targetId = (review.targetId || "").trim();
-    if (!targetId) {
-      showToast("error", "This item cannot be favorited yet.");
+    if (!review.id) {
+      showToast("error", "Cannot favorite this post.");
       return;
     }
 
@@ -703,9 +698,9 @@ export default function HomePage() {
     const prevFavorite = Boolean(review.isFavorited);
     try {
       if (prevFavorite) {
-        await removeFavorite(targetType, targetId, token);
+        await removeFavorite("post", String(review.id), token);
       } else {
-        await addFavorite(targetType, targetId, review.title || review.code || review.spotName || review.professorName || targetId, token);
+        await addFavorite("post", String(review.id), String(review.id), token);
       }
 
       setRatings((prev) =>
@@ -724,31 +719,36 @@ export default function HomePage() {
   }
 
   async function handleEditPost(review: HomeReview) {
+    setEditDialog({
+      review,
+      text: review.text,
+      rating: String(review.rating ?? review.stars ?? 0),
+    });
+  }
+
+  async function submitEditDialog() {
+    if (!editDialog) {
+      return;
+    }
+
     const token = await requireAuthToken();
     if (!token) {
       return;
     }
 
-    const nextText = window.prompt("Edit your rating text:", review.text);
-    if (nextText === null) {
-      return;
-    }
-    const trimmedText = nextText.trim();
+    const trimmedText = editDialog.text.trim();
     if (!trimmedText) {
       showToast("error", "Review text cannot be empty.");
       return;
     }
 
-    const nextRatingRaw = window.prompt("Edit rating (1-5):", String(review.rating ?? review.stars ?? 0));
-    if (nextRatingRaw === null) {
-      return;
-    }
-    const nextRating = Number(nextRatingRaw);
+    const nextRating = Number(editDialog.rating);
     if (!Number.isFinite(nextRating) || nextRating < 1 || nextRating > 5) {
       showToast("error", "Rating must be between 1 and 5.");
       return;
     }
 
+    const review = editDialog.review;
     setBusyPostId(review.id);
     try {
       const result = await updatePost(review.id, { text: trimmedText, rating: nextRating }, token);
@@ -766,6 +766,7 @@ export default function HomePage() {
             : item
         )
       );
+      setEditDialog(null);
       showToast("success", "Rating updated.");
     } catch (error) {
       showToast("error", error instanceof Error ? error.message : "Failed to update rating.");
@@ -775,14 +776,20 @@ export default function HomePage() {
   }
 
   async function handleDeletePost(review: HomeReview) {
+    setDeleteDialog(review);
+  }
+
+  async function submitDeleteDialog() {
+    if (!deleteDialog) {
+      return;
+    }
+
     const token = await requireAuthToken();
     if (!token) {
       return;
     }
-    if (!window.confirm("Delete this rating? This cannot be undone.")) {
-      return;
-    }
 
+    const review = deleteDialog;
     setBusyPostId(review.id);
     try {
       await deletePost(review.id, token);
@@ -792,6 +799,7 @@ export default function HomePage() {
         delete next[review.id];
         return next;
       });
+      setDeleteDialog(null);
       showToast("success", "Rating deleted.");
     } catch (error) {
       showToast("error", error instanceof Error ? error.message : "Failed to delete rating.");
@@ -801,8 +809,11 @@ export default function HomePage() {
   }
 
   async function handleReportSpot(review: HomeReview) {
-    const normalizedTargetType = (review.targetType || "").trim().toLowerCase();
-    if (!(review.kind === "study-spot" || review.kind === "food-spot" || normalizedTargetType === "spot" || normalizedTargetType === "study-food")) {
+    setReportDialog({ review, text: "" });
+  }
+
+  async function submitReportDialog() {
+    if (!reportDialog) {
       return;
     }
 
@@ -811,25 +822,17 @@ export default function HomePage() {
       return;
     }
 
-    const spotId = (review.targetId || "").trim();
-    if (!spotId) {
-      showToast("error", "This spot cannot be reported right now.");
-      return;
-    }
-
-    const reportText = window.prompt("Report incorrect or outdated spot info:");
-    if (reportText === null) {
-      return;
-    }
-    const trimmed = reportText.trim();
+    const trimmed = reportDialog.text.trim();
     if (!trimmed) {
       showToast("error", "Report text cannot be empty.");
       return;
     }
 
+    const review = reportDialog.review;
     setBusyPostId(review.id);
     try {
-      await reportSpot(spotId, trimmed, token);
+      await reportPost(review.id, trimmed, token);
+      setReportDialog(null);
       showToast("success", "Report submitted. Thank you.");
     } catch (error) {
       showToast("error", error instanceof Error ? error.message : "Failed to submit report.");
@@ -998,13 +1001,7 @@ export default function HomePage() {
                   onToggleFavorite={() => void handleToggleFavorite(review)}
                   onEdit={review.isOwner ? () => void handleEditPost(review) : undefined}
                   onDelete={review.isOwner ? () => void handleDeletePost(review) : undefined}
-                  onReport={
-                    review.kind === "study-spot" ||
-                    review.kind === "food-spot" ||
-                    review.targetType?.toLowerCase() === "spot"
-                      ? () => void handleReportSpot(review)
-                      : undefined
-                  }
+                  onReport={() => void handleReportSpot(review)}
                 />
               </div>
             ))}
@@ -1109,6 +1106,70 @@ export default function HomePage() {
           }}
         >
           {toast.message}
+        </div>
+      ) : null}
+
+      {editDialog ? (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 p-4" onClick={() => setEditDialog(null)}>
+          <div className="w-full max-w-xl rounded-2xl border p-4" style={{ background: "var(--card)", borderColor: "var(--border)" }} onClick={(event) => event.stopPropagation()}>
+            <h3 className="text-lg font-bold" style={{ color: "var(--text)" }}>Edit rating</h3>
+            <label className="mt-3 block text-xs font-bold uppercase" style={{ color: "var(--muted)" }}>Text</label>
+            <textarea
+              value={editDialog.text}
+              onChange={(e) => setEditDialog((prev) => (prev ? { ...prev, text: e.target.value } : prev))}
+              rows={4}
+              className="mt-1 w-full rounded-lg border p-2 text-sm"
+              style={{ borderColor: "var(--border)", background: "var(--bg)", color: "var(--text)" }}
+            />
+            <label className="mt-3 block text-xs font-bold uppercase" style={{ color: "var(--muted)" }}>Rating (1-5)</label>
+            <input
+              type="number"
+              min={1}
+              max={5}
+              step={1}
+              value={editDialog.rating}
+              onChange={(e) => setEditDialog((prev) => (prev ? { ...prev, rating: e.target.value } : prev))}
+              className="mt-1 w-full rounded-lg border p-2 text-sm"
+              style={{ borderColor: "var(--border)", background: "var(--bg)", color: "var(--text)" }}
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setEditDialog(null)} className="rounded-lg border px-3 py-2 text-sm font-semibold" style={{ borderColor: "var(--border)", color: "var(--text)" }}>Cancel</button>
+              <button type="button" onClick={() => void submitEditDialog()} disabled={busyPostId === editDialog.review.id} className="rounded-lg border px-3 py-2 text-sm font-semibold" style={{ borderColor: "var(--border)", color: "var(--text)", background: "var(--bg)" }}>{busyPostId === editDialog.review.id ? "Saving..." : "Save"}</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {deleteDialog ? (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 p-4" onClick={() => setDeleteDialog(null)}>
+          <div className="w-full max-w-md rounded-2xl border p-4" style={{ background: "var(--card)", borderColor: "var(--border)" }} onClick={(event) => event.stopPropagation()}>
+            <h3 className="text-lg font-bold" style={{ color: "var(--text)" }}>Delete rating</h3>
+            <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>This action cannot be undone.</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setDeleteDialog(null)} className="rounded-lg border px-3 py-2 text-sm font-semibold" style={{ borderColor: "var(--border)", color: "var(--text)" }}>Cancel</button>
+              <button type="button" onClick={() => void submitDeleteDialog()} disabled={busyPostId === deleteDialog.id} className="rounded-lg border px-3 py-2 text-sm font-semibold" style={{ borderColor: "rgba(255,107,107,0.5)", color: "#ff6b6b" }}>{busyPostId === deleteDialog.id ? "Deleting..." : "Delete"}</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {reportDialog ? (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 p-4" onClick={() => setReportDialog(null)}>
+          <div className="w-full max-w-xl rounded-2xl border p-4" style={{ background: "var(--card)", borderColor: "var(--border)" }} onClick={(event) => event.stopPropagation()}>
+            <h3 className="text-lg font-bold" style={{ color: "var(--text)" }}>Report rating</h3>
+            <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>Tell us what is wrong or outdated.</p>
+            <textarea
+              value={reportDialog.text}
+              onChange={(e) => setReportDialog((prev) => (prev ? { ...prev, text: e.target.value } : prev))}
+              rows={4}
+              className="mt-3 w-full rounded-lg border p-2 text-sm"
+              style={{ borderColor: "var(--border)", background: "var(--bg)", color: "var(--text)" }}
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setReportDialog(null)} className="rounded-lg border px-3 py-2 text-sm font-semibold" style={{ borderColor: "var(--border)", color: "var(--text)" }}>Cancel</button>
+              <button type="button" onClick={() => void submitReportDialog()} disabled={busyPostId === reportDialog.review.id} className="rounded-lg border px-3 py-2 text-sm font-semibold" style={{ borderColor: "var(--border)", color: "var(--text)", background: "var(--bg)" }}>{busyPostId === reportDialog.review.id ? "Submitting..." : "Submit"}</button>
+            </div>
+          </div>
         </div>
       ) : null}
     </main>

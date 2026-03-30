@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
@@ -12,12 +12,18 @@ type FoodVenueCategory = "restaurant" | "food" | "fast-food" | "bakery";
 
 type BackendPost = {
   id?: string | number;
+  targetId?: string;
+  targetid?: string;
+  TargetId?: string;
   rating?: number;
   stars?: number;
   category?: string;
   type?: string;
   targetType?: string;
+  targettype?: string;
+  TargetType?: string;
   code?: string;
+  Code?: string;
   text?: string;
   comment?: string;
   likes?: number;
@@ -34,11 +40,27 @@ type BackendPost = {
   authorName?: string;
   semesterTaken?: string;
   title?: string;
+  Title?: string;
+};
+
+type LookupEntity = {
+  id?: string;
+  name?: string;
+  code?: string;
+  title?: string;
+};
+
+type PostTargetLookup = {
+  profilesByIdOrName: Record<string, string>;
+  cafeteriasByIdOrName: Record<string, string>;
+  spotsByIdOrName: Record<string, string>;
+  coursesByIdCodeOrTitle: Record<string, string>;
 };
 
 type HomeReview = {
     kind?: "study-spot" | "food-spot" | "course-professor";
   id: string;
+  targetId?: string;
   rating?: number;
   stars?: number;
   category?: string;
@@ -57,6 +79,7 @@ type HomeReview = {
   spotName?: string;
   displayName?: string;
   semester?: string;
+  title?: string;
 };
 
 const NOISE_FILTERS: Array<{ label: string; value: StudyNoiseLevel | "all" }> = [
@@ -109,24 +132,110 @@ function mapTargetTypeToCategory(targetType: string | undefined): string | undef
   return undefined;
 }
 
-function mapPostToReview(post: BackendPost, index: number): HomeReview {
+function toLookupKey(value: string | undefined): string {
+  return (value || "").trim().toLowerCase();
+}
+
+function createLookupMap(items: LookupEntity[], labelSelector: (item: LookupEntity) => string | undefined, aliases: Array<(item: LookupEntity) => string | undefined>): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const item of items) {
+    const label = (labelSelector(item) || "").trim();
+    if (!label) {
+      continue;
+    }
+    for (const alias of aliases) {
+      const key = toLookupKey(alias(item));
+      if (key) {
+        map[key] = label;
+      }
+    }
+  }
+  return map;
+}
+
+function resolveTargetLabel(post: BackendPost, lookup: PostTargetLookup): string | undefined {
+  const targetType = toLookupKey(
+    post.targetType || post.targettype || post.TargetType
+  );
+  const targetId = toLookupKey(
+    post.targetId || post.targetid || post.TargetId
+  );
+  if (!targetId) {
+    return undefined;
+  }
+
+  if (targetType === "study" || targetType === "study-spot" || targetType === "food" || targetType === "food-spot" || targetType === "spot") {
+    return lookup.spotsByIdOrName[targetId] || lookup.cafeteriasByIdOrName[targetId];
+  }
+
+  if (targetType === "course") {
+    return lookup.coursesByIdCodeOrTitle[targetId];
+  }
+
+  if (targetType === "prof" || targetType === "professor" || targetType === "profile") {
+    return lookup.profilesByIdOrName[targetId];
+  }
+
+  return (
+    lookup.profilesByIdOrName[targetId] ||
+    lookup.cafeteriasByIdOrName[targetId] ||
+    lookup.spotsByIdOrName[targetId] ||
+    lookup.coursesByIdCodeOrTitle[targetId]
+  );
+}
+
+function mapPostToReview(post: BackendPost, index: number, lookup: PostTargetLookup): HomeReview {
+  const rawTargetId =
+    (post.targetId || post.targetid || post.TargetId || "").toString().trim();
+  const rawTargetType =
+    (post.targetType || post.targettype || post.TargetType || "").toString().trim();
+  const rawTitle =
+    (post.title || post.Title || "").toString().trim();
+  const rawCode =
+    (post.code || post.Code || "").toString().trim();
+
   const extractedCode =
-    typeof post.title === "string"
-      ? post.title.split(" - ")[0]?.trim()
+    rawTitle.length > 0
+      ? rawTitle.split(" - ")[0]?.trim()
       : undefined;
+
+  const normalizedTargetType = rawTargetType.toLowerCase();
+  const resolvedTargetLabel = resolveTargetLabel(post, lookup);
+  const normalizedTitle = rawTitle;
+  const derivedSpotName =
+    (typeof post.spotName === "string" && post.spotName.trim().length > 0
+      ? post.spotName.trim()
+      : "") ||
+    ((normalizedTargetType === "study" ||
+      normalizedTargetType === "study-spot" ||
+      normalizedTargetType === "food" ||
+      normalizedTargetType === "food-spot") && normalizedTitle.length > 0
+      ? normalizedTitle
+      : "") ||
+    ((normalizedTargetType === "study" ||
+      normalizedTargetType === "study-spot" ||
+      normalizedTargetType === "food" ||
+      normalizedTargetType === "food-spot") && (resolvedTargetLabel || "").trim().length > 0
+      ? (resolvedTargetLabel || "").trim()
+      : "") ||
+    undefined;
 
   const mapped: HomeReview = {
     id: String(post.id ?? `post-${index}`),
+    targetId: rawTargetId || undefined,
     rating: post.rating,
     stars: post.stars,
-    category: mapTargetTypeToCategory(post.targetType) ?? post.category ?? post.type,
+    category: mapTargetTypeToCategory(rawTargetType) ?? post.category ?? post.type,
     type: post.type,
     code:
-      (typeof post.code === "string" && post.code.trim().length > 0
-        ? post.code.trim()
+      (rawCode.length > 0
+        ? rawCode
         : undefined) ||
       (typeof post.courseCode === "string" && post.courseCode.trim().length > 0
         ? post.courseCode.trim()
+        : undefined) ||
+      (rawTargetId.length > 0 && normalizedTargetType === "course"
+        ? rawTargetId.replace(/_/g, " ")
         : undefined) ||
       extractedCode,
     text: post.text ?? post.comment ?? "",
@@ -139,12 +248,12 @@ function mapPostToReview(post: BackendPost, index: number): HomeReview {
     venueCategory: post.venueCategory,
     courseCode: post.courseCode,
     professorName: post.professorName,
-    spotName: post.spotName,
+    spotName: derivedSpotName,
     displayName: post.displayName ?? post.authorName ?? "Anonymous",
     semester: post.semesterTaken ?? post.year,
-    kind: getKindFromTargetType(post.targetType),
+    kind: getKindFromTargetType(rawTargetType),
+    title: normalizedTitle || resolvedTargetLabel || undefined,
   };
-  console.log("Mapped review:", mapped);
   return mapped;
 }
 
@@ -202,6 +311,10 @@ export default function HomePage() {
   const [activeNoise, setActiveNoise] = useState<StudyNoiseLevel | "all">("all");
   const [activeFoodCategory, setActiveFoodCategory] = useState<FoodVenueCategory | "all">("all");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const mainRef = useRef<HTMLElement | null>(null);
+  const reviewRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const anchorReviewIdRef = useRef<string | null>(null);
+  const jumpToTopOnSortRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -211,13 +324,39 @@ export default function HomePage() {
       setLoadError(null);
 
       try {
-        const posts = await apiFetch<BackendPost[]>("/posts", { cache: "no-store" });
+        const [posts, profiles, cafeterias, spots, courses] = await Promise.all([
+          apiFetch<BackendPost[]>("/posts", { cache: "no-store" }),
+          apiFetch<LookupEntity[]>("/profiles", { cache: "no-store" }).catch(() => []),
+          apiFetch<LookupEntity[]>("/cafeterias", { cache: "no-store" }).catch(() => []),
+          apiFetch<LookupEntity[]>("/spots", { cache: "no-store" }).catch(() => []),
+          apiFetch<LookupEntity[]>("/courses", { cache: "no-store" }).catch(() => []),
+        ]);
         if (!mounted) {
           return;
         }
 
+        const lookup: PostTargetLookup = {
+          profilesByIdOrName: createLookupMap(profiles, (item) => item.name, [
+            (item) => item.id,
+            (item) => item.name,
+          ]),
+          cafeteriasByIdOrName: createLookupMap(cafeterias, (item) => item.name, [
+            (item) => item.id,
+            (item) => item.name,
+          ]),
+          spotsByIdOrName: createLookupMap(spots, (item) => item.name, [
+            (item) => item.id,
+            (item) => item.name,
+          ]),
+          coursesByIdCodeOrTitle: createLookupMap(courses, (item) => item.code || item.title, [
+            (item) => item.id,
+            (item) => item.code,
+            (item) => item.title,
+          ]),
+        };
+
         const mapped = Array.isArray(posts)
-          ? posts.map((post, index) => mapPostToReview(post, index)).filter((item) => item.text.trim().length > 0)
+          ? posts.map((post, index) => mapPostToReview(post, index, lookup)).filter((item) => item.text.trim().length > 0)
           : [];
 
         setRatings(mapped);
@@ -326,6 +465,62 @@ export default function HomePage() {
       ? (activeFoodCategory !== "all" ? 1 : 0)
       : 0;
 
+  function handleSortChange(nextSort: SortFilter) {
+    if (nextSort === selectedSortFilter) {
+      return;
+    }
+
+    if (
+      nextSort === "newest" ||
+      nextSort === "oldest" ||
+      nextSort === "highestRating" ||
+      nextSort === "lowestRating"
+    ) {
+      anchorReviewIdRef.current = null;
+      jumpToTopOnSortRef.current = true;
+      setSelectedSortFilter(nextSort);
+      return;
+    }
+
+    const container = mainRef.current;
+    if (container && filteredReviews.length > 0) {
+      const pageIndex = Math.round(container.scrollTop / Math.max(1, container.clientHeight));
+      const safeIndex = Math.min(Math.max(pageIndex, 0), filteredReviews.length - 1);
+      anchorReviewIdRef.current = filteredReviews[safeIndex]?.id ?? null;
+    } else {
+      anchorReviewIdRef.current = null;
+    }
+
+    jumpToTopOnSortRef.current = false;
+
+    setSelectedSortFilter(nextSort);
+  }
+
+  useLayoutEffect(() => {
+    if (jumpToTopOnSortRef.current) {
+      const container = mainRef.current;
+      if (container) {
+        container.scrollTo({ top: 0, behavior: "auto" });
+      }
+      jumpToTopOnSortRef.current = false;
+      anchorReviewIdRef.current = null;
+      return;
+    }
+
+    const anchorId = anchorReviewIdRef.current;
+    if (!anchorId) {
+      return;
+    }
+
+    const container = mainRef.current;
+    const target = reviewRefs.current[anchorId];
+    if (container && target) {
+      container.scrollTo({ top: target.offsetTop, behavior: "auto" });
+    }
+
+    anchorReviewIdRef.current = null;
+  }, [selectedSortFilter, filteredReviews]);
+
   function applyReaction(reviewId: string, nextReaction: Exclude<UserReaction, null>) {
     setRatings((prev) => {
       const currentReaction = userReactions[reviewId] ?? null;
@@ -402,13 +597,13 @@ export default function HomePage() {
     style={{ background: 'var(--bg)', color: 'var(--text)' }}
   >
     <ThemeToggle />
-    <main className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth" style={{ background: "var(--bg)" }}>
+    <main ref={mainRef} className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth" style={{ background: "var(--bg)" }}>
       <GlobalHeader
         activeCategory={selectedCategoryFilter}
         setActiveCategory={setSelectedCategoryFilter}
       />
 
-      <SortBar activeSort={selectedSortFilter} setActiveSort={setSelectedSortFilter} />
+      <SortBar activeSort={selectedSortFilter} setActiveSort={handleSortChange} />
 
       {selectedCategoryFilter === "Study Spot" || selectedCategoryFilter === "Food" ? (
         <div className="fixed left-1/2 top-24 z-[110] -translate-x-1/2 px-3">
@@ -533,7 +728,13 @@ export default function HomePage() {
         ) : filteredReviews.length > 0 ? (
           <>
             {filteredReviews.map((review) => (
-              <div key={review.id} className="h-screen w-full snap-start">
+              <div
+                key={review.id}
+                className="h-screen w-full snap-start"
+                ref={(el) => {
+                  reviewRefs.current[review.id] = el;
+                }}
+              >
                 <ReviewCard
                   review={review}
                   userReaction={userReactions[review.id] ?? null}

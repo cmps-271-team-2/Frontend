@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { apiFetch } from "@/lib/api";
 import { requestOtpSchema, verifyOtpSchema } from "@/lib/validators";
 import { X, Eye, EyeOff, Mail, ArrowLeft, Loader2, Star, Coffee, BookOpen } from "lucide-react";
@@ -31,10 +31,13 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
   const [signUpData, setSignUpData] = useState({ email: "", password: "" });
   const [otp, setOtp] = useState("");
   const [otpRequested, setOtpRequested] = useState(false);
+  const [forgotCodeSent, setForgotCodeSent] = useState(false);
+  const [forgotOtp, setForgotOtp] = useState("");
+  const [forgotNewPassword, setForgotNewPassword] = useState("");
+  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -97,11 +100,52 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
     setSuccessMessage(null);
     setLoading(true);
     try {
-      await sendPasswordResetEmail(auth, formData.email.toLowerCase().trim());
-      setResetSent(true);
-      setSuccessMessage("Password reset email sent.");
-    } catch {
-      setError("Could not send reset email.");
+      const email = formData.email.toLowerCase().trim();
+      await apiFetch<{ message: string }>("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+      setForgotCodeSent(true);
+      setSuccessMessage("Reset code sent to your email.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not send reset code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMessage(null);
+
+    const email = formData.email.toLowerCase().trim();
+    if (!forgotOtp.trim().match(/^\d{6}$/)) {
+      setError("OTP must be exactly 6 digits.");
+      return;
+    }
+    if (forgotNewPassword.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await apiFetch<{ message: string }>("/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          otp: forgotOtp.trim(),
+          new_password: forgotNewPassword,
+        }),
+      });
+      setSuccessMessage(res.message || "Password reset successful.");
+      setForgotCodeSent(false);
+      setForgotOtp("");
+      setForgotNewPassword("");
+      setAuthView("auth");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not reset password.");
     } finally {
       setLoading(false);
     }
@@ -235,21 +279,81 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                   <div className="w-16 h-16 mb-6 flex items-center justify-center rounded-2xl bg-purple-500/10 border border-purple-500/20"><Mail className="text-[#C56BFF]" size={28} /></div>
                   <h2 className="text-5xl font-black mb-2 italic"><span style={{ color: 'var(--text)' }} className="mr-2">Reset</span><span className="accent-phrase pr-4">Password</span></h2>
                   <p className="text-[10px] font-black uppercase tracking-widest mb-10" style={{ color: 'var(--text-muted)' }}>Enter your AUB email</p>
-                  
-                  {resetSent ? (
-                    <div className="space-y-6">
-                      <p className="text-green-400 font-bold uppercase text-xs tracking-widest">Link Sent! Check your inbox.</p>
-                      <button onClick={() => { setAuthView("auth"); setResetSent(false); }} className="text-xs font-black uppercase tracking-widest flex items-center gap-2 mx-auto" style={{ color: 'var(--text)' }}><ArrowLeft size={14}/> Back to login</button>
-                    </div>
-                  ) : (
-                    <form onSubmit={handleForgotPassword} className="w-full max-w-sm space-y-6">
-                      {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
-                      {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
-                      <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={formData.email} onChange={handleChange} className="w-full px-5 py-4 rounded-xl outline-none font-bold border-2" style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--border)' }} required />
-                      <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>{loading ? <Loader2 className="animate-spin" /> : "Send Link"}</button>
-                      <button type="button" onClick={() => setAuthView("auth")} className="text-xs font-black uppercase tracking-widest opacity-50 block mx-auto" style={{ color: 'var(--text)' }}>Cancel</button>
-                    </form>
-                  )}
+
+                  <form onSubmit={forgotCodeSent ? handleResetPassword : handleForgotPassword} className="w-full max-w-sm space-y-6">
+                    {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
+                    {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
+                    <input
+                      name="email"
+                      type="email"
+                      placeholder="abc00@mail.aub.edu"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="w-full px-5 py-4 rounded-xl outline-none font-bold border-2"
+                      style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--border)' }}
+                      required
+                      readOnly={forgotCodeSent}
+                    />
+
+                    {forgotCodeSent ? (
+                      <>
+                        <input
+                          name="forgotOtp"
+                          inputMode="numeric"
+                          maxLength={6}
+                          placeholder="Enter 6-digit reset code"
+                          value={forgotOtp}
+                          onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ""))}
+                          className="w-full px-5 py-4 rounded-xl outline-none font-bold border-2"
+                          style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--border)' }}
+                          required
+                        />
+                        <div className="relative">
+                          <input
+                            name="forgotNewPassword"
+                            type={showForgotNewPassword ? "text" : "password"}
+                            placeholder="New Password"
+                            value={forgotNewPassword}
+                            onChange={(e) => setForgotNewPassword(e.target.value)}
+                            className="w-full px-5 py-4 rounded-xl outline-none font-bold border-2"
+                            style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--border)' }}
+                            required
+                          />
+                          <button type="button" onClick={() => setShowForgotNewPassword(!showForgotNewPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">
+                            {showForgotNewPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
+                          </button>
+                        </div>
+                        <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>{loading ? <Loader2 className="animate-spin" /> : "Reset Password"}</button>
+                        <button
+                          type="button"
+                          onClick={handleForgotPassword}
+                          className="w-full py-3 rounded-xl font-bold uppercase tracking-widest border"
+                          style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
+                          disabled={loading}
+                        >
+                          Resend Code
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForgotCodeSent(false);
+                            setForgotOtp("");
+                            setForgotNewPassword("");
+                            setError(null);
+                            setSuccessMessage(null);
+                          }}
+                          className="text-xs font-black uppercase tracking-widest opacity-50 block mx-auto"
+                          style={{ color: 'var(--text)' }}
+                        >
+                          Edit Email
+                        </button>
+                      </>
+                    ) : (
+                      <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>{loading ? <Loader2 className="animate-spin" /> : "Send Reset Code"}</button>
+                    )}
+
+                    <button type="button" onClick={() => { setAuthView("auth"); setForgotCodeSent(false); setForgotOtp(""); setForgotNewPassword(""); }} className="text-xs font-black uppercase tracking-widest opacity-50 block mx-auto" style={{ color: 'var(--text)' }}>{forgotCodeSent ? "Back to login" : "Cancel"}</button>
+                  </form>
                 </div>
               ) : (
                 <>

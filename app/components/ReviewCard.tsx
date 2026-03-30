@@ -54,14 +54,29 @@ export default function ReviewCard({
   const resolvedRating = review.rating ?? review.stars ?? 0;
 
   const cleanCode = typeof review.code === "string" ? review.code.trim() : "";
+  const cleanCourseCode = typeof review.courseCode === "string" ? review.courseCode.trim() : "";
+  const cleanTitle = typeof review.title === "string" ? review.title.trim() : "";
+  const cleanSpotName = typeof review.spotName === "string" ? review.spotName.trim() : "";
+  const cleanProfessorName = typeof review.professorName === "string" ? review.professorName.trim() : "";
+  const cleanTargetId = typeof review.targetId === "string" ? review.targetId.trim() : "";
 
   // Compute title based on review kind
   const displayTitle =
     review.kind === "study-spot" || review.kind === "food-spot"
-      ? review.spotName || "Unknown Spot"
+      ? cleanSpotName || cleanTitle || cleanCode || cleanTargetId || "Campus Spot"
       : cleanCode.length > 0
         ? cleanCode
-        : "Unknown Course";
+        : cleanCourseCode.length > 0
+        ? cleanCourseCode
+        : cleanTitle.length > 0
+        ? cleanTitle
+        : cleanProfessorName.length > 0
+        ? cleanProfessorName
+        : cleanTargetId.length > 0
+        ? cleanTargetId
+        : (typeof review.category === "string" && review.category.trim().length > 0
+          ? `${review.category.trim()} Review`
+          : "Course Review");
 
   function handleLike() {
     if (onLike) {

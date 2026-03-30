@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import { apiFetch } from "@/lib/api";
 import { aubEmailSchema, requestOtpSchema } from "@/lib/validators";
 import { Star, Coffee, BookOpen, ShieldCheck, X, Eye, EyeOff } from "lucide-react";
@@ -29,6 +30,7 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
   const [step, setStep] = useState<"auth" | "verify">("auth");
   
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [major, setMajor] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +51,11 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
     setError(null);
 
     if (isSignUp) {
+      if (!major.trim()) {
+        setError("Major is required.");
+        setLoading(false);
+        return;
+      }
       const parsed = requestOtpSchema.safeParse({ email: formData.email, password: formData.password });
       if (!parsed.success) {
         setError(parsed.error.issues[0]?.message || "Invalid input");
@@ -90,6 +97,30 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
         method: "POST",
         body: JSON.stringify({ email: formData.email, otp: verificationCode }),
       });
+
+      let userCredential;
+      try {
+        userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      } catch (authErr: any) {
+        if (authErr?.code === "auth/user-not-found") {
+          userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+        } else {
+          throw authErr;
+        }
+      }
+
+      await setDoc(
+        doc(db, "users", userCredential.user.uid),
+        {
+          uid: userCredential.user.uid,
+          email: formData.email,
+          major: major.trim(),
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
       onLoginSuccess();
     } catch (err: any) {
       setError(err.message || "Verification failed.");
@@ -347,6 +378,11 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
                 <input
                   name="email" type="email" placeholder="abc00@mail.aub.edu"
                   value={formData.email} onChange={handleChange} required
+                  className="auth-field w-full p-4 rounded-xl outline-none transition-colors duration-200"
+                />
+                <input
+                  name="major" type="text" placeholder="Major"
+                  value={major} onChange={(e) => setMajor(e.target.value)} required
                   className="auth-field w-full p-4 rounded-xl outline-none transition-colors duration-200"
                 />
                 <div className="relative w-full">

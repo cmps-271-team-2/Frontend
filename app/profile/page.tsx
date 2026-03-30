@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { signOut } from "firebase/auth";
+
+import { auth } from "@/lib/firebase";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -9,6 +12,15 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState("Student");
   const [emailNotifs, setEmailNotifs] = useState(false);
   const [showMyRatingsPublicly, setShowMyRatingsPublicly] = useState(false);
+
+  async function handleLogout() {
+    try {
+      await signOut(auth);
+    } catch {
+      // Keep UX resilient even if sign out fails server-side.
+    }
+    router.push("/");
+  }
 
   return (
     <main style={{ padding: 20, paddingBottom: 130, maxWidth: 640, margin: "0 auto" }}>
@@ -131,13 +143,93 @@ export default function ProfilePage() {
             background: "var(--card)",
           }}
         >
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text)" }}>My Ratings</h2>
+          <p style={{ color: "var(--muted)", marginTop: 6, marginBottom: 16, fontSize: 14, fontWeight: 500 }}>
+            Edit or delete your existing ratings.
+          </p>
+
+          <button
+            onClick={() => router.push("/my-ratings")}
+            style={{
+              padding: "10px 20px",
+              borderRadius: 12,
+              border: "1px solid var(--border)",
+              background: "transparent",
+              color: "var(--text)",
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: 14,
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "rgba(100,220,130,0.45)";
+              e.currentTarget.style.background = "rgba(100,220,130,0.08)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "var(--border)";
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            Manage My Ratings
+          </button>
+        </section>
+
+        {/* Session card */}
+        <section
+          style={{
+            border: "1px solid var(--border)",
+            borderRadius: 16,
+            padding: 20,
+            background: "var(--card)",
+          }}
+        >
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text)" }}>Saved</h2>
+          <p style={{ color: "var(--muted)", marginTop: 6, marginBottom: 16, fontSize: 14, fontWeight: 500 }}>
+            Open your favorites list.
+          </p>
+
+          <button
+            onClick={() => router.push("/favorites")}
+            style={{
+              padding: "10px 20px",
+              borderRadius: 12,
+              border: "1px solid var(--border)",
+              background: "transparent",
+              color: "var(--text)",
+              cursor: "pointer",
+              fontWeight: 700,
+              fontSize: 14,
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "rgba(197,107,255,0.3)";
+              e.currentTarget.style.background = "rgba(197,107,255,0.08)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "var(--border)";
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            View Favorites
+          </button>
+        </section>
+
+        {/* Session card */}
+        <section
+          style={{
+            border: "1px solid var(--border)",
+            borderRadius: 16,
+            padding: 20,
+            background: "var(--card)",
+          }}
+        >
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text)" }}>Session</h2>
           <p style={{ color: "var(--muted)", marginTop: 6, marginBottom: 16, fontSize: 14, fontWeight: 500 }}>
             Log out of your account.
           </p>
 
           <button
-            onClick={() => router.push("/")}
+            onClick={() => void handleLogout()}
             style={{
               padding: "10px 20px",
               borderRadius: 12,

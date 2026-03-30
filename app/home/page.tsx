@@ -1,7 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { auth } from "@/lib/firebase";
+import {
+  addFavorite,
+  clearPostReaction,
+  deletePost,
+  removeFavorite,
+  reportSpot,
+  setPostReaction,
+  updatePost,
+} from "@/lib/posts";
+import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
 import SortBar from "../components/sortBar";
@@ -12,16 +23,26 @@ type FoodVenueCategory = "restaurant" | "food" | "fast-food" | "bakery";
 
 type BackendPost = {
   id?: string | number;
+  targetId?: string;
+  targetid?: string;
+  TargetId?: string;
   rating?: number;
   stars?: number;
   category?: string;
   type?: string;
   targetType?: string;
+  targettype?: string;
+  TargetType?: string;
   code?: string;
+  Code?: string;
   text?: string;
   comment?: string;
   likes?: number;
   dislikes?: number;
+  currentUserReaction?: "liked" | "disliked" | null;
+  isOwner?: boolean;
+  isFavorited?: boolean;
+  userId?: string;
   major?: string;
   year?: string;
   createdAt?: string | number | Date;
@@ -34,19 +55,39 @@ type BackendPost = {
   authorName?: string;
   semesterTaken?: string;
   title?: string;
+  Title?: string;
+};
+
+type LookupEntity = {
+  id?: string;
+  name?: string;
+  code?: string;
+  title?: string;
+};
+
+type PostTargetLookup = {
+  profilesByIdOrName: Record<string, string>;
+  cafeteriasByIdOrName: Record<string, string>;
+  spotsByIdOrName: Record<string, string>;
+  coursesByIdCodeOrTitle: Record<string, string>;
 };
 
 type HomeReview = {
     kind?: "study-spot" | "food-spot" | "course-professor";
   id: string;
+  targetId?: string;
   rating?: number;
   stars?: number;
   category?: string;
   type?: string;
+  targetType?: string;
   code?: string;
   text: string;
   likes: number;
   dislikes: number;
+  currentUserReaction?: UserReaction;
+  isOwner?: boolean;
+  isFavorited?: boolean;
   major: string;
   year: string;
   createdAt?: string | number | Date;
@@ -57,6 +98,7 @@ type HomeReview = {
   spotName?: string;
   displayName?: string;
   semester?: string;
+  title?: string;
 };
 
 const NOISE_FILTERS: Array<{ label: string; value: StudyNoiseLevel | "all" }> = [
@@ -87,6 +129,10 @@ function getKindFromTargetType(targetType: string | undefined): "study-spot" | "
     return "food-spot";
   }
 
+  if (normalized === "spot" || normalized === "study-food") {
+    return "study-spot";
+  }
+
   return "course-professor";
 }
 
@@ -109,29 +155,119 @@ function mapTargetTypeToCategory(targetType: string | undefined): string | undef
   return undefined;
 }
 
-function mapPostToReview(post: BackendPost, index: number): HomeReview {
+function toLookupKey(value: string | undefined): string {
+  return (value || "").trim().toLowerCase();
+}
+
+function createLookupMap(items: LookupEntity[], labelSelector: (item: LookupEntity) => string | undefined, aliases: Array<(item: LookupEntity) => string | undefined>): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const item of items) {
+    const label = (labelSelector(item) || "").trim();
+    if (!label) {
+      continue;
+    }
+    for (const alias of aliases) {
+      const key = toLookupKey(alias(item));
+      if (key) {
+        map[key] = label;
+      }
+    }
+  }
+  return map;
+}
+
+function resolveTargetLabel(post: BackendPost, lookup: PostTargetLookup): string | undefined {
+  const targetType = toLookupKey(
+    post.targetType || post.targettype || post.TargetType
+  );
+  const targetId = toLookupKey(
+    post.targetId || post.targetid || post.TargetId
+  );
+  if (!targetId) {
+    return undefined;
+  }
+
+  if (targetType === "study" || targetType === "study-spot" || targetType === "food" || targetType === "food-spot" || targetType === "spot") {
+    return lookup.spotsByIdOrName[targetId] || lookup.cafeteriasByIdOrName[targetId];
+  }
+
+  if (targetType === "course") {
+    return lookup.coursesByIdCodeOrTitle[targetId];
+  }
+
+  if (targetType === "prof" || targetType === "professor" || targetType === "profile") {
+    return lookup.profilesByIdOrName[targetId];
+  }
+
+  return (
+    lookup.profilesByIdOrName[targetId] ||
+    lookup.cafeteriasByIdOrName[targetId] ||
+    lookup.spotsByIdOrName[targetId] ||
+    lookup.coursesByIdCodeOrTitle[targetId]
+  );
+}
+
+function mapPostToReview(post: BackendPost, index: number, lookup: PostTargetLookup): HomeReview {
+  const rawTargetId =
+    (post.targetId || post.targetid || post.TargetId || "").toString().trim();
+  const rawTargetType =
+    (post.targetType || post.targettype || post.TargetType || "").toString().trim();
+  const rawTitle =
+    (post.title || post.Title || "").toString().trim();
+  const rawCode =
+    (post.code || post.Code || "").toString().trim();
+
   const extractedCode =
-    typeof post.title === "string"
-      ? post.title.split(" - ")[0]?.trim()
+    rawTitle.length > 0
+      ? rawTitle.split(" - ")[0]?.trim()
       : undefined;
+
+  const normalizedTargetType = rawTargetType.toLowerCase();
+  const resolvedTargetLabel = resolveTargetLabel(post, lookup);
+  const normalizedTitle = rawTitle;
+  const derivedSpotName =
+    (typeof post.spotName === "string" && post.spotName.trim().length > 0
+      ? post.spotName.trim()
+      : "") ||
+    ((normalizedTargetType === "study" ||
+      normalizedTargetType === "study-spot" ||
+      normalizedTargetType === "food" ||
+      normalizedTargetType === "food-spot") && normalizedTitle.length > 0
+      ? normalizedTitle
+      : "") ||
+    ((normalizedTargetType === "study" ||
+      normalizedTargetType === "study-spot" ||
+      normalizedTargetType === "food" ||
+      normalizedTargetType === "food-spot") && (resolvedTargetLabel || "").trim().length > 0
+      ? (resolvedTargetLabel || "").trim()
+      : "") ||
+    undefined;
 
   const mapped: HomeReview = {
     id: String(post.id ?? `post-${index}`),
+    targetId: rawTargetId || undefined,
     rating: post.rating,
     stars: post.stars,
-    category: mapTargetTypeToCategory(post.targetType) ?? post.category ?? post.type,
+    category: mapTargetTypeToCategory(rawTargetType) ?? post.category ?? post.type,
     type: post.type,
+    targetType: rawTargetType || undefined,
     code:
-      (typeof post.code === "string" && post.code.trim().length > 0
-        ? post.code.trim()
+      (rawCode.length > 0
+        ? rawCode
         : undefined) ||
       (typeof post.courseCode === "string" && post.courseCode.trim().length > 0
         ? post.courseCode.trim()
+        : undefined) ||
+      (rawTargetId.length > 0 && normalizedTargetType === "course"
+        ? rawTargetId.replace(/_/g, " ")
         : undefined) ||
       extractedCode,
     text: post.text ?? post.comment ?? "",
     likes: Number(post.likes ?? 0),
     dislikes: Number(post.dislikes ?? 0),
+    currentUserReaction: (post.currentUserReaction as UserReaction | undefined) ?? null,
+    isOwner: Boolean(post.isOwner),
+    isFavorited: Boolean(post.isFavorited),
     major: post.major ?? "Anonymous",
     year: post.year ?? "Student",
     createdAt: post.createdAt,
@@ -139,12 +275,12 @@ function mapPostToReview(post: BackendPost, index: number): HomeReview {
     venueCategory: post.venueCategory,
     courseCode: post.courseCode,
     professorName: post.professorName,
-    spotName: post.spotName,
+    spotName: derivedSpotName,
     displayName: post.displayName ?? post.authorName ?? "Anonymous",
     semester: post.semesterTaken ?? post.year,
-    kind: getKindFromTargetType(post.targetType),
+    kind: getKindFromTargetType(rawTargetType),
+    title: normalizedTitle || resolvedTargetLabel || undefined,
   };
-  console.log("Mapped review:", mapped);
   return mapped;
 }
 
@@ -193,17 +329,68 @@ function getCreatedAtMs(review: HomeReview): number {
 }
 
 export default function HomePage() {
+  const [authUser, setAuthUser] = useState<FirebaseUser | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
   const [selectedSortFilter, setSelectedSortFilter] = useState<SortFilter>("relevant");
   const [ratings, setRatings] = useState<HomeReview[]>([]);
   const [userReactions, setUserReactions] = useState<Record<string, UserReaction>>({});
+  const [busyPostId, setBusyPostId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeNoise, setActiveNoise] = useState<StudyNoiseLevel | "all">("all");
   const [activeFoodCategory, setActiveFoodCategory] = useState<FoodVenueCategory | "all">("all");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const mainRef = useRef<HTMLElement | null>(null);
+  const reviewRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const anchorReviewIdRef = useRef<string | null>(null);
+  const jumpToTopOnSortRef = useRef(false);
+  const deepLinkHandledRef = useRef(false);
+  const deepLinkTargetRef = useRef<{ targetId: string; targetType: string }>({ targetId: "", targetType: "" });
 
   useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setAuthUser(user);
+      setAuthReady(true);
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    deepLinkTargetRef.current = {
+      targetId: (params.get("targetId") || "").trim(),
+      targetType: (params.get("targetType") || "").trim().toLowerCase(),
+    };
+  }, []);
+
+  function showToast(type: "success" | "error", message: string) {
+    setToast({ type, message });
+    window.setTimeout(() => setToast(null), 2600);
+  }
+
+  async function requireAuthToken(): Promise<string | null> {
+    if (!authUser) {
+      showToast("error", "Please sign in first.");
+      return null;
+    }
+    try {
+      return await authUser.getIdToken();
+    } catch {
+      showToast("error", "Could not validate your session. Please sign in again.");
+      return null;
+    }
+  }
+
+  useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
     let mounted = true;
 
     async function loadRatings() {
@@ -211,16 +398,48 @@ export default function HomePage() {
       setLoadError(null);
 
       try {
-        const posts = await apiFetch<BackendPost[]>("/posts", { cache: "no-store" });
+        const authToken = authUser ? await authUser.getIdToken() : undefined;
+        const [posts, profiles, cafeterias, spots, courses] = await Promise.all([
+          apiFetch<BackendPost[]>("/posts", { cache: "no-store", authToken }),
+          apiFetch<LookupEntity[]>("/profiles", { cache: "no-store" }).catch(() => []),
+          apiFetch<LookupEntity[]>("/cafeterias", { cache: "no-store" }).catch(() => []),
+          apiFetch<LookupEntity[]>("/spots", { cache: "no-store" }).catch(() => []),
+          apiFetch<LookupEntity[]>("/courses", { cache: "no-store" }).catch(() => []),
+        ]);
         if (!mounted) {
           return;
         }
 
+        const lookup: PostTargetLookup = {
+          profilesByIdOrName: createLookupMap(profiles, (item) => item.name, [
+            (item) => item.id,
+            (item) => item.name,
+          ]),
+          cafeteriasByIdOrName: createLookupMap(cafeterias, (item) => item.name, [
+            (item) => item.id,
+            (item) => item.name,
+          ]),
+          spotsByIdOrName: createLookupMap(spots, (item) => item.name, [
+            (item) => item.id,
+            (item) => item.name,
+          ]),
+          coursesByIdCodeOrTitle: createLookupMap(courses, (item) => item.code || item.title, [
+            (item) => item.id,
+            (item) => item.code,
+            (item) => item.title,
+          ]),
+        };
+
         const mapped = Array.isArray(posts)
-          ? posts.map((post, index) => mapPostToReview(post, index)).filter((item) => item.text.trim().length > 0)
+          ? posts.map((post, index) => mapPostToReview(post, index, lookup)).filter((item) => item.text.trim().length > 0)
           : [];
 
         setRatings(mapped);
+        const reactions: Record<string, UserReaction> = {};
+        for (const item of mapped) {
+          reactions[item.id] = item.currentUserReaction ?? null;
+        }
+        setUserReactions(reactions);
       } catch (error) {
         if (!mounted) {
           return;
@@ -240,7 +459,7 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [authReady, authUser]);
 
   const filteredReviews = useMemo(() => {
     const next = ratings.filter((review) => {
@@ -313,6 +532,41 @@ export default function HomePage() {
     selectedSortFilter,
   ]);
 
+  useEffect(() => {
+    if (deepLinkHandledRef.current) {
+      return;
+    }
+
+    const targetIdParam = deepLinkTargetRef.current.targetId;
+    const targetTypeParam = deepLinkTargetRef.current.targetType;
+    if (!targetIdParam) {
+      return;
+    }
+
+    const match = filteredReviews.find((item) => {
+      const itemTargetId = (item.targetId || "").trim();
+      if (!itemTargetId || itemTargetId !== targetIdParam) {
+        return false;
+      }
+      if (!targetTypeParam) {
+        return true;
+      }
+      const itemTargetType = (item.targetType || "").trim().toLowerCase();
+      return itemTargetType === targetTypeParam;
+    });
+
+    if (!match) {
+      return;
+    }
+
+    const container = mainRef.current;
+    const targetEl = reviewRefs.current[match.id];
+    if (container && targetEl) {
+      container.scrollTo({ top: targetEl.offsetTop, behavior: "auto" });
+      deepLinkHandledRef.current = true;
+    }
+  }, [filteredReviews]);
+
   const hasStudyFilters = activeNoise !== "all";
   const hasFoodFilters = activeFoodCategory !== "all";
   const hasActiveFilters =
@@ -326,69 +580,262 @@ export default function HomePage() {
       ? (activeFoodCategory !== "all" ? 1 : 0)
       : 0;
 
-  function applyReaction(reviewId: string, nextReaction: Exclude<UserReaction, null>) {
-    setRatings((prev) => {
-      const currentReaction = userReactions[reviewId] ?? null;
+  function handleSortChange(nextSort: SortFilter) {
+    if (nextSort === selectedSortFilter) {
+      return;
+    }
 
-      return prev.map((review) => {
-        if (review.id !== reviewId) {
-          return review;
-        }
+    if (
+      nextSort === "newest" ||
+      nextSort === "oldest" ||
+      nextSort === "highestRating" ||
+      nextSort === "lowestRating"
+    ) {
+      anchorReviewIdRef.current = null;
+      jumpToTopOnSortRef.current = true;
+      setSelectedSortFilter(nextSort);
+      return;
+    }
 
-        let likes = review.likes;
-        let dislikes = review.dislikes;
+    const container = mainRef.current;
+    if (container && filteredReviews.length > 0) {
+      const pageIndex = Math.round(container.scrollTop / Math.max(1, container.clientHeight));
+      const safeIndex = Math.min(Math.max(pageIndex, 0), filteredReviews.length - 1);
+      anchorReviewIdRef.current = filteredReviews[safeIndex]?.id ?? null;
+    } else {
+      anchorReviewIdRef.current = null;
+    }
 
-        if (currentReaction === nextReaction) {
-          // Toggling off: remove existing reaction and decrement the corresponding count.
-          if (nextReaction === "liked") {
-            likes = Math.max(0, likes - 1);
-          } else if (nextReaction === "disliked") {
-            dislikes = Math.max(0, dislikes - 1);
-          }
+    jumpToTopOnSortRef.current = false;
 
-          return {
-            ...review,
-            likes,
-            dislikes,
-          };
-        }
+    setSelectedSortFilter(nextSort);
+  }
 
-        if (currentReaction === "liked") {
-          likes = Math.max(0, likes - 1);
-        }
+  useLayoutEffect(() => {
+    if (jumpToTopOnSortRef.current) {
+      const container = mainRef.current;
+      if (container) {
+        container.scrollTo({ top: 0, behavior: "auto" });
+      }
+      jumpToTopOnSortRef.current = false;
+      anchorReviewIdRef.current = null;
+      return;
+    }
 
-        if (currentReaction === "disliked") {
-          dislikes = Math.max(0, dislikes - 1);
-        }
+    const anchorId = anchorReviewIdRef.current;
+    if (!anchorId) {
+      return;
+    }
 
-        if (nextReaction === "liked") {
-          likes += 1;
-        }
+    const container = mainRef.current;
+    const target = reviewRefs.current[anchorId];
+    if (container && target) {
+      container.scrollTo({ top: target.offsetTop, behavior: "auto" });
+    }
 
-        if (nextReaction === "disliked") {
-          dislikes += 1;
-        }
+    anchorReviewIdRef.current = null;
+  }, [selectedSortFilter, filteredReviews]);
 
-        return {
-          ...review,
-          likes,
-          dislikes,
-        };
-      });
-    });
+  async function applyReaction(reviewId: string, nextReaction: Exclude<UserReaction, null>) {
+    const token = await requireAuthToken();
+    if (!token) {
+      return;
+    }
 
-    setUserReactions((prev) => {
-      const currentReaction = prev[reviewId] ?? null;
-      const newReaction =
-        currentReaction === nextReaction ? null : nextReaction;
+    const review = ratings.find((r) => r.id === reviewId);
+    if (!review) {
+      return;
+    }
 
-      return {
+    setBusyPostId(reviewId);
+    const currentReaction = userReactions[reviewId] ?? null;
+
+    try {
+      const result =
+        currentReaction === nextReaction
+          ? await clearPostReaction(reviewId, token)
+          : await setPostReaction(reviewId, nextReaction === "liked" ? "like" : "dislike", token);
+
+      setUserReactions((prev) => ({
         ...prev,
-        [reviewId]: newReaction,
-      };
-    });
+        [reviewId]: result.currentUserReaction,
+      }));
 
-    // TODO: replace this with a backend call when a like/dislike endpoint is available.
+      setRatings((prev) =>
+        prev.map((item) =>
+          item.id === reviewId
+            ? {
+                ...item,
+                likes: result.likes,
+                dislikes: result.dislikes,
+                currentUserReaction: result.currentUserReaction,
+              }
+            : item
+        )
+      );
+    } catch (error) {
+      showToast("error", error instanceof Error ? error.message : "Failed to update reaction.");
+    } finally {
+      setBusyPostId(null);
+    }
+  }
+
+  async function handleToggleFavorite(review: HomeReview) {
+    const token = await requireAuthToken();
+    if (!token) {
+      return;
+    }
+
+    const rawTargetType = (review.targetType || "").trim().toLowerCase();
+    const targetType =
+      rawTargetType === "course"
+        ? "course"
+        : (rawTargetType === "professor" || rawTargetType === "prof" || rawTargetType === "profile"
+          ? "professor"
+          : (review.kind === "course-professor" ? "professor" : "spot"));
+    const targetId = (review.targetId || "").trim();
+    if (!targetId) {
+      showToast("error", "This item cannot be favorited yet.");
+      return;
+    }
+
+    setBusyPostId(review.id);
+    const prevFavorite = Boolean(review.isFavorited);
+    try {
+      if (prevFavorite) {
+        await removeFavorite(targetType, targetId, token);
+      } else {
+        await addFavorite(targetType, targetId, review.title || review.code || review.spotName || review.professorName || targetId, token);
+      }
+
+      setRatings((prev) =>
+        prev.map((item) =>
+          item.id === review.id
+            ? { ...item, isFavorited: !prevFavorite }
+            : item
+        )
+      );
+      showToast("success", prevFavorite ? "Removed from favorites." : "Added to favorites.");
+    } catch (error) {
+      showToast("error", error instanceof Error ? error.message : "Failed to update favorite.");
+    } finally {
+      setBusyPostId(null);
+    }
+  }
+
+  async function handleEditPost(review: HomeReview) {
+    const token = await requireAuthToken();
+    if (!token) {
+      return;
+    }
+
+    const nextText = window.prompt("Edit your rating text:", review.text);
+    if (nextText === null) {
+      return;
+    }
+    const trimmedText = nextText.trim();
+    if (!trimmedText) {
+      showToast("error", "Review text cannot be empty.");
+      return;
+    }
+
+    const nextRatingRaw = window.prompt("Edit rating (1-5):", String(review.rating ?? review.stars ?? 0));
+    if (nextRatingRaw === null) {
+      return;
+    }
+    const nextRating = Number(nextRatingRaw);
+    if (!Number.isFinite(nextRating) || nextRating < 1 || nextRating > 5) {
+      showToast("error", "Rating must be between 1 and 5.");
+      return;
+    }
+
+    setBusyPostId(review.id);
+    try {
+      const result = await updatePost(review.id, { text: trimmedText, rating: nextRating }, token);
+      const updated = result.post;
+      setRatings((prev) =>
+        prev.map((item) =>
+          item.id === review.id
+            ? {
+                ...item,
+                text: String(updated.text ?? trimmedText),
+                rating: Number(updated.rating ?? nextRating),
+                stars: Number(updated.rating ?? nextRating),
+                title: String(updated.title ?? item.title ?? "") || item.title,
+              }
+            : item
+        )
+      );
+      showToast("success", "Rating updated.");
+    } catch (error) {
+      showToast("error", error instanceof Error ? error.message : "Failed to update rating.");
+    } finally {
+      setBusyPostId(null);
+    }
+  }
+
+  async function handleDeletePost(review: HomeReview) {
+    const token = await requireAuthToken();
+    if (!token) {
+      return;
+    }
+    if (!window.confirm("Delete this rating? This cannot be undone.")) {
+      return;
+    }
+
+    setBusyPostId(review.id);
+    try {
+      await deletePost(review.id, token);
+      setRatings((prev) => prev.filter((item) => item.id !== review.id));
+      setUserReactions((prev) => {
+        const next = { ...prev };
+        delete next[review.id];
+        return next;
+      });
+      showToast("success", "Rating deleted.");
+    } catch (error) {
+      showToast("error", error instanceof Error ? error.message : "Failed to delete rating.");
+    } finally {
+      setBusyPostId(null);
+    }
+  }
+
+  async function handleReportSpot(review: HomeReview) {
+    const normalizedTargetType = (review.targetType || "").trim().toLowerCase();
+    if (!(review.kind === "study-spot" || review.kind === "food-spot" || normalizedTargetType === "spot" || normalizedTargetType === "study-food")) {
+      return;
+    }
+
+    const token = await requireAuthToken();
+    if (!token) {
+      return;
+    }
+
+    const spotId = (review.targetId || "").trim();
+    if (!spotId) {
+      showToast("error", "This spot cannot be reported right now.");
+      return;
+    }
+
+    const reportText = window.prompt("Report incorrect or outdated spot info:");
+    if (reportText === null) {
+      return;
+    }
+    const trimmed = reportText.trim();
+    if (!trimmed) {
+      showToast("error", "Report text cannot be empty.");
+      return;
+    }
+
+    setBusyPostId(review.id);
+    try {
+      await reportSpot(spotId, trimmed, token);
+      showToast("success", "Report submitted. Thank you.");
+    } catch (error) {
+      showToast("error", error instanceof Error ? error.message : "Failed to submit report.");
+    } finally {
+      setBusyPostId(null);
+    }
   }
 
   function scrollTop() {
@@ -402,13 +849,13 @@ export default function HomePage() {
     style={{ background: 'var(--bg)', color: 'var(--text)' }}
   >
     <ThemeToggle />
-    <main className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth" style={{ background: "var(--bg)" }}>
+    <main ref={mainRef} className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth" style={{ background: "var(--bg)" }}>
       <GlobalHeader
         activeCategory={selectedCategoryFilter}
         setActiveCategory={setSelectedCategoryFilter}
       />
 
-      <SortBar activeSort={selectedSortFilter} setActiveSort={setSelectedSortFilter} />
+      <SortBar activeSort={selectedSortFilter} setActiveSort={handleSortChange} />
 
       {selectedCategoryFilter === "Study Spot" || selectedCategoryFilter === "Food" ? (
         <div className="fixed left-1/2 top-24 z-[110] -translate-x-1/2 px-3">
@@ -533,12 +980,31 @@ export default function HomePage() {
         ) : filteredReviews.length > 0 ? (
           <>
             {filteredReviews.map((review) => (
-              <div key={review.id} className="h-screen w-full snap-start">
+              <div
+                key={review.id}
+                className="h-screen w-full snap-start"
+                ref={(el) => {
+                  reviewRefs.current[review.id] = el;
+                }}
+              >
                 <ReviewCard
                   review={review}
                   userReaction={userReactions[review.id] ?? null}
-                  onLike={() => applyReaction(review.id, "liked")}
-                  onDislike={() => applyReaction(review.id, "disliked")}
+                  isFavorited={Boolean(review.isFavorited)}
+                  isOwner={Boolean(review.isOwner)}
+                  isBusy={busyPostId === review.id}
+                  onLike={() => void applyReaction(review.id, "liked")}
+                  onDislike={() => void applyReaction(review.id, "disliked")}
+                  onToggleFavorite={() => void handleToggleFavorite(review)}
+                  onEdit={review.isOwner ? () => void handleEditPost(review) : undefined}
+                  onDelete={review.isOwner ? () => void handleDeletePost(review) : undefined}
+                  onReport={
+                    review.kind === "study-spot" ||
+                    review.kind === "food-spot" ||
+                    review.targetType?.toLowerCase() === "spot"
+                      ? () => void handleReportSpot(review)
+                      : undefined
+                  }
                 />
               </div>
             ))}
@@ -628,6 +1094,23 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {toast ? (
+        <div
+          className="fixed left-1/2 -translate-x-1/2 bottom-24 z-40 px-4 py-2 rounded-xl text-sm font-semibold"
+          style={{
+            color: "var(--text)",
+            background: toast.type === "success" ? "rgba(105,242,140,0.14)" : "rgba(255,120,120,0.15)",
+            border:
+              toast.type === "success"
+                ? "1px solid rgba(105,242,140,0.45)"
+                : "1px solid rgba(255,120,120,0.45)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          {toast.message}
+        </div>
+      ) : null}
     </main>
     </div>
   );

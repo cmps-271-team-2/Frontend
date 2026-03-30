@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
+  const authorization = request.headers.get("authorization") || undefined;
 
   if (!body || typeof body !== "object") {
     return NextResponse.json(
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const baseUrl = "https://api.unitok.app";
+  const baseUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.unitok.app").replace(/\/$/, "");
   if (!baseUrl) {
     return NextResponse.json(
       { ok: false, error: "Backend base URL not configured." },
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(authorization ? { Authorization: authorization } : {}),
     },
     body: JSON.stringify(backendPayload),
     cache: "no-store",

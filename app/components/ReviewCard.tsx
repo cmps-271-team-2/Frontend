@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ThumbsUp, ThumbsDown, Star, Bookmark } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Star, Bookmark, Flag } from "lucide-react";
 
 const STAR_COLORS = [
   "#FFD84D", // 1 – neon yellow
@@ -39,18 +39,33 @@ type UserReaction = "liked" | "disliked" | null;
 export default function ReviewCard({
   review,
   userReaction,
+  isFavorited,
+  isOwner,
+  isBusy,
   onLike,
   onDislike,
+  onToggleFavorite,
+  onEdit,
+  onDelete,
+  onReport,
 }: {
   review: Review;
   userReaction?: UserReaction;
+  isFavorited?: boolean;
+  isOwner?: boolean;
+  isBusy?: boolean;
   onLike?: () => void;
   onDislike?: () => void;
+  onToggleFavorite?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onReport?: () => void;
 }) {
   const [localReaction, setLocalReaction] = useState<UserReaction>(null);
   const [isFavorite, setFavorite] = useState(false);
 
   const activeReaction = userReaction ?? localReaction;
+  const isControlledReaction = Boolean(onLike || onDislike);
   const resolvedRating = review.rating ?? review.stars ?? 0;
 
   const cleanCode = typeof review.code === "string" ? review.code.trim() : "";
@@ -146,6 +161,7 @@ export default function ReviewCard({
           <div className="flex items-center justify-center gap-12 w-full mb-5">
             <button
               onClick={handleLike}
+              disabled={isBusy}
               className="flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-90"
               style={{ color: activeReaction === "liked" ? "#69F28C" : "var(--muted)" }}
             >
@@ -155,12 +171,13 @@ export default function ReviewCard({
                 strokeWidth={2}
               />
               <span className="text-xs font-bold">
-                {review.likes + (activeReaction === "liked" ? 1 : 0)}
+                {isControlledReaction ? review.likes : review.likes + (activeReaction === "liked" ? 1 : 0)}
               </span>
             </button>
 
             <button
               onClick={handleDislike}
+              disabled={isBusy}
               className="flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-90"
               style={{ color: activeReaction === "disliked" ? "#ff6b6b" : "var(--muted)" }}
             >
@@ -170,25 +187,72 @@ export default function ReviewCard({
                 strokeWidth={2}
               />
               <span className="text-xs font-bold">
-                {review.dislikes + (activeReaction === "disliked" ? 1 : 0)}
+                {isControlledReaction ? review.dislikes : review.dislikes + (activeReaction === "disliked" ? 1 : 0)}
               </span>
             </button>
 
             <button
-              onClick={() => setFavorite(!isFavorite)}
+              onClick={() => {
+                if (onToggleFavorite) {
+                  onToggleFavorite();
+                  return;
+                }
+                setFavorite(!isFavorite);
+              }}
+              disabled={isBusy}
               className="flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-90"
-              style={{ color: isFavorite ? "#FFD84D" : "var(--muted)" }}
+              style={{ color: (isFavorited ?? isFavorite) ? "#FFD84D" : "var(--muted)" }}
             >
               <Bookmark
                 size={30}
-                fill={isFavorite ? "currentColor" : "none"}
+                fill={(isFavorited ?? isFavorite) ? "currentColor" : "none"}
                 strokeWidth={2}
               />
               <span className="text-[9px] font-bold uppercase tracking-widest">
-                {isFavorite ? "Saved" : "Save"}
+                {(isFavorited ?? isFavorite) ? "Saved" : "Save"}
               </span>
             </button>
+
+            {onReport ? (
+              <button
+                type="button"
+                onClick={onReport}
+                disabled={isBusy}
+                className="flex flex-col items-center gap-1.5 transition-all duration-200 active:scale-90"
+                style={{ color: "var(--muted)" }}
+              >
+                <Flag size={30} strokeWidth={2} />
+                <span className="text-[9px] font-bold uppercase tracking-widest">Report</span>
+              </button>
+            ) : null}
           </div>
+
+          {isOwner ? (
+            <div className="mb-4 flex w-full flex-wrap items-center justify-center gap-2">
+              {isOwner ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={onEdit}
+                    disabled={isBusy}
+                    className="rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-widest"
+                    style={{ borderColor: "var(--border)", color: "var(--text)" }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    disabled={isBusy}
+                    className="rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-widest"
+                    style={{ borderColor: "rgba(255,107,107,0.5)", color: "#ff6b6b" }}
+                  >
+                    Delete
+                  </button>
+                </>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* Footer */}
           <div

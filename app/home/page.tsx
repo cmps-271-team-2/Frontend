@@ -2,6 +2,18 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { auth } from "@/lib/firebase";
+import {
+  addFavorite,
+  clearPostReaction,
+  deletePost,
+  removeFavorite,
+  reportSpot,
+  setPostReaction,
+  updatePost,
+} from "@/lib/posts";
+import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
+import { useSearchParams } from "next/navigation";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
 import SortBar from "../components/sortBar";
@@ -28,6 +40,10 @@ type BackendPost = {
   comment?: string;
   likes?: number;
   dislikes?: number;
+  currentUserReaction?: "liked" | "disliked" | null;
+  isOwner?: boolean;
+  isFavorited?: boolean;
+  userId?: string;
   major?: string;
   year?: string;
   createdAt?: string | number | Date;
@@ -65,10 +81,14 @@ type HomeReview = {
   stars?: number;
   category?: string;
   type?: string;
+  targetType?: string;
   code?: string;
   text: string;
   likes: number;
   dislikes: number;
+  currentUserReaction?: UserReaction;
+  isOwner?: boolean;
+  isFavorited?: boolean;
   major: string;
   year: string;
   createdAt?: string | number | Date;
@@ -108,6 +128,10 @@ function getKindFromTargetType(targetType: string | undefined): "study-spot" | "
 
   if (normalized === "food" || normalized === "food-spot") {
     return "food-spot";
+  }
+
+  if (normalized === "spot" || normalized === "study-food") {
+    return "study-spot";
   }
 
   return "course-professor";
@@ -227,6 +251,7 @@ function mapPostToReview(post: BackendPost, index: number, lookup: PostTargetLoo
     stars: post.stars,
     category: mapTargetTypeToCategory(rawTargetType) ?? post.category ?? post.type,
     type: post.type,
+    targetType: rawTargetType || undefined,
     code:
       (rawCode.length > 0
         ? rawCode
@@ -241,6 +266,9 @@ function mapPostToReview(post: BackendPost, index: number, lookup: PostTargetLoo
     text: post.text ?? post.comment ?? "",
     likes: Number(post.likes ?? 0),
     dislikes: Number(post.dislikes ?? 0),
+    currentUserReaction: (post.currentUserReaction as UserReaction | undefined) ?? null,
+    isOwner: Boolean(post.isOwner),
+    isFavorited: Boolean(post.isFavorited),
     major: post.major ?? "Anonymous",
     year: post.year ?? "Student",
     createdAt: post.createdAt,
@@ -302,10 +330,15 @@ function getCreatedAtMs(review: HomeReview): number {
 }
 
 export default function HomePage() {
+  const searchParams = useSearchParams();
+  const [authUser, setAuthUser] = useState<FirebaseUser | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
   const [selectedSortFilter, setSelectedSortFilter] = useState<SortFilter>("relevant");
   const [ratings, setRatings] = useState<HomeReview[]>([]);
   const [userReactions, setUserReactions] = useState<Record<string, UserReaction>>({});
+  const [busyPostId, setBusyPostId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeNoise, setActiveNoise] = useState<StudyNoiseLevel | "all">("all");
@@ -315,8 +348,39 @@ export default function HomePage() {
   const reviewRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const anchorReviewIdRef = useRef<string | null>(null);
   const jumpToTopOnSortRef = useRef(false);
+  const deepLinkHandledRef = useRef(false);
 
   useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setAuthUser(user);
+      setAuthReady(true);
+    });
+    return () => unsub();
+  }, []);
+
+  function showToast(type: "success" | "error", message: string) {
+    setToast({ type, message });
+    window.setTimeout(() => setToast(null), 2600);
+  }
+
+  async function requireAuthToken(): Promise<string | null> {
+    if (!authUser) {
+      showToast("error", "Please sign in first.");
+      return null;
+    }
+    try {
+      return await authUser.getIdToken();
+    } catch {
+      showToast("error", "Could not validate your session. Please sign in again.");
+      return null;
+    }
+  }
+
+  useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
     let mounted = true;
 
     async function loadRatings() {
@@ -324,8 +388,9 @@ export default function HomePage() {
       setLoadError(null);
 
       try {
+        const authToken = authUser ? await authUser.getIdToken() : undefined;
         const [posts, profiles, cafeterias, spots, courses] = await Promise.all([
-          apiFetch<BackendPost[]>("/posts", { cache: "no-store" }),
+          apiFetch<BackendPost[]>("/posts", { cache: "no-store", authToken }),
           apiFetch<LookupEntity[]>("/profiles", { cache: "no-store" }).catch(() => []),
           apiFetch<LookupEntity[]>("/cafeterias", { cache: "no-store" }).catch(() => []),
           apiFetch<LookupEntity[]>("/spots", { cache: "no-store" }).catch(() => []),
@@ -360,6 +425,11 @@ export default function HomePage() {
           : [];
 
         setRatings(mapped);
+        const reactions: Record<string, UserReaction> = {};
+        for (const item of mapped) {
+          reactions[item.id] = item.currentUserReaction ?? null;
+        }
+        setUserReactions(reactions);
       } catch (error) {
         if (!mounted) {
           return;
@@ -379,7 +449,7 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [authReady, authUser]);
 
   const filteredReviews = useMemo(() => {
     const next = ratings.filter((review) => {
@@ -452,6 +522,41 @@ export default function HomePage() {
     selectedSortFilter,
   ]);
 
+  useEffect(() => {
+    if (deepLinkHandledRef.current) {
+      return;
+    }
+
+    const targetIdParam = (searchParams.get("targetId") || "").trim();
+    const targetTypeParam = (searchParams.get("targetType") || "").trim().toLowerCase();
+    if (!targetIdParam) {
+      return;
+    }
+
+    const match = filteredReviews.find((item) => {
+      const itemTargetId = (item.targetId || "").trim();
+      if (!itemTargetId || itemTargetId !== targetIdParam) {
+        return false;
+      }
+      if (!targetTypeParam) {
+        return true;
+      }
+      const itemTargetType = (item.targetType || "").trim().toLowerCase();
+      return itemTargetType === targetTypeParam;
+    });
+
+    if (!match) {
+      return;
+    }
+
+    const container = mainRef.current;
+    const targetEl = reviewRefs.current[match.id];
+    if (container && targetEl) {
+      container.scrollTo({ top: targetEl.offsetTop, behavior: "auto" });
+      deepLinkHandledRef.current = true;
+    }
+  }, [filteredReviews, searchParams]);
+
   const hasStudyFilters = activeNoise !== "all";
   const hasFoodFilters = activeFoodCategory !== "all";
   const hasActiveFilters =
@@ -521,69 +626,206 @@ export default function HomePage() {
     anchorReviewIdRef.current = null;
   }, [selectedSortFilter, filteredReviews]);
 
-  function applyReaction(reviewId: string, nextReaction: Exclude<UserReaction, null>) {
-    setRatings((prev) => {
-      const currentReaction = userReactions[reviewId] ?? null;
+  async function applyReaction(reviewId: string, nextReaction: Exclude<UserReaction, null>) {
+    const token = await requireAuthToken();
+    if (!token) {
+      return;
+    }
 
-      return prev.map((review) => {
-        if (review.id !== reviewId) {
-          return review;
-        }
+    const review = ratings.find((r) => r.id === reviewId);
+    if (!review) {
+      return;
+    }
 
-        let likes = review.likes;
-        let dislikes = review.dislikes;
+    setBusyPostId(reviewId);
+    const currentReaction = userReactions[reviewId] ?? null;
 
-        if (currentReaction === nextReaction) {
-          // Toggling off: remove existing reaction and decrement the corresponding count.
-          if (nextReaction === "liked") {
-            likes = Math.max(0, likes - 1);
-          } else if (nextReaction === "disliked") {
-            dislikes = Math.max(0, dislikes - 1);
-          }
+    try {
+      const result =
+        currentReaction === nextReaction
+          ? await clearPostReaction(reviewId, token)
+          : await setPostReaction(reviewId, nextReaction === "liked" ? "like" : "dislike", token);
 
-          return {
-            ...review,
-            likes,
-            dislikes,
-          };
-        }
-
-        if (currentReaction === "liked") {
-          likes = Math.max(0, likes - 1);
-        }
-
-        if (currentReaction === "disliked") {
-          dislikes = Math.max(0, dislikes - 1);
-        }
-
-        if (nextReaction === "liked") {
-          likes += 1;
-        }
-
-        if (nextReaction === "disliked") {
-          dislikes += 1;
-        }
-
-        return {
-          ...review,
-          likes,
-          dislikes,
-        };
-      });
-    });
-
-    setUserReactions((prev) => {
-      const currentReaction = prev[reviewId] ?? null;
-      const newReaction =
-        currentReaction === nextReaction ? null : nextReaction;
-
-      return {
+      setUserReactions((prev) => ({
         ...prev,
-        [reviewId]: newReaction,
-      };
-    });
+        [reviewId]: result.currentUserReaction,
+      }));
 
-    // TODO: replace this with a backend call when a like/dislike endpoint is available.
+      setRatings((prev) =>
+        prev.map((item) =>
+          item.id === reviewId
+            ? {
+                ...item,
+                likes: result.likes,
+                dislikes: result.dislikes,
+                currentUserReaction: result.currentUserReaction,
+              }
+            : item
+        )
+      );
+    } catch (error) {
+      showToast("error", error instanceof Error ? error.message : "Failed to update reaction.");
+    } finally {
+      setBusyPostId(null);
+    }
+  }
+
+  async function handleToggleFavorite(review: HomeReview) {
+    const token = await requireAuthToken();
+    if (!token) {
+      return;
+    }
+
+    const rawTargetType = (review.targetType || "").trim().toLowerCase();
+    const targetType =
+      rawTargetType === "course"
+        ? "course"
+        : (rawTargetType === "professor" || rawTargetType === "prof" || rawTargetType === "profile"
+          ? "professor"
+          : (review.kind === "course-professor" ? "professor" : "spot"));
+    const targetId = (review.targetId || "").trim();
+    if (!targetId) {
+      showToast("error", "This item cannot be favorited yet.");
+      return;
+    }
+
+    setBusyPostId(review.id);
+    const prevFavorite = Boolean(review.isFavorited);
+    try {
+      if (prevFavorite) {
+        await removeFavorite(targetType, targetId, token);
+      } else {
+        await addFavorite(targetType, targetId, review.title || review.code || review.spotName || review.professorName || targetId, token);
+      }
+
+      setRatings((prev) =>
+        prev.map((item) =>
+          item.id === review.id
+            ? { ...item, isFavorited: !prevFavorite }
+            : item
+        )
+      );
+      showToast("success", prevFavorite ? "Removed from favorites." : "Added to favorites.");
+    } catch (error) {
+      showToast("error", error instanceof Error ? error.message : "Failed to update favorite.");
+    } finally {
+      setBusyPostId(null);
+    }
+  }
+
+  async function handleEditPost(review: HomeReview) {
+    const token = await requireAuthToken();
+    if (!token) {
+      return;
+    }
+
+    const nextText = window.prompt("Edit your rating text:", review.text);
+    if (nextText === null) {
+      return;
+    }
+    const trimmedText = nextText.trim();
+    if (!trimmedText) {
+      showToast("error", "Review text cannot be empty.");
+      return;
+    }
+
+    const nextRatingRaw = window.prompt("Edit rating (1-5):", String(review.rating ?? review.stars ?? 0));
+    if (nextRatingRaw === null) {
+      return;
+    }
+    const nextRating = Number(nextRatingRaw);
+    if (!Number.isFinite(nextRating) || nextRating < 1 || nextRating > 5) {
+      showToast("error", "Rating must be between 1 and 5.");
+      return;
+    }
+
+    setBusyPostId(review.id);
+    try {
+      const result = await updatePost(review.id, { text: trimmedText, rating: nextRating }, token);
+      const updated = result.post;
+      setRatings((prev) =>
+        prev.map((item) =>
+          item.id === review.id
+            ? {
+                ...item,
+                text: String(updated.text ?? trimmedText),
+                rating: Number(updated.rating ?? nextRating),
+                stars: Number(updated.rating ?? nextRating),
+                title: String(updated.title ?? item.title ?? "") || item.title,
+              }
+            : item
+        )
+      );
+      showToast("success", "Rating updated.");
+    } catch (error) {
+      showToast("error", error instanceof Error ? error.message : "Failed to update rating.");
+    } finally {
+      setBusyPostId(null);
+    }
+  }
+
+  async function handleDeletePost(review: HomeReview) {
+    const token = await requireAuthToken();
+    if (!token) {
+      return;
+    }
+    if (!window.confirm("Delete this rating? This cannot be undone.")) {
+      return;
+    }
+
+    setBusyPostId(review.id);
+    try {
+      await deletePost(review.id, token);
+      setRatings((prev) => prev.filter((item) => item.id !== review.id));
+      setUserReactions((prev) => {
+        const next = { ...prev };
+        delete next[review.id];
+        return next;
+      });
+      showToast("success", "Rating deleted.");
+    } catch (error) {
+      showToast("error", error instanceof Error ? error.message : "Failed to delete rating.");
+    } finally {
+      setBusyPostId(null);
+    }
+  }
+
+  async function handleReportSpot(review: HomeReview) {
+    const normalizedTargetType = (review.targetType || "").trim().toLowerCase();
+    if (!(review.kind === "study-spot" || review.kind === "food-spot" || normalizedTargetType === "spot" || normalizedTargetType === "study-food")) {
+      return;
+    }
+
+    const token = await requireAuthToken();
+    if (!token) {
+      return;
+    }
+
+    const spotId = (review.targetId || "").trim();
+    if (!spotId) {
+      showToast("error", "This spot cannot be reported right now.");
+      return;
+    }
+
+    const reportText = window.prompt("Report incorrect or outdated spot info:");
+    if (reportText === null) {
+      return;
+    }
+    const trimmed = reportText.trim();
+    if (!trimmed) {
+      showToast("error", "Report text cannot be empty.");
+      return;
+    }
+
+    setBusyPostId(review.id);
+    try {
+      await reportSpot(spotId, trimmed, token);
+      showToast("success", "Report submitted. Thank you.");
+    } catch (error) {
+      showToast("error", error instanceof Error ? error.message : "Failed to submit report.");
+    } finally {
+      setBusyPostId(null);
+    }
   }
 
   function scrollTop() {
@@ -738,8 +980,21 @@ export default function HomePage() {
                 <ReviewCard
                   review={review}
                   userReaction={userReactions[review.id] ?? null}
-                  onLike={() => applyReaction(review.id, "liked")}
-                  onDislike={() => applyReaction(review.id, "disliked")}
+                  isFavorited={Boolean(review.isFavorited)}
+                  isOwner={Boolean(review.isOwner)}
+                  isBusy={busyPostId === review.id}
+                  onLike={() => void applyReaction(review.id, "liked")}
+                  onDislike={() => void applyReaction(review.id, "disliked")}
+                  onToggleFavorite={() => void handleToggleFavorite(review)}
+                  onEdit={review.isOwner ? () => void handleEditPost(review) : undefined}
+                  onDelete={review.isOwner ? () => void handleDeletePost(review) : undefined}
+                  onReport={
+                    review.kind === "study-spot" ||
+                    review.kind === "food-spot" ||
+                    review.targetType?.toLowerCase() === "spot"
+                      ? () => void handleReportSpot(review)
+                      : undefined
+                  }
                 />
               </div>
             ))}
@@ -829,6 +1084,23 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {toast ? (
+        <div
+          className="fixed left-1/2 -translate-x-1/2 bottom-24 z-40 px-4 py-2 rounded-xl text-sm font-semibold"
+          style={{
+            color: "var(--text)",
+            background: toast.type === "success" ? "rgba(105,242,140,0.14)" : "rgba(255,120,120,0.15)",
+            border:
+              toast.type === "success"
+                ? "1px solid rgba(105,242,140,0.45)"
+                : "1px solid rgba(255,120,120,0.45)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          {toast.message}
+        </div>
+      ) : null}
     </main>
     </div>
   );

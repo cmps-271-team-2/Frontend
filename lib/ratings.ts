@@ -1,3 +1,5 @@
+import { auth } from "@/lib/firebase";
+
 export type StudyFoodCategory = "study-spot" | "food-spot";
 
 export type StudyFoodRatingPayload = {
@@ -49,10 +51,12 @@ type SubmitRatingResponse = {
 
 export async function submitRating(payload: RatingPayload): Promise<SubmitRatingResponse> {
   try {
+    const authToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
     const response = await fetch("/api/ratings", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       },
       body: JSON.stringify(payload),
     });

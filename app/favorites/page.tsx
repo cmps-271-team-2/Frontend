@@ -17,6 +17,7 @@ export default function FavoritesPage() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [savedPosts, setSavedPosts] = useState<Array<Record<string, unknown>>>([]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -63,6 +64,7 @@ export default function FavoritesPage() {
     try {
       const data = await getMyFavorites(token);
       setFavorites(Array.isArray(data.items) ? data.items : []);
+      setSavedPosts(Array.isArray(data.posts) ? data.posts : []);
     } catch (error) {
       setToast({
         type: "error",
@@ -82,6 +84,26 @@ export default function FavoritesPage() {
     try {
       await removeFavorite(item.targetType, item.targetId, token);
       setFavorites((prev) => prev.filter((fav) => !(fav.targetType === item.targetType && fav.targetId === item.targetId)));
+      setToast({ type: "success", message: "Removed from favorites." });
+    } catch (error) {
+      setToast({
+        type: "error",
+        message: error instanceof Error ? error.message : "Failed to remove favorite.",
+      });
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  async function handleRemovePost(postId: string | number) {
+    const token = await withAuthToken();
+    if (!token) return;
+
+    const key = `post:${postId}`;
+    setBusyKey(key);
+    try {
+      await removeFavorite("post", String(postId), token);
+      setSavedPosts((prev) => prev.filter((p) => String(p.id) !== String(postId)));
       setToast({ type: "success", message: "Removed from favorites." });
     } catch (error) {
       setToast({
@@ -197,7 +219,7 @@ export default function FavoritesPage() {
             Go to Sign In
           </button>
         </section>
-      ) : favorites.length === 0 ? (
+      ) : favorites.length === 0 && savedPosts.length === 0 ? (
         <section
           style={{
             marginTop: 18,
@@ -210,13 +232,14 @@ export default function FavoritesPage() {
         >
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>No favorites yet</h2>
           <p style={{ marginTop: 8, color: "var(--muted)", fontWeight: 500 }}>
-            Save professors, courses, or spots from the feed and they will appear here.
+            Save professors, courses, spots, or posts from the feed and they will appear here.
           </p>
         </section>
       ) : (
         <div style={{ display: "grid", gap: 18, marginTop: 18 }}>
-          <FavoriteSection title="Professors/Courses" items={professorsAndCourses} busyKey={busyKey} onRemove={handleRemove} onOpen={openInFeed} />
-          <FavoriteSection title="Spots" items={spots} busyKey={busyKey} onRemove={handleRemove} onOpen={openInFeed} />
+          {savedPosts.length > 0 && <SavedPostsSection posts={savedPosts} busyKey={busyKey} onRemove={handleRemovePost} />}
+          {professorsAndCourses.length > 0 && <FavoriteSection title="Professors/Courses" items={professorsAndCourses} busyKey={busyKey} onRemove={handleRemove} onOpen={openInFeed} />}
+          {spots.length > 0 && <FavoriteSection title="Spots" items={spots} busyKey={busyKey} onRemove={handleRemove} onOpen={openInFeed} />}
         </div>
       )}
     </main>
@@ -311,6 +334,107 @@ function FavoriteSection({ title, items, busyKey, onRemove, onOpen }: FavoriteSe
                     fontSize: 12,
                     fontWeight: 700,
                     cursor: isBusy ? "default" : "pointer",
+                  }}
+                >
+                  {isBusy ? "Removing..." : "Remove"}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+type SavedPostsSectionProps = {
+  posts: Array<Record<string, unknown>>;
+  busyKey: string | null;
+  onRemove: (postId: string | number) => Promise<void>;
+};
+
+function SavedPostsSection({ posts, busyKey, onRemove }: SavedPostsSectionProps) {
+  return (
+    <section
+      style={{
+        border: "1px solid var(--border)",
+        borderRadius: 16,
+        background: "var(--card)",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          padding: "14px 16px",
+          borderBottom: "1px solid var(--border)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+        }}
+      >
+        <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "var(--text)" }}>Saved Posts</h2>
+        <span style={{ color: "var(--muted)", fontSize: 12, fontWeight: 700 }}>{posts.length}</span>
+      </div>
+
+      {posts.length === 0 ? (
+        <p style={{ margin: 0, padding: 16, color: "var(--muted)", fontSize: 13, fontWeight: 500 }}>
+          No saved posts yet.
+        </p>
+      ) : (
+        <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          {posts.map((post) => {
+            const postId = String(post.id || "");
+            const key = `post:${postId}`;
+            const isBusy = busyKey === key;
+            const text = String(post.text || post.comment || post.title || "");
+            const rating = post.rating || post.stars;
+            const displayName = String(post.displayName || post.authorName || "Anonymous");
+
+            return (
+              <li
+                key={key}
+                style={{
+                  padding: "12px 16px",
+                  borderBottom: "1px solid var(--border)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "var(--text)",
+                      fontSize: 14,
+                      fontWeight: 700,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {text || "Untitled"}
+                  </p>
+                  <p style={{ margin: "2px 0 0", color: "var(--muted)", fontSize: 12, fontWeight: 600 }}>
+                    {rating ? `${rating}★ • ` : ""}{displayName}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => void onRemove(postId)}
+                  style={{
+                    padding: "7px 10px",
+                    borderRadius: 8,
+                    border: "1px solid var(--border)",
+                    background: isBusy ? "rgba(255,255,255,0.06)" : "transparent",
+                    color: "var(--text)",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: isBusy ? "default" : "pointer",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {isBusy ? "Removing..." : "Remove"}

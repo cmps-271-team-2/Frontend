@@ -26,6 +26,7 @@ export type FavoritesResponse = {
   professors: FavoriteItem[];
   courses: FavoriteItem[];
   spots: FavoriteItem[];
+  posts: Array<Record<string, unknown>>;
 };
 
 export type PostUpdatePayload = {

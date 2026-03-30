@@ -12,7 +12,7 @@ export async function apiFetch<T>(
   path: string,
   options: ApiFetchOptions = {}
 ): Promise<T> {
-  const configuredBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.unitok.app";
   const baseUrl = configuredBaseUrl.replace(/\/$/, "");
 
   const { authToken, ...fetchOptions } = options;

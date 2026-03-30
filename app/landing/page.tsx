@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { apiFetch } from "@/lib/api";
-import { requestOtpSchema, verifyOtpSchema } from "@/lib/validators";
+import { auth, db } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { X, Eye, EyeOff, Mail, ArrowLeft, Loader2, Star, Coffee, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -28,13 +27,7 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [signUpData, setSignUpData] = useState({ email: "", password: "" });
-  const [otp, setOtp] = useState("");
-  const [otpRequested, setOtpRequested] = useState(false);
-  const [forgotCodeSent, setForgotCodeSent] = useState(false);
-  const [forgotOtp, setForgotOtp] = useState("");
-  const [forgotNewPassword, setForgotNewPassword] = useState("");
-  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
+  const [major, setMajor] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -89,6 +82,40 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
       }, 350);
     } catch (err: unknown) {
       setError(friendlyFirebaseAuthError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!major.trim()) {
+      setError("MAJOR IS REQUIRED");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email.toLowerCase().trim(),
+        formData.password
+      );
+      const { user } = userCredential;
+
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email ?? formData.email.toLowerCase().trim(),
+        ...(user.displayName ? { displayName: user.displayName } : {}),
+        major: major.trim(),
+        createdAt: serverTimestamp(),
+      });
+
+      onLoginSuccess();
+      setShowLogin(false);
+    } catch (err: any) {
+      setError(err?.message || "SIGN UP FAILED");
     } finally {
       setLoading(false);
     }
@@ -378,40 +405,17 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                   {/*sign up side*/}
                   <div className={`w-1/2 flex flex-col items-center justify-center p-8 transition-all duration-700 ease-in-out ${isSignUp ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"}`}>
                     <h2 className="text-5xl font-black mb-8 italic">Sign <span className="accent-phrase pr-6">Up</span></h2>
-                    {otpRequested ? (
-                      <form onSubmit={handleVerifyOtp} className="w-full max-w-sm space-y-4">
-                        {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
-                        {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
-                        <input value={signUpData.email} readOnly className="w-full px-5 py-4 rounded-xl outline-none opacity-70" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} />
-                        <input
-                          name="otp"
-                          inputMode="numeric"
-                          maxLength={6}
-                          placeholder="Enter 6-digit OTP"
-                          value={otp}
-                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                          className="w-full px-5 py-4 rounded-xl outline-none"
-                          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-                          required
-                        />
-                        <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>{loading ? <Loader2 className="animate-spin" /> : "Verify OTP"}</button>
-                        <button type="button" onClick={handleResendOtp} className="w-full py-3 rounded-xl font-bold uppercase tracking-widest border" style={{ borderColor: 'var(--border)', color: 'var(--text)' }} disabled={loading}>Resend OTP</button>
-                        <button type="button" onClick={() => { setOtpRequested(false); setOtp(""); setError(null); setSuccessMessage(null); }} className="text-xs font-black uppercase tracking-widest opacity-70 block mx-auto" style={{ color: 'var(--text)' }}>Edit email/password</button>
-                      </form>
-                    ) : (
-                      <form onSubmit={handleRequestOtp} className="w-full max-w-sm space-y-4">
-                        {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
-                        {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
-                        <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={signUpData.email} onChange={handleSignUpChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
-                        <div className="relative">
-                          <input name="password" type={showSignUpPassword ? "text" : "password"} placeholder="Create Password" value={signUpData.password} onChange={handleSignUpChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
-                          <button type="button" onClick={() => setShowSignUpPassword(!showSignUpPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">
-                            {showSignUpPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
-                          </button>
-                        </div>
-                        <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : "Request OTP"}</button>
-                      </form>
-                    )}
+                    <form onSubmit={handleSignUp} className="w-full max-w-sm space-y-4">
+                      <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={formData.email} onChange={handleChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
+                      <input name="major" type="text" placeholder="Major" value={major} onChange={(e) => setMajor(e.target.value)} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
+                      <div className="relative">
+                        <input name="password" type={showSignUpPassword ? "text" : "password"} placeholder="Create Password" value={formData.password} onChange={handleChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
+                        <button type="button" onClick={() => setShowSignUpPassword(!showSignUpPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">
+                          {showSignUpPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
+                        </button>
+                      </div>
+                      <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>{loading ? "Please wait..." : "Sign Up"}</button>
+                    </form>
                   </div>
 
                   {/* OVERLAY PANEL */}

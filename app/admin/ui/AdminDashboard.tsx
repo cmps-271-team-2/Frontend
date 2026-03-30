@@ -937,7 +937,7 @@ export default function AdminDashboard() {
         </div>
 
         <footer className="mt-6 text-xs opacity-60">
-          Needs backend running at <span className="font-mono">NEXT_PUBLIC_BACKEND_URL</span>.
+          Needs backend running at <span className="font-mono">NEXT_PUBLIC_API_URL</span>.
         </footer>
       </div>
     </div>

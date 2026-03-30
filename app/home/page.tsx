@@ -13,7 +13,6 @@ import {
   updatePost,
 } from "@/lib/posts";
 import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
-import { useSearchParams } from "next/navigation";
 import GlobalHeader from "../components/SearchBar";
 import ReviewCard from "../components/ReviewCard";
 import SortBar from "../components/sortBar";
@@ -330,7 +329,6 @@ function getCreatedAtMs(review: HomeReview): number {
 }
 
 export default function HomePage() {
-  const searchParams = useSearchParams();
   const [authUser, setAuthUser] = useState<FirebaseUser | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
@@ -349,6 +347,7 @@ export default function HomePage() {
   const anchorReviewIdRef = useRef<string | null>(null);
   const jumpToTopOnSortRef = useRef(false);
   const deepLinkHandledRef = useRef(false);
+  const deepLinkTargetRef = useRef<{ targetId: string; targetType: string }>({ targetId: "", targetType: "" });
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -356,6 +355,17 @@ export default function HomePage() {
       setAuthReady(true);
     });
     return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    deepLinkTargetRef.current = {
+      targetId: (params.get("targetId") || "").trim(),
+      targetType: (params.get("targetType") || "").trim().toLowerCase(),
+    };
   }, []);
 
   function showToast(type: "success" | "error", message: string) {
@@ -527,8 +537,8 @@ export default function HomePage() {
       return;
     }
 
-    const targetIdParam = (searchParams.get("targetId") || "").trim();
-    const targetTypeParam = (searchParams.get("targetType") || "").trim().toLowerCase();
+    const targetIdParam = deepLinkTargetRef.current.targetId;
+    const targetTypeParam = deepLinkTargetRef.current.targetType;
     if (!targetIdParam) {
       return;
     }
@@ -555,7 +565,7 @@ export default function HomePage() {
       container.scrollTo({ top: targetEl.offsetTop, behavior: "auto" });
       deepLinkHandledRef.current = true;
     }
-  }, [filteredReviews, searchParams]);
+  }, [filteredReviews]);
 
   const hasStudyFilters = activeNoise !== "all";
   const hasFoodFilters = activeFoodCategory !== "all";

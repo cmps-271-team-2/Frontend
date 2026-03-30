@@ -689,16 +689,8 @@ export default function HomePage() {
       return;
     }
 
-    const rawTargetType = (review.targetType || "").trim().toLowerCase();
-    const targetType =
-      rawTargetType === "course"
-        ? "course"
-        : (rawTargetType === "professor" || rawTargetType === "prof" || rawTargetType === "profile"
-          ? "professor"
-          : (review.kind === "course-professor" ? "professor" : "spot"));
-    const targetId = (review.targetId || "").trim();
-    if (!targetId) {
-      showToast("error", "This item cannot be favorited yet.");
+    if (!review.id) {
+      showToast("error", "Cannot favorite this post.");
       return;
     }
 
@@ -706,9 +698,9 @@ export default function HomePage() {
     const prevFavorite = Boolean(review.isFavorited);
     try {
       if (prevFavorite) {
-        await removeFavorite(targetType, targetId, token);
+        await removeFavorite("post", String(review.id), token);
       } else {
-        await addFavorite(targetType, targetId, review.title || review.code || review.spotName || review.professorName || targetId, token);
+        await addFavorite("post", String(review.id), String(review.id), token);
       }
 
       setRatings((prev) =>

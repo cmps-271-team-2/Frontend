@@ -10,7 +10,7 @@ export type ReactionResponse = {
   dislikes: number;
 };
 
-export type FavoriteTargetType = "professor" | "course" | "spot";
+export type FavoriteTargetType = "professor" | "course" | "spot" | "post";
 
 export type FavoriteItem = {
   id: string;

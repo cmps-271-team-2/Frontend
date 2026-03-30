@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { auth, db } from "@/lib/firebase";
-import { apiFetch } from "@/lib/api";
-import { requestOtpSchema, verifyOtpSchema } from "@/lib/validators";
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { X, Eye, EyeOff, Mail, Loader2, Star, Coffee, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { X, Eye, EyeOff, Mail, Loader2, Star, Coffee, BookOpen } from "lucide-react";
+
+import { auth, db } from "@/lib/firebase";
 import { apiFetch } from "@/lib/api";
 import { aubEmailSchema, requestOtpSchema, verifyOtpSchema } from "@/lib/validators";
 
-//components
+// components
 import Navbar from "../components/landing/Navbar";
 import Hero from "../components/landing/Hero";
 import CategoryCard from "../components/landing/CategoryCard";
@@ -22,22 +22,91 @@ import ReviewsSection from "../components/landing/ReviewsSection";
 import FloatingBackground from "../components/landing/FloatingBackground";
 import ThemeToggle from "../components/theme-toggle";
 
-export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void }) {
-  
+type AuthView = "auth" | "forgot";
+
+interface LandingProps {
+  onLoginSuccess?: () => void;
+}
+
+const normalizeEmail = (value: string) => value.toLowerCase().trim();
+
+const getFriendlyAuthError = (error: unknown): string => {
+  if (error instanceof TypeError) {
+    return "Network error. Check your connection and try again.";
+  }
+
+  const message = error instanceof Error ? error.message : "";
+  if (!message || message.startsWith("Request failed")) {
+    return "Something went wrong. Please try again.";
+  }
+
+  switch (message) {
+    case "EMAIL_EXISTS":
+      return "An account already exists for this email.";
+    case "No OTP request found. Request OTP again.":
+      return "Request a new OTP before verifying.";
+    case "No OTP request found. Register again.":
+      return "Request a new OTP before resending.";
+    case "OTP expired. Request a new OTP.":
+      return "That OTP expired. Request a new one.";
+    case "OTP data corrupted. Request OTP again.":
+      return "We could not verify that OTP. Request a new one.";
+    case "OTP already used. Request a new OTP.":
+      return "That OTP has already been used. Request a new one.";
+    case "Too many attempts. Request a new OTP.":
+      return "Too many attempts. Request a new OTP.";
+    case "Incorrect OTP.":
+      return "The OTP you entered is incorrect.";
+    case "Please wait 30 seconds before resending.":
+      return "Please wait 30 seconds before requesting another code.";
+    case "Too many resends. Try again later.":
+      return "You have requested too many OTP resends. Try again later.";
+    case "Invalid or expired code.":
+      return "That reset code is invalid or expired.";
+    case "Code expired.":
+      return "That reset code has expired. Request a new one.";
+    case "Code already used.":
+      return "That reset code has already been used.";
+    case "Only @mail.aub.edu emails are allowed.":
+      return "Use your @mail.aub.edu email address.";
+    default:
+      return message;
+  }
+};
+
+const getFriendlyFirebaseAuthError = (error: unknown): string => {
+  const code = (error as { code?: string } | null)?.code;
+
+  switch (code) {
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found":
+    case "auth/invalid-email":
+    case "auth/missing-password":
+      return "Invalid email or password.";
+    case "auth/too-many-requests":
+      return "Too many attempts. Please try again later.";
+    case "auth/network-request-failed":
+      return "Network error. Check your connection and try again.";
+    case "auth/user-disabled":
+      return "This account has been disabled.";
+    default:
+      return "Sign in failed. Please try again.";
+  }
+};
+
+export default function Landing({ onLoginSuccess }: LandingProps) {
+  const router = useRouter();
+
   const [showLogin, setShowLogin] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [authView, setAuthView] = useState<"auth" | "forgot">("auth");
+  const [authView, setAuthView] = useState<AuthView>("auth");
   const [showPassword, setShowPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
-  
-  const [formData, setFormData] = useState({ email: "", password: "" });
+
+  const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({ email: "", password: "" });
-  const [otp, setOtp] = useState("");
-  const [otpRequested, setOtpRequested] = useState(false);
-  const [forgotCodeSent, setForgotCodeSent] = useState(false);
-  const [forgotOtp, setForgotOtp] = useState("");
-  const [forgotNewPassword, setForgotNewPassword] = useState("");
   const [major, setMajor] = useState("");
   const [otp, setOtp] = useState("");
   const [otpRequested, setOtpRequested] = useState(false);
@@ -48,91 +117,168 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  useEffect(() => {
+    document.body.style.overflow = showLogin ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showLogin]);
 
-  const handleSignUpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSignUpData({ ...signUpData, [e.target.name]: e.target.value });
-  };
-
-  const friendlyFirebaseAuthError = (err: unknown): string => {
-    const code = (err as { code?: string } | null)?.code;
-    if (!code) return "Sign in failed. Please try again.";
-    switch (code) {
-      case "auth/invalid-credential":
-      case "auth/wrong-password":
-      case "auth/user-not-found":
-      case "auth/invalid-email":
-        return "Invalid email or password.";
-      case "auth/too-many-requests":
-        return "Too many attempts. Please try again later.";
-      case "auth/network-request-failed":
-        return "Network error. Check your connection and try again.";
-      default:
-        return "Sign in failed. Please try again.";
-    }
-  };
-
-  const toggleAuthMode = () => {
-    setIsSignUp(!isSignUp);
+  const clearTransientAuthState = () => {
     setError(null);
     setSuccessMessage(null);
     setShowPassword(false);
     setShowSignUpPassword(false);
+    setShowForgotNewPassword(false);
     setOtp("");
     setOtpRequested(false);
+    setForgotCodeSent(false);
+    setForgotOtp("");
+    setForgotNewPassword("");
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const clearAuthFormData = () => {
+    setLoginData({ email: "", password: "" });
+    setSignUpData({ email: "", password: "" });
+    setMajor("");
+  };
+
+  const closeAuthModal = () => {
+    if (loading) {
+      return;
+    }
+
+    setShowLogin(false);
+    setAuthView("auth");
+    setIsSignUp(false);
+    clearTransientAuthState();
+  };
+
+  const openAuthModal = (nextIsSignUp: boolean) => {
+    setAuthView("auth");
+    setIsSignUp(nextIsSignUp);
+    setShowLogin(true);
+    clearTransientAuthState();
+  };
+
+  const toggleAuthMode = () => {
+    if (loading) {
+      return;
+    }
+
+    setIsSignUp((current) => !current);
+    setAuthView("auth");
+    clearTransientAuthState();
+  };
+
+  const handleLoginChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setLoginData((current) => ({
+      ...current,
+      [event.target.name]: event.target.value,
+    }));
+  };
+
+  const handleSignUpChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setSignUpData((current) => ({
+      ...current,
+      [event.target.name]: event.target.value,
+    }));
+  };
+
+  const finishAuth = () => {
+    setShowLogin(false);
+    setAuthView("auth");
+    setIsSignUp(false);
+    clearTransientAuthState();
+    clearAuthFormData();
+
+    if (onLoginSuccess) {
+      onLoginSuccess();
+      return;
+    }
+
+    router.replace("/home");
+  };
+
+  const handleSignIn = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError(null);
     setSuccessMessage(null);
+
+    const normalizedEmail = normalizeEmail(loginData.email);
+    const emailCheck = aubEmailSchema.safeParse(normalizedEmail);
+    if (!emailCheck.success) {
+      setError(emailCheck.error.issues[0]?.message || "Enter a valid AUB email.");
+      return;
+    }
+
+    if (!loginData.password) {
+      setError("Password is required.");
+      return;
+    }
+
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, formData.email.toLowerCase().trim(), formData.password);
-      setSuccessMessage("Signed in successfully. Redirecting...");
-      setTimeout(() => {
-        onLoginSuccess();
-        setShowLogin(false);
-      }, 350);
-    } catch (err: unknown) {
-      setError(friendlyFirebaseAuthError(err));
+      await signInWithEmailAndPassword(auth, emailCheck.data, loginData.password);
+      finishAuth();
+    } catch (authError) {
+      setError(getFriendlyFirebaseAuthError(authError));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccessMessage(null);
+  const requestForgotPasswordCode = async () => {
+    const normalizedEmail = normalizeEmail(loginData.email);
+    const emailCheck = aubEmailSchema.safeParse(normalizedEmail);
+    if (!emailCheck.success) {
+      setError(emailCheck.error.issues[0]?.message || "Enter a valid AUB email.");
+      return false;
+    }
+
     setLoading(true);
     try {
-      const email = formData.email.toLowerCase().trim();
-      await apiFetch<{ message: string }>("/auth/forgot-password", {
+      const response = await apiFetch<{ message: string }>("/auth/forgot-password", {
         method: "POST",
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: emailCheck.data }),
       });
       setForgotCodeSent(true);
-      setSuccessMessage("Reset code sent to your email.");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not send reset code.");
+      setForgotOtp("");
+      setShowForgotNewPassword(false);
+      setSuccessMessage(response.message || "Reset code sent to your email.");
+      return true;
+    } catch (apiError) {
+      setError(getFriendlyAuthError(apiError));
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleForgotPasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setSuccessMessage(null);
+    await requestForgotPasswordCode();
+  };
+
+  const handleResetPassword = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError(null);
     setSuccessMessage(null);
 
-    const email = formData.email.toLowerCase().trim();
-    if (!forgotOtp.trim().match(/^\d{6}$/)) {
+    const normalizedEmail = normalizeEmail(loginData.email);
+    const emailCheck = aubEmailSchema.safeParse(normalizedEmail);
+    if (!emailCheck.success) {
+      setError(emailCheck.error.issues[0]?.message || "Enter a valid AUB email.");
+      return;
+    }
+
+    if (!/^\d{6}$/.test(forgotOtp.trim())) {
       setError("OTP must be exactly 6 digits.");
       return;
     }
+
     if (forgotNewPassword.length < 8) {
       setError("Password must be at least 8 characters.");
       return;
@@ -140,39 +286,42 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
 
     setLoading(true);
     try {
-      const res = await apiFetch<{ message: string }>("/auth/reset-password", {
+      const response = await apiFetch<{ message: string }>("/auth/reset-password", {
         method: "POST",
         body: JSON.stringify({
-          email,
+          email: emailCheck.data,
           otp: forgotOtp.trim(),
           new_password: forgotNewPassword,
         }),
       });
-      setSuccessMessage(res.message || "Password reset successful.");
+
+      setSuccessMessage(response.message || "Password reset successful.");
       setForgotCodeSent(false);
       setForgotOtp("");
       setForgotNewPassword("");
+      setShowForgotNewPassword(false);
       setAuthView("auth");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not reset password.");
+      setLoginData({ email: emailCheck.data, password: "" });
+    } catch (apiError) {
+      setError(getFriendlyAuthError(apiError));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRequestOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRequestOtp = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError(null);
     setSuccessMessage(null);
-    setOtpRequested(false);
 
-    if (!major.trim()) {
+    const majorValue = major.trim();
+    if (!majorValue) {
       setError("Major is required.");
       return;
     }
 
     const payload = {
-      email: signUpData.email.toLowerCase().trim(),
+      email: normalizeEmail(signUpData.email),
       password: signUpData.password,
     };
     const parsed = requestOtpSchema.safeParse(payload);
@@ -183,34 +332,28 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
 
     setLoading(true);
     try {
-      console.log("[OTP] request payload", {
-        email: parsed.data.email,
-        passwordLength: parsed.data.password.length,
-      });
-
-      const res = await apiFetch<{ message: string }>("/auth/register/request-otp", {
+      const response = await apiFetch<{ message: string }>("/auth/register/request-otp", {
         method: "POST",
         body: JSON.stringify(parsed.data),
       });
-      console.log("[OTP] request response", res);
 
       setOtpRequested(true);
-      setSuccessMessage(res.message || "OTP sent. Check your email.");
-    } catch (err: unknown) {
-      console.error("[OTP] request error", err);
-      setError(err instanceof Error ? err.message : "Failed to request OTP.");
+      setOtp("");
+      setSuccessMessage(response.message || "OTP sent. Check your email.");
+    } catch (apiError) {
+      setError(getFriendlyAuthError(apiError));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleVerifyOtp = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError(null);
     setSuccessMessage(null);
 
     const payload = {
-      email: signUpData.email.toLowerCase().trim(),
+      email: normalizeEmail(signUpData.email),
       otp: otp.trim(),
     };
     const parsed = verifyOtpSchema.safeParse(payload);
@@ -221,61 +364,90 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
 
     setLoading(true);
     try {
-      const res = await apiFetch<{ message: string }>("/auth/register/verify-otp", {
+      const response = await apiFetch<{ message: string }>("/auth/register/verify-otp", {
         method: "POST",
         body: JSON.stringify(parsed.data),
       });
-      console.log("[OTP] verify response", res);
 
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        signUpData.email.toLowerCase().trim(),
-        signUpData.password
-      );
-      const { user } = userCredential;
+      let userCredential;
+      try {
+        userCredential = await signInWithEmailAndPassword(
+          auth,
+          parsed.data.email,
+          signUpData.password
+        );
+      } catch (authError) {
+        setError(getFriendlyFirebaseAuthError(authError));
+        return;
+      }
 
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          email: user.email ?? signUpData.email.toLowerCase().trim(),
-          ...(user.displayName ? { displayName: user.displayName } : {}),
-          major: major.trim(),
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      try {
+        await setDoc(
+          doc(db, "users", userCredential.user.uid),
+          {
+            email: userCredential.user.email ?? parsed.data.email,
+            ...(userCredential.user.displayName ? { displayName: userCredential.user.displayName } : {}),
+            major: major.trim(),
+            createdAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } catch (profileError) {
+        console.error("[OTP] profile sync error", profileError);
+      }
 
-      setSuccessMessage(res.message || "Email verified successfully.");
-      setFormData({ email: signUpData.email.toLowerCase().trim(), password: signUpData.password });
-      setIsSignUp(false);
+      setSuccessMessage(response.message || "Email verified successfully.");
       setOtpRequested(false);
       setOtp("");
-
-      onLoginSuccess();
-      setShowLogin(false);
-    } catch (err: unknown) {
-      console.error("[OTP] verify error", err);
-      setError(err instanceof Error ? err.message : "Failed to verify OTP.");
+      setSignUpData({ email: "", password: "" });
+      setMajor("");
+      finishAuth();
+    } catch (apiError) {
+      setError(getFriendlyAuthError(apiError));
     } finally {
       setLoading(false);
     }
   };
 
   const handleResendOtp = async () => {
+    if (loading) {
+      return;
+    }
+
     setError(null);
     setSuccessMessage(null);
+
+    const normalizedEmail = normalizeEmail(signUpData.email);
+    const emailCheck = aubEmailSchema.safeParse(normalizedEmail);
+    if (!emailCheck.success) {
+      setError(emailCheck.error.issues[0]?.message || "Enter a valid AUB email.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await apiFetch<{ message: string }>("/auth/register/resend-otp", {
+      const response = await apiFetch<{ message: string }>("/auth/register/resend-otp", {
         method: "POST",
-        body: JSON.stringify({ email: signUpData.email.toLowerCase().trim() }),
+        body: JSON.stringify({ email: emailCheck.data }),
       });
-      setSuccessMessage(res.message || "OTP resent. Check your email.");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to resend OTP.");
+      setOtpRequested(true);
+      setOtp("");
+      setSuccessMessage(response.message || "OTP resent. Check your email.");
+    } catch (apiError) {
+      setError(getFriendlyAuthError(apiError));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResendForgotCode = async () => {
+    if (loading) {
+      return;
+    }
+
+    setError(null);
+    setSuccessMessage(null);
+    await requestForgotPasswordCode();
   };
 
   return (
@@ -289,7 +461,7 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
         <Navbar />
         
         <div id="hero" className="scroll-mt-20">
-          <Hero onOpenAuth={() => { setAuthView("auth"); setIsSignUp(false); setShowLogin(true); setError(null); setSuccessMessage(null); }} />
+          <Hero onOpenAuth={() => openAuthModal(false)} />
         </div>
 
         <section id="categories" className="py-24 px-6 text-center scroll-mt-20">
@@ -303,21 +475,34 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
 
         <section id="how" className="scroll-mt-20"><HowItWorks /></section>
         <section id="reviews" className="scroll-mt-20"><ReviewsSection /></section>
-        <section id="start" className="scroll-mt-20"><FinalCTA onOpenAuth={() => { setAuthView("auth"); setIsSignUp(true); setShowLogin(true); setError(null); setSuccessMessage(null); }} /></section>
+        <section id="start" className="scroll-mt-20"><FinalCTA onOpenAuth={() => openAuthModal(true)} /></section>
         <Footer />
       </div>
 
       <AnimatePresence>
         {showLogin && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center px-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => !loading && setShowLogin(false)} />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              onClick={closeAuthModal}
+            />
             
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
               className="relative w-full max-w-[920px] min-h-[600px] rounded-[2.5rem] overflow-hidden flex shadow-2xl transition-colors duration-300"
               style={{ background: 'var(--bg)', border: '1px solid var(--border)', boxShadow: "0px 25px 60px rgba(0, 0, 0, 0.4)" }}
             >
-              <button onClick={() => setShowLogin(false)} className="absolute top-6 right-6 z-[110] text-zinc-500 hover:text-red-500 transition-colors">
+              <button
+                type="button"
+                onClick={closeAuthModal}
+                className="absolute top-6 right-6 z-[110] text-zinc-500 hover:text-red-500 transition-colors"
+                disabled={loading}
+              >
                 <X size={24}/>
               </button>
 
@@ -327,19 +512,20 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                   <h2 className="text-5xl font-black mb-2 italic"><span style={{ color: 'var(--text)' }} className="mr-2">Reset</span><span className="accent-phrase pr-4">Password</span></h2>
                   <p className="text-[10px] font-black uppercase tracking-widest mb-10" style={{ color: 'var(--text-muted)' }}>Enter your AUB email</p>
 
-                  <form onSubmit={forgotCodeSent ? handleResetPassword : handleForgotPassword} className="w-full max-w-sm space-y-6">
+                  <form onSubmit={forgotCodeSent ? handleResetPassword : handleForgotPasswordSubmit} className="w-full max-w-sm space-y-6">
                     {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
                     {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
                     <input
                       name="email"
                       type="email"
                       placeholder="abc00@mail.aub.edu"
-                      value={formData.email}
-                      onChange={handleChange}
+                      value={loginData.email}
+                      onChange={handleLoginChange}
                       className="w-full px-5 py-4 rounded-xl outline-none font-bold border-2"
                       style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--border)' }}
                       required
                       readOnly={forgotCodeSent}
+                      autoComplete="email"
                     />
 
                     {forgotCodeSent ? (
@@ -350,7 +536,7 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                           maxLength={6}
                           placeholder="Enter 6-digit reset code"
                           value={forgotOtp}
-                          onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ""))}
+                          onChange={(event) => setForgotOtp(event.target.value.replace(/\D/g, ""))}
                           className="w-full px-5 py-4 rounded-xl outline-none font-bold border-2"
                           style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--border)' }}
                           required
@@ -361,19 +547,20 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                             type={showForgotNewPassword ? "text" : "password"}
                             placeholder="New Password"
                             value={forgotNewPassword}
-                            onChange={(e) => setForgotNewPassword(e.target.value)}
+                            onChange={(event) => setForgotNewPassword(event.target.value)}
                             className="w-full px-5 py-4 rounded-xl outline-none font-bold border-2"
                             style={{ background: 'var(--bg)', color: 'var(--text)', borderColor: 'var(--border)' }}
                             required
+                            autoComplete="new-password"
                           />
-                          <button type="button" onClick={() => setShowForgotNewPassword(!showForgotNewPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">
+                          <button type="button" onClick={() => setShowForgotNewPassword((current) => !current)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">
                             {showForgotNewPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
                           </button>
                         </div>
-                        <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>{loading ? <Loader2 className="animate-spin" /> : "Reset Password"}</button>
+                        <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : "Reset Password"}</button>
                         <button
                           type="button"
-                          onClick={handleForgotPassword}
+                          onClick={handleResendForgotCode}
                           className="w-full py-3 rounded-xl font-bold uppercase tracking-widest border"
                           style={{ borderColor: 'var(--border)', color: 'var(--text)' }}
                           disabled={loading}
@@ -386,6 +573,7 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                             setForgotCodeSent(false);
                             setForgotOtp("");
                             setForgotNewPassword("");
+                            setShowForgotNewPassword(false);
                             setError(null);
                             setSuccessMessage(null);
                           }}
@@ -396,10 +584,10 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                         </button>
                       </>
                     ) : (
-                      <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>{loading ? <Loader2 className="animate-spin" /> : "Send Reset Code"}</button>
+                      <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : "Send Reset Code"}</button>
                     )}
 
-                    <button type="button" onClick={() => { setAuthView("auth"); setForgotCodeSent(false); setForgotOtp(""); setForgotNewPassword(""); }} className="text-xs font-black uppercase tracking-widest opacity-50 block mx-auto" style={{ color: 'var(--text)' }}>{forgotCodeSent ? "Back to login" : "Cancel"}</button>
+                    <button type="button" onClick={() => { setAuthView("auth"); setForgotCodeSent(false); setForgotOtp(""); setForgotNewPassword(""); setShowForgotNewPassword(false); setError(null); setSuccessMessage(null); }} className="text-xs font-black uppercase tracking-widest opacity-50 block mx-auto" style={{ color: 'var(--text)' }}>{forgotCodeSent ? "Back to login" : "Cancel"}</button>
                   </form>
                 </div>
               ) : (
@@ -410,15 +598,15 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                     <form onSubmit={handleSignIn} className="w-full max-w-sm space-y-4">
                       {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
                       {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
-                      <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={formData.email} onChange={handleChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
+                      <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={loginData.email} onChange={handleLoginChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required autoComplete="email" />
                       <div className="relative">
-                        <input name="password" type={showPassword ? "text" : "password"} placeholder="Password" value={formData.password} onChange={handleChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">
+                        <input name="password" type={showPassword ? "text" : "password"} placeholder="Password" value={loginData.password} onChange={handleLoginChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required autoComplete="current-password" />
+                        <button type="button" onClick={() => setShowPassword((current) => !current)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">
                           {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
                         </button>
                       </div>
                       <div className="text-right"><button type="button" onClick={() => setAuthView("forgot")} className="text-[11px] font-bold uppercase tracking-widest accent-phrase pr-2">Forgot password?</button></div>
-                      <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>Sign In</button>
+                      <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : "Sign In"}</button>
                     </form>
                   </div>
 
@@ -426,11 +614,13 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                   <div className={`w-1/2 flex flex-col items-center justify-center p-8 transition-all duration-700 ease-in-out ${isSignUp ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"}`}>
                     <h2 className="text-5xl font-black mb-8 italic">Sign <span className="accent-phrase pr-6">Up</span></h2>
                     <form onSubmit={otpRequested ? handleVerifyOtp : handleRequestOtp} className="w-full max-w-sm space-y-4">
-                      <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={signUpData.email} onChange={handleSignUpChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required readOnly={otpRequested} />
-                      <input name="major" type="text" placeholder="Major" value={major} onChange={(e) => setMajor(e.target.value)} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
+                      {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
+                      {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
+                      <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={signUpData.email} onChange={handleSignUpChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required readOnly={otpRequested} autoComplete="email" />
+                      <input name="major" type="text" placeholder="Major" value={major} onChange={(event) => setMajor(event.target.value)} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
                       <div className="relative">
-                        <input name="password" type={showSignUpPassword ? "text" : "password"} placeholder="Create Password" value={signUpData.password} onChange={handleSignUpChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required readOnly={otpRequested} />
-                        <button type="button" onClick={() => setShowSignUpPassword(!showSignUpPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">
+                        <input name="password" type={showSignUpPassword ? "text" : "password"} placeholder="Create Password" value={signUpData.password} onChange={handleSignUpChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required readOnly={otpRequested} autoComplete="new-password" />
+                        <button type="button" onClick={() => setShowSignUpPassword((current) => !current)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">
                           {showSignUpPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
                         </button>
                       </div>
@@ -441,13 +631,13 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                           maxLength={6}
                           placeholder="Enter 6-digit OTP"
                           value={otp}
-                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                          onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))}
                           className="w-full px-5 py-4 rounded-xl outline-none"
                           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
                           required
                         />
                       )}
-                      <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>{loading ? "Please wait..." : otpRequested ? "Verify OTP" : "Request OTP"}</button>
+                      <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }} disabled={loading}>{loading ? "Please wait..." : otpRequested ? "Verify OTP" : "Request OTP"}</button>
                       {otpRequested && (
                         <button type="button" onClick={handleResendOtp} className="w-full py-3 rounded-xl font-bold uppercase tracking-widest border" style={{ borderColor: 'var(--border)', color: 'var(--text)' }} disabled={loading}>
                           Resend OTP
@@ -460,7 +650,7 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                   <div className={`absolute top-0 left-1/2 w-1/2 h-full transition-transform duration-700 ease-in-out z-50 flex flex-col items-center justify-center p-8 text-center pointer-events-none border-[4px] border-zinc-200 rounded-[2.5rem] ${isSignUp ? "-translate-x-full" : "translate-x-0"}`} style={{ background: 'var(--bg)' }}>
                     <div className="pointer-events-auto">
                       <h3 className="text-3xl font-black mb-4 italic leading-tight">{isSignUp ? "Welcome " : "New "}<span className="accent-phrase pr-6">{isSignUp ? "Back!" : "here?"}</span></h3>
-                      <button onClick={toggleAuthMode} className="px-8 py-3 border-2 rounded-full font-bold italic uppercase tracking-widest transition-all text-xs" style={{ color: 'var(--text)', borderColor: 'var(--text)' }}>{isSignUp ? "Sign In" : "Sign Up"}</button>
+                      <button type="button" onClick={toggleAuthMode} className="px-8 py-3 border-2 rounded-full font-bold italic uppercase tracking-widest transition-all text-xs" style={{ color: 'var(--text)', borderColor: 'var(--text)' }}>{isSignUp ? "Sign In" : "Sign Up"}</button>
                     </div>
                   </div>
                 </>

@@ -4,9 +4,9 @@ import { useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { apiFetch } from "@/lib/api";
 import { requestOtpSchema, verifyOtpSchema } from "@/lib/validators";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { X, Eye, EyeOff, Mail, ArrowLeft, Loader2, Star, Coffee, BookOpen } from "lucide-react";
+import { X, Eye, EyeOff, Mail, Loader2, Star, Coffee, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiFetch } from "@/lib/api";
 import { aubEmailSchema, requestOtpSchema, verifyOtpSchema } from "@/lib/validators";
@@ -103,40 +103,6 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!major.trim()) {
-      setError("MAJOR IS REQUIRED");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email.toLowerCase().trim(),
-        formData.password
-      );
-      const { user } = userCredential;
-
-      await setDoc(doc(db, "users", user.uid), {
-        email: user.email ?? formData.email.toLowerCase().trim(),
-        ...(user.displayName ? { displayName: user.displayName } : {}),
-        major: major.trim(),
-        createdAt: serverTimestamp(),
-      });
-
-      onLoginSuccess();
-      setShowLogin(false);
-    } catch (err: any) {
-      setError(err?.message || "SIGN UP FAILED");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -198,6 +164,12 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
     e.preventDefault();
     setError(null);
     setSuccessMessage(null);
+    setOtpRequested(false);
+
+    if (!major.trim()) {
+      setError("Major is required.");
+      return;
+    }
 
     const payload = {
       email: signUpData.email.toLowerCase().trim(),
@@ -211,13 +183,21 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
 
     setLoading(true);
     try {
+      console.log("[OTP] request payload", {
+        email: parsed.data.email,
+        passwordLength: parsed.data.password.length,
+      });
+
       const res = await apiFetch<{ message: string }>("/auth/register/request-otp", {
         method: "POST",
         body: JSON.stringify(parsed.data),
       });
+      console.log("[OTP] request response", res);
+
       setOtpRequested(true);
       setSuccessMessage(res.message || "OTP sent. Check your email.");
     } catch (err: unknown) {
+      console.error("[OTP] request error", err);
       setError(err instanceof Error ? err.message : "Failed to request OTP.");
     } finally {
       setLoading(false);
@@ -245,12 +225,36 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
         method: "POST",
         body: JSON.stringify(parsed.data),
       });
+      console.log("[OTP] verify response", res);
+
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        signUpData.email.toLowerCase().trim(),
+        signUpData.password
+      );
+      const { user } = userCredential;
+
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          email: user.email ?? signUpData.email.toLowerCase().trim(),
+          ...(user.displayName ? { displayName: user.displayName } : {}),
+          major: major.trim(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
       setSuccessMessage(res.message || "Email verified successfully.");
       setFormData({ email: signUpData.email.toLowerCase().trim(), password: signUpData.password });
       setIsSignUp(false);
       setOtpRequested(false);
       setOtp("");
+
+      onLoginSuccess();
+      setShowLogin(false);
     } catch (err: unknown) {
+      console.error("[OTP] verify error", err);
       setError(err instanceof Error ? err.message : "Failed to verify OTP.");
     } finally {
       setLoading(false);
@@ -421,16 +425,34 @@ export default function Landing({ onLoginSuccess }: { onLoginSuccess: () => void
                   {/*sign up side*/}
                   <div className={`w-1/2 flex flex-col items-center justify-center p-8 transition-all duration-700 ease-in-out ${isSignUp ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"}`}>
                     <h2 className="text-5xl font-black mb-8 italic">Sign <span className="accent-phrase pr-6">Up</span></h2>
-                    <form onSubmit={handleSignUp} className="w-full max-w-sm space-y-4">
-                      <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={formData.email} onChange={handleChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
+                    <form onSubmit={otpRequested ? handleVerifyOtp : handleRequestOtp} className="w-full max-w-sm space-y-4">
+                      <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={signUpData.email} onChange={handleSignUpChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required readOnly={otpRequested} />
                       <input name="major" type="text" placeholder="Major" value={major} onChange={(e) => setMajor(e.target.value)} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
                       <div className="relative">
-                        <input name="password" type={showSignUpPassword ? "text" : "password"} placeholder="Create Password" value={formData.password} onChange={handleChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required />
+                        <input name="password" type={showSignUpPassword ? "text" : "password"} placeholder="Create Password" value={signUpData.password} onChange={handleSignUpChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required readOnly={otpRequested} />
                         <button type="button" onClick={() => setShowSignUpPassword(!showSignUpPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">
                           {showSignUpPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
                         </button>
                       </div>
-                      <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>{loading ? "Please wait..." : "Sign Up"}</button>
+                      {otpRequested && (
+                        <input
+                          name="otp"
+                          inputMode="numeric"
+                          maxLength={6}
+                          placeholder="Enter 6-digit OTP"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                          className="w-full px-5 py-4 rounded-xl outline-none"
+                          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+                          required
+                        />
+                      )}
+                      <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }}>{loading ? "Please wait..." : otpRequested ? "Verify OTP" : "Request OTP"}</button>
+                      {otpRequested && (
+                        <button type="button" onClick={handleResendOtp} className="w-full py-3 rounded-xl font-bold uppercase tracking-widest border" style={{ borderColor: 'var(--border)', color: 'var(--text)' }} disabled={loading}>
+                          Resend OTP
+                        </button>
+                      )}
                     </form>
                   </div>
 

@@ -84,6 +84,14 @@ export async function reportSpot(spotId: string, text: string, authToken: string
   });
 }
 
+export async function reportPost(postId: string, text: string, authToken: string): Promise<{ ok: boolean; id: string; message: string }> {
+  return apiFetch<{ ok: boolean; id: string; message: string }>(`/posts/${encodeURIComponent(postId)}/report`, {
+    method: "POST",
+    body: JSON.stringify({ text }),
+    authToken,
+  });
+}
+
 export async function addFavorite(targetType: FavoriteTargetType, targetId: string, targetName: string, authToken: string): Promise<{ ok: boolean }> {
   return apiFetch<{ ok: boolean }>("/favorites", {
     method: "POST",

@@ -10,7 +10,11 @@ export async function apiFetch<T>(
   path: string,
   options: ApiFetchOptions = {}
 ): Promise<T> {
-  const baseUrl = "https://api.unitok.app"; // Replace with your actual backend URL
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+
+  if (!baseUrl) {
+    throw new Error("NEXT_PUBLIC_API_URL is missing in environment variables");
+  }
 
   const { authToken, ...fetchOptions } = options;
 

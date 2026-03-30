@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const baseUrl = "https://api.unitok.app";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
   if (!baseUrl) {
     return NextResponse.json(
       { ok: false, error: "Backend base URL not configured." },

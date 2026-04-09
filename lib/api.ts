@@ -8,12 +8,16 @@ type ApiFetchOptions = RequestInit & {
   authToken?: string;
 };
 
+export function getBackendUrl(): string {
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.unitok.app";
+  return configuredBaseUrl.replace(/\/$/, "");
+}
+
 export async function apiFetch<T>(
   path: string,
   options: ApiFetchOptions = {}
 ): Promise<T> {
-  const configuredBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.unitok.app";
-  const baseUrl = configuredBaseUrl.replace(/\/$/, "");
+  const baseUrl = getBackendUrl();
 
   const { authToken, ...fetchOptions } = options;
 

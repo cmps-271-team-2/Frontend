@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { getBackendUrl } from "@/lib/api";
 import AdminDashboard from "./AdminDashboard";
 
 const SESSION_KEY = "admin_panel_authenticated";
@@ -20,11 +21,10 @@ export default function AdminGate() {
     setError(null);
 
     try {
-      const res = await fetch("/admin/analytics", {
+      const res = await fetch(`${getBackendUrl()}/admin/analytics`, {
         method: "GET",
         headers: {
           "X-Admin-Password": password,
-          "Content-Type": "application/json",
         },
       });
 

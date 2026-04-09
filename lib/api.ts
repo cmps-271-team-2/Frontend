@@ -4,13 +4,13 @@ type ApiError = {
   error?: string;
 };
 
-type ApiFetchOptions = RequestInit & {
+export type ApiFetchOptions = RequestInit & {
   authToken?: string;
+  extraHeaders?: Record<string, string>;
 };
 
 export function getBackendUrl(): string {
-  const configuredBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.unitok.app";
-  return configuredBaseUrl.replace(/\/$/, "");
+  return "https://api.unitok.app";
 }
 
 export async function apiFetch<T>(
@@ -21,8 +21,11 @@ export async function apiFetch<T>(
 
   const { authToken, ...fetchOptions } = options;
 
+  const { extraHeaders, ...restFetchOptions } = fetchOptions;
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...extraHeaders,
   };
 
   if (authToken) {
@@ -30,7 +33,7 @@ export async function apiFetch<T>(
   }
 
   const res = await fetch(`${baseUrl}${path}`, {
-    ...fetchOptions,
+    ...restFetchOptions,
     headers,
   });
 

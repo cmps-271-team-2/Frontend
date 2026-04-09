@@ -5,6 +5,7 @@ import { getBackendUrl } from "@/lib/api";
 import AdminDashboard from "./AdminDashboard";
 
 const SESSION_KEY = "admin_panel_authenticated";
+const PASSWORD_KEY = "admin_panel_password";
 
 export default function AdminGate() {
   const [password, setPassword] = useState("");
@@ -13,7 +14,8 @@ export default function AdminGate() {
 
   useEffect(() => {
     const hasSession = typeof window !== "undefined" && sessionStorage.getItem(SESSION_KEY) === "true";
-    if (hasSession) setAuthenticated(true);
+    const hasPassword = typeof window !== "undefined" && !!sessionStorage.getItem(PASSWORD_KEY);
+    if (hasSession && hasPassword) setAuthenticated(true);
   }, []);
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -30,6 +32,7 @@ export default function AdminGate() {
 
       if (res.ok) {
         sessionStorage.setItem(SESSION_KEY, "true");
+        sessionStorage.setItem(PASSWORD_KEY, password);
         setAuthenticated(true);
         setError(null);
         return;

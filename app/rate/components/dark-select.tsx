@@ -27,9 +27,9 @@ export default function DarkSelect({
         className="w-full appearance-none rounded-xl border px-3 py-2 pr-9 text-sm font-medium outline-none transition-colors focus:ring-2"
         style={{
           borderColor: "var(--border)",
-          background: "#0f0f0f",
+          background: "var(--card)",
           color: "var(--text)",
-          colorScheme: "dark",
+          
           // focus ring handled via focus-visible in the className but we
           // reinforce it via outline fall-through below
         }}

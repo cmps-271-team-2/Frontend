@@ -1,55 +1,57 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import AdminDashboard from "./AdminDashboard";
 
 const SESSION_KEY = "admin_panel_authenticated";
 
 export default function AdminGate() {
-  const searchParams = useSearchParams();
-  const bypass = searchParams.get("bypass") === "true";
-  const configuredPassword = process.env.NEXT_PUBLIC_ADMIN_PANEL_PASSWORD;
-
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
-    if (bypass) return;
     const hasSession = typeof window !== "undefined" && sessionStorage.getItem(SESSION_KEY) === "true";
     if (hasSession) setAuthenticated(true);
-  }, [bypass]);
-
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  }, []);
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!configuredPassword) {
-      setError("Admin password is not configured. Set NEXT_PUBLIC_ADMIN_PANEL_PASSWORD in your env.");
-      return;
-    }
+    setError(null);
 
-    if (password === configuredPassword) {
-      sessionStorage.setItem(SESSION_KEY, "true");
-      setAuthenticated(true);
-      setError(null);
-      return;
-    }
+    try {
+      const res = await fetch("/admin/analytics", {
+        method: "GET",
+        headers: {
+          "X-Admin-Password": password,
+          "Content-Type": "application/json",
+        },
+      });
 
-    setError("Invalid admin password.");
+      if (res.ok) {
+        sessionStorage.setItem(SESSION_KEY, "true");
+        setAuthenticated(true);
+        setError(null);
+        return;
+      }
+
+      if (res.status === 401) {
+        setError("Invalid admin password.");
+      } else {
+        setError(`Login failed: ${res.statusText}`);
+      }
+    } catch (err) {
+      setError("Network error while validating admin password.");
+    }
   }
 
-  if (bypass || authenticated) {
-    return <AdminDashboard />;
-  }
+  if (authenticated) return <AdminDashboard />;
 
   return (
     <main className="min-h-screen bg-background px-6 py-10 text-foreground">
       <div className="mx-auto w-full max-w-md rounded-2xl border border-foreground/15 bg-foreground/5 p-6">
         <h1 className="text-2xl font-semibold tracking-tight">Admin Login</h1>
-        <p className="mt-2 text-sm opacity-80">
-          Enter the admin password to continue. Use <code>?bypass=true</code> in the URL to skip this screen.
-        </p>
+        <p className="mt-2 text-sm opacity-80">Enter the admin password to continue.</p>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <label className="block">

@@ -23,12 +23,18 @@ export default function AdminGate() {
     setError(null);
 
     try {
-      const res = await fetch(`${getBackendUrl()}/admin/analytics`, {
+      const url = `${getBackendUrl()}/admin/analytics`;
+      console.debug("[AdminGate] POST to:", url);
+      console.debug("[AdminGate] Password length:", password.length, "| first char:", password[0]);
+
+      const res = await fetch(url, {
         method: "GET",
         headers: {
           "X-Admin-Password": password,
         },
       });
+
+      console.debug("[AdminGate] Response status:", res.status);
 
       if (res.ok) {
         sessionStorage.setItem(SESSION_KEY, "true");

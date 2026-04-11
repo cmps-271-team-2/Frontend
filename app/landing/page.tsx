@@ -614,15 +614,23 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
                         </button>
                       </div>
                       <div className="flex items-center justify-between gap-4">
-                        <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                          <span className="accent-phrase">Remember Me</span>
-                          <input
-                            type="checkbox"
-                            checked={rememberMe}
-                            onChange={(event) => setRememberMe(event.target.checked)}
-                            className="h-4 w-4 rounded border border-[var(--border)] bg-[var(--card)]"
-                            style={{ accentColor: 'var(--neon-purple)' }}
-                          />
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <span className="text-sm font-bold uppercase tracking-widest accent-phrase">Remember Me</span>
+                          <span
+                            className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border border-[var(--border)] transition-colors duration-200 ease-in-out"
+                            style={{ backgroundColor: rememberMe ? "var(--neon-purple)" : "rgba(255,255,255,0.14)" }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={rememberMe}
+                              onChange={(event) => setRememberMe(event.target.checked)}
+                              className="peer sr-only"
+                            />
+                            <span
+                              className="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out"
+                              style={{ transform: rememberMe ? "translateX(22px)" : "translateX(2px)" }}
+                            />
+                          </span>
                         </label>
                         <button type="button" onClick={() => setAuthView("forgot")} className="text-sm font-bold uppercase tracking-widest accent-phrase pr-2">Forgot password?</button>
                       </div>

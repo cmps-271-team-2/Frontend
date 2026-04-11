@@ -613,16 +613,19 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
                           {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
                         </button>
                       </div>
-                      <label className="flex items-center gap-3 text-sm font-medium" style={{ color: 'var(--text)' }}>
-                        <input
-                          type="checkbox"
-                          checked={rememberMe}
-                          onChange={(event) => setRememberMe(event.target.checked)}
-                          className="h-4 w-4 rounded border border-[var(--border)] bg-[var(--card)] accent-[#F7E7CE]"
-                        />
-                        <span>Remember Me</span>
-                      </label>
-                      <div className="text-right"><button type="button" onClick={() => setAuthView("forgot")} className="text-[11px] font-bold uppercase tracking-widest accent-phrase pr-2">Forgot password?</button></div>
+                      <div className="flex items-center justify-between gap-4">
+                        <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                          <span className="accent-phrase">Remember Me</span>
+                          <input
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={(event) => setRememberMe(event.target.checked)}
+                            className="h-4 w-4 rounded border border-[var(--border)] bg-[var(--card)]"
+                            style={{ accentColor: 'var(--neon-purple)' }}
+                          />
+                        </label>
+                        <button type="button" onClick={() => setAuthView("forgot")} className="text-sm font-bold uppercase tracking-widest accent-phrase pr-2">Forgot password?</button>
+                      </div>
                       <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : "Sign In"}</button>
                     </form>
                   </div>

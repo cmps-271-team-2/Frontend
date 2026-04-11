@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "./components/auth-provider";
 import BottomBarWrapper from "./components/bottombar-wrapper";
 
 export const metadata: Metadata = { 
@@ -12,8 +13,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // Removed the hardcoded dark theme so the Provider can control it
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased bg-white dark:bg-[#000000] text-black dark:text-white transition-colors duration-300">
-        {children}
-        <BottomBarWrapper />
+        <AuthProvider>
+          {children}
+          <BottomBarWrapper />
+        </AuthProvider>
       </body>
     </html>
   );

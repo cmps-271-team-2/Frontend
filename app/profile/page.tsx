@@ -15,6 +15,9 @@ type UserProfileDoc = {
 
 const DEFAULT_DISPLAY_NAME = "Student";
 const DEFAULT_MAJOR = "Unknown Major";
+const TOGGLE_ON_COLOR = "#C56BFF";
+const TOGGLE_OFF_COLOR = "rgba(255,255,255,0.14)";
+const TOGGLE_OFF_BORDER = "var(--border)";
 
 function normalizeText(value: unknown, fallback: string): string {
   if (typeof value !== "string") {
@@ -233,9 +236,9 @@ export default function ProfilePage() {
                   inset: 0,
                   borderRadius: 12,
                   cursor: "pointer",
-                  transition: "background 0.2s",
-                  background: showName ? "var(--accent)" : "var(--card-elevated)",
-                  border: `1px solid ${showName ? "var(--accent)" : "var(--border)"}`,
+                  transition: "background-color 0.2s ease, border-color 0.2s ease",
+                  backgroundColor: showName ? TOGGLE_ON_COLOR : TOGGLE_OFF_COLOR,
+                  border: `1px solid ${showName ? TOGGLE_ON_COLOR : TOGGLE_OFF_BORDER}`,
                 }}
               />
               <span
@@ -247,7 +250,7 @@ export default function ProfilePage() {
                   height: 18,
                   borderRadius: 9,
                   background: "#fff",
-                  transition: "left 0.2s",
+                  transition: "left 0.2s ease",
                   boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
                 }}
               />
@@ -269,9 +272,9 @@ export default function ProfilePage() {
                   inset: 0,
                   borderRadius: 12,
                   cursor: "pointer",
-                  transition: "background 0.2s",
-                  background: showMyRatingsPublicly ? "var(--accent)" : "var(--card-elevated)",
-                  border: `1px solid ${showMyRatingsPublicly ? "var(--accent)" : "var(--border)"}`,
+                  transition: "background-color 0.2s ease, border-color 0.2s ease",
+                  backgroundColor: showMyRatingsPublicly ? TOGGLE_ON_COLOR : TOGGLE_OFF_COLOR,
+                  border: `1px solid ${showMyRatingsPublicly ? TOGGLE_ON_COLOR : TOGGLE_OFF_BORDER}`,
                 }}
               />
               <span
@@ -283,7 +286,7 @@ export default function ProfilePage() {
                   height: 18,
                   borderRadius: 9,
                   background: "#fff",
-                  transition: "left 0.2s",
+                  transition: "left 0.2s ease",
                   boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
                 }}
               />
@@ -305,9 +308,9 @@ export default function ProfilePage() {
                   inset: 0,
                   borderRadius: 12,
                   cursor: "pointer",
-                  transition: "background 0.2s",
-                  background: emailNotifs ? "var(--accent)" : "var(--card-elevated)",
-                  border: `1px solid ${emailNotifs ? "var(--accent)" : "var(--border)"}`,
+                  transition: "background-color 0.2s ease, border-color 0.2s ease",
+                  backgroundColor: emailNotifs ? TOGGLE_ON_COLOR : TOGGLE_OFF_COLOR,
+                  border: `1px solid ${emailNotifs ? TOGGLE_ON_COLOR : TOGGLE_OFF_BORDER}`,
                 }}
               />
               <span
@@ -319,7 +322,7 @@ export default function ProfilePage() {
                   height: 18,
                   borderRadius: 9,
                   background: "#fff",
-                  transition: "left 0.2s",
+                  transition: "left 0.2s ease",
                   boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
                 }}
               />

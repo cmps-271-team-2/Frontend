@@ -2,7 +2,12 @@
 
 import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  browserLocalPersistence,
+  browserSessionPersistence,
+  setPersistence,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Eye, EyeOff, Mail, Loader2, Star, Coffee, BookOpen } from "lucide-react";
@@ -104,6 +109,7 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({ email: "", password: "" });
@@ -219,6 +225,7 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
 
     setLoading(true);
     try {
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       await signInWithEmailAndPassword(auth, emailCheck.data, loginData.password);
       finishAuth();
     } catch (authError) {
@@ -606,6 +613,15 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
                           {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
                         </button>
                       </div>
+                      <label className="flex items-center gap-3 text-sm font-medium" style={{ color: 'var(--text)' }}>
+                        <input
+                          type="checkbox"
+                          checked={rememberMe}
+                          onChange={(event) => setRememberMe(event.target.checked)}
+                          className="h-4 w-4 rounded border border-[var(--border)] bg-[var(--card)] accent-[#F7E7CE]"
+                        />
+                        <span>Remember Me</span>
+                      </label>
                       <div className="text-right"><button type="button" onClick={() => setAuthView("forgot")} className="text-[11px] font-bold uppercase tracking-widest accent-phrase pr-2">Forgot password?</button></div>
                       <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : "Sign In"}</button>
                     </form>

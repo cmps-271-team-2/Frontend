@@ -29,9 +29,10 @@ export default function ProfilePage() {
   const router = useRouter();
 
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
-  const [displayName, setDisplayName] = useState(DEFAULT_DISPLAY_NAME);
+  const [name, setName] = useState(DEFAULT_DISPLAY_NAME);
   const [major, setMajor] = useState(DEFAULT_MAJOR);
-  const [showDisplayName, setShowDisplayName] = useState(false);
+  const [showName, setShowName] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [emailNotifs, setEmailNotifs] = useState(false);
   const [showMyRatingsPublicly, setShowMyRatingsPublicly] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -40,9 +41,10 @@ export default function ProfilePage() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       if (!user) {
-        setDisplayName(DEFAULT_DISPLAY_NAME);
+        setName(DEFAULT_DISPLAY_NAME);
         setMajor(DEFAULT_MAJOR);
-        setShowDisplayName(false);
+        setShowName(false);
+        setError(null);
       }
     });
 
@@ -59,19 +61,27 @@ export default function ProfilePage() {
       const data = (snapshot.data() as UserProfileDoc | undefined) ?? {};
       const nextDisplayName = normalizeText(data.displayName, DEFAULT_DISPLAY_NAME);
       const nextMajor = normalizeText(data.major, DEFAULT_MAJOR);
-      const nextShowDisplayName = data.showDisplayName === true;
+      const nextShowName = data.showDisplayName === true;
+      const nextName = nextShowName ? nextDisplayName : "Anonymous";
 
-      setDisplayName(nextDisplayName);
+      setName(nextName);
       setMajor(nextMajor);
-      setShowDisplayName(nextShowDisplayName);
+      setShowName(nextShowName);
+      setError(null);
 
-      if (!snapshot.exists() || !data.displayName || !data.major || typeof data.showDisplayName !== "boolean") {
+      if (
+        !snapshot.exists() ||
+        !data.displayName ||
+        !data.major ||
+        typeof data.showDisplayName !== "boolean" ||
+        (!nextShowName && data.displayName !== "Anonymous")
+      ) {
         void setDoc(
           userRef,
           {
-            displayName: nextDisplayName,
+            displayName: nextName,
             major: nextMajor,
-            showDisplayName: nextShowDisplayName,
+            showDisplayName: nextShowName,
           },
           { merge: true }
         );
@@ -99,13 +109,35 @@ export default function ProfilePage() {
   }
 
   function handleDisplayNameChange(nextValue: string) {
-    setDisplayName(nextValue);
-    void persistUserDoc({ displayName: nextValue.trim() || DEFAULT_DISPLAY_NAME });
+    setName(nextValue);
+
+    if (!showName) {
+      return;
+    }
+
+    const trimmed = nextValue.trim();
+    if (!trimmed) {
+      setError("Please add a display name");
+      return;
+    }
+
+    setError(null);
+    void persistUserDoc({ displayName: trimmed, showDisplayName: true });
   }
 
   function handleShowDisplayNameChange(nextValue: boolean) {
-    setShowDisplayName(nextValue);
-    void persistUserDoc({ showDisplayName: nextValue });
+    setShowName(nextValue);
+
+    if (!nextValue) {
+      setName("Anonymous");
+      setError(null);
+      void persistUserDoc({ displayName: "Anonymous", showDisplayName: false });
+      setToast("Your preference will apply to future posts.");
+      return;
+    }
+
+    setName("");
+    setError("Please add a display name");
     setToast("Your preference will apply to future posts.");
   }
 
@@ -154,24 +186,33 @@ export default function ProfilePage() {
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 0" }}>
             <div style={{ color: "var(--muted)", fontWeight: 600, fontSize: 14 }}>Display name</div>
-            <input
-              value={displayName}
-              onChange={(e) => handleDisplayNameChange(e.target.value)}
-              style={{
-                width: 200,
-                padding: "8px 12px",
-                borderRadius: 10,
-                border: "1px solid var(--border)",
-                background: "var(--card-elevated)",
-                color: "var(--text)",
-                outline: "none",
-                fontSize: 14,
-                fontWeight: 500,
-                transition: "border-color 0.2s",
-              }}
-              onFocus={(e) => e.currentTarget.style.borderColor = "rgba(197,107,255,0.4)"}
-              onBlur={(e) => e.currentTarget.style.borderColor = "var(--border)"}
-            />
+            <div style={{ width: 200, display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+              <input
+                value={name}
+                disabled={!showName}
+                onChange={(e) => handleDisplayNameChange(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  borderRadius: 10,
+                  border: `1px solid ${error ? "#ef4444" : "var(--border)"}`,
+                  background: "var(--card-elevated)",
+                  color: "var(--text)",
+                  outline: "none",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  transition: "border-color 0.2s",
+                  opacity: showName ? 1 : 0.7,
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = error ? "#ef4444" : "rgba(197,107,255,0.4)"}
+                onBlur={(e) => e.currentTarget.style.borderColor = error ? "#ef4444" : "var(--border)"}
+              />
+              {error ? (
+                <div style={{ marginTop: 6, color: "#ef4444", fontSize: 12, fontWeight: 600 }}>
+                  {error}
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div style={{ borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 0" }}>
@@ -182,7 +223,7 @@ export default function ProfilePage() {
             <label style={{ position: "relative", width: 44, height: 24, flexShrink: 0 }}>
               <input
                 type="checkbox"
-                checked={showDisplayName}
+                checked={showName}
                 onChange={(e) => handleShowDisplayNameChange(e.target.checked)}
                 style={{ opacity: 0, width: 0, height: 0, position: "absolute" }}
               />
@@ -193,15 +234,15 @@ export default function ProfilePage() {
                   borderRadius: 12,
                   cursor: "pointer",
                   transition: "background 0.2s",
-                  background: showDisplayName ? "var(--accent)" : "var(--card-elevated)",
-                  border: `1px solid ${showDisplayName ? "var(--accent)" : "var(--border)"}`,
+                  background: showName ? "var(--accent)" : "var(--card-elevated)",
+                  border: `1px solid ${showName ? "var(--accent)" : "var(--border)"}`,
                 }}
               />
               <span
                 style={{
                   position: "absolute",
                   top: 3,
-                  left: showDisplayName ? 22 : 3,
+                  left: showName ? 22 : 3,
                   width: 18,
                   height: 18,
                   borderRadius: 9,

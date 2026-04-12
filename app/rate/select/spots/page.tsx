@@ -84,7 +84,7 @@ export default function SelectSpotPage() {
   const [error, setError] = useState<string | null>(null);
 
   const API_BASE_URL =
-    process.env.NEXT_PUBLIC_BACKEND_URL;
+    process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://34.55.22.211.nip.io"; 
 
   const loadItems = useCallback(async () => {
     setLoading(true);

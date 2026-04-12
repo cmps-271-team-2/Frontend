@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import MultiSelectChips from "@/app/rate/components/multi-select-chips";
 import {
@@ -17,8 +17,6 @@ import {
   StudySpotFilters,
   StudySpotType,
 } from "@/lib/rating-catalog";
-
-
 
 const STUDY_SPOT_TYPES: Array<{ label: string; value: StudySpotType }> = [
   { label: "Indoor", value: "indoor" },
@@ -59,25 +57,25 @@ export default function SelectSpotPage() {
   const router = useRouter();
   const [kind, setKind] = useState<SpotKind>("study-spot");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  //added a new feature
   const [isAddOpen, setIsAddOpen] = useState(false);
-const [addKind, setAddKind] = useState<SpotKind>("study-spot");
+  const [addKind, setAddKind] = useState<SpotKind>("study-spot");
 
-const [newStudySpot, setNewStudySpot] = useState({
-  name: "",
-  area: "",
-  spotType: "indoor" as StudySpotType,
-  noiseLevel: "quiet" as StudyNoiseLevel,
-  hasWifi: false,
-  hasOutlets: false,
-});
+  const [newStudySpot, setNewStudySpot] = useState({
+    name: "",
+    area: "",
+    spotType: "indoor" as StudySpotType,
+    noiseLevel: "quiet" as StudyNoiseLevel,
+    hasWifi: false,
+    hasOutlets: false,
+  });
 
-const [newFoodSpot, setNewFoodSpot] = useState({
-  name: "",
-  area: "",
-  category: "restaurant" as FoodVenueCategory,
-  priceLevel: "$" as PriceLevel,
-});
+  const [newFoodSpot, setNewFoodSpot] = useState({
+    name: "",
+    area: "",
+    category: "restaurant" as FoodVenueCategory,
+    priceLevel: "$" as PriceLevel,
+  });
+
   const [studyItems, setStudyItems] = useState<StudySpotCatalogItem[]>([]);
   const [foodItems, setFoodItems] = useState<FoodSpotCatalogItem[]>([]);
   const [studyFilters, setStudyFilters] = useState<StudySpotFilters>(INITIAL_STUDY_FILTERS);
@@ -85,45 +83,43 @@ const [newFoodSpot, setNewFoodSpot] = useState({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
-    async function loadItems() {
-      setLoading(true);
-      setError(null);
-      try {
-        const [studyData, foodData] = await Promise.all([
-          fetchCatalogItems("spots", "study-spot"),
-          fetchCatalogItems("spots", "food-spot"),
-        ]);
-        if (mounted) {
-          setStudyItems(studyData.filter((item): item is StudySpotCatalogItem => item.kind === "study-spot"));
-          setFoodItems(foodData.filter((item): item is FoodSpotCatalogItem => item.kind === "food-spot"));
-        }
-      } catch (loadError) {
-        if (mounted) {
-          setError(loadError instanceof Error ? loadError.message : "Failed to load spots.");
-          setStudyItems([]);
-          setFoodItems([]);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
+  const loadItems = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [studyData, foodData] = await Promise.all([
+        fetchCatalogItems("spots", "study-spot"),
+        fetchCatalogItems("spots", "food-spot"),
+      ]);
+
+      setStudyItems(
+        studyData.filter((item): item is StudySpotCatalogItem => item.kind === "study-spot")
+      );
+      setFoodItems(
+        foodData.filter((item): item is FoodSpotCatalogItem => item.kind === "food-spot")
+      );
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Failed to load spots.");
+      setStudyItems([]);
+      setFoodItems([]);
+    } finally {
+      setLoading(false);
     }
-
-    loadItems();
-
-    return () => {
-      mounted = false;
-    };
   }, []);
+
+  useEffect(() => {
+    void loadItems();
+  }, [loadItems]);
 
   useEffect(() => {
     function onEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setIsFiltersOpen(false);
+        setIsAddOpen(false);
       }
     }
 
@@ -169,6 +165,128 @@ const [newFoodSpot, setNewFoodSpot] = useState({
     }
 
     setFoodFilters(INITIAL_FOOD_FILTERS);
+  }
+
+  async function handleAddSpotSubmit() {
+    setError(null);
+
+    try {
+      if (addKind === "study-spot") {
+        if (!newStudySpot.name.trim() || !newStudySpot.area.trim()) {
+          setError("Please enter both study spot name and area.");
+          return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/spots`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: newStudySpot.name.trim(),
+            category: "study",
+            location: newStudySpot.area.trim(),
+            description: "",
+            createdBy: "guest",
+            spotType: newStudySpot.spotType,
+            noiseLevel: newStudySpot.noiseLevel,
+            hasWifi: newStudySpot.hasWifi,
+            hasOutlets: newStudySpot.hasOutlets,
+            openNow: true,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data?.error || "Failed to add study spot.");
+        }
+
+        if (data.created === false) {
+          setError("This study spot already exists.");
+          return;
+        }
+
+        const newItem: StudySpotCatalogItem = {
+          id: data.id,
+          kind: "study-spot",
+          name: newStudySpot.name.trim(),
+          area: newStudySpot.area.trim(),
+          spotType: newStudySpot.spotType,
+          noiseLevel: newStudySpot.noiseLevel,
+          hasWifi: newStudySpot.hasWifi,
+          hasOutlets: newStudySpot.hasOutlets,
+          openNow: true,
+          rating: 0,
+        };
+
+        setStudyItems((prev) => [newItem, ...prev]);
+        setNewStudySpot({
+          name: "",
+          area: "",
+          spotType: "indoor",
+          noiseLevel: "quiet",
+          hasWifi: false,
+          hasOutlets: false,
+        });
+      } else {
+        if (!newFoodSpot.name.trim() || !newFoodSpot.area.trim()) {
+          setError("Please enter both food spot name and area.");
+          return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/spots`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: newFoodSpot.name.trim(),
+            category: "food",
+            location: newFoodSpot.area.trim(),
+            description: "",
+            createdBy: "guest",
+            venueCategory: newFoodSpot.category,
+            priceLevel: newFoodSpot.priceLevel,
+            openNow: true,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data?.error || "Failed to add food spot.");
+        }
+
+        if (data.created === false) {
+          setError("This food spot already exists.");
+          return;
+        }
+
+        const newItem: FoodSpotCatalogItem = {
+          id: data.id,
+          kind: "food-spot",
+          name: newFoodSpot.name.trim(),
+          area: newFoodSpot.area.trim(),
+          venueCategory: newFoodSpot.category,
+          priceLevel: newFoodSpot.priceLevel,
+          openNow: true,
+          rating: 0,
+        };
+
+        setFoodItems((prev) => [newItem, ...prev]);
+        setNewFoodSpot({
+          name: "",
+          area: "",
+          category: "restaurant",
+          priceLevel: "$",
+        });
+      }
+
+      setIsAddOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add spot.");
+    }
   }
 
   const hasStudyFilters =
@@ -239,40 +357,37 @@ const [newFoodSpot, setNewFoodSpot] = useState({
       </div>
 
       <div className="flex items-center gap-2">
-        
-  {/* Search input */}
-  <div className="mt-4 flex-1">
-    <input
-      value={activeSearchValue}
-      onChange={(event) => updateActiveSearch(event.target.value)}
-      placeholder={
-        kind === "study-spot"
-          ? "Search study spots by name or area..."
-          : "Search food spots by name or area..."
-      }
-      className="w-full rounded-lg border px-3 py-2"
-      style={{
-        borderColor: "var(--border)",
-        background: "transparent",
-        color: "var(--text)",
-      }}
-    />
-  </div>
+        <div className="mt-4 flex-1">
+          <input
+            value={activeSearchValue}
+            onChange={(event) => updateActiveSearch(event.target.value)}
+            placeholder={
+              kind === "study-spot"
+                ? "Search study spots by name or area..."
+                : "Search food spots by name or area..."
+            }
+            className="w-full rounded-lg border px-3 py-2"
+            style={{
+              borderColor: "var(--border)",
+              background: "transparent",
+              color: "var(--text)",
+            }}
+          />
+        </div>
 
-  {/* Add spot button */}
-  <button
-    type="button"
-    onClick={() => setIsAddOpen(true)}
-    className="mt-4 rounded-full border px-4 py-2 text-sm font-bold"
-    style={{
-      borderColor: "var(--accent-green)",
-      background: "rgba(105,242,140,0.08)",
-      color: "var(--accent-green)",
-    }}
-  >
-    + Add spot
-  </button>
-</div>
+        <button
+          type="button"
+          onClick={() => setIsAddOpen(true)}
+          className="mt-4 rounded-full border px-4 py-2 text-sm font-bold"
+          style={{
+            borderColor: "var(--accent-green)",
+            background: "rgba(105,242,140,0.08)",
+            color: "var(--accent-green)",
+          }}
+        >
+          + Add spot
+        </button>
+      </div>
 
       {isFiltersOpen ? (
         <div
@@ -466,233 +581,183 @@ const [newFoodSpot, setNewFoodSpot] = useState({
       </div>
 
       {isAddOpen ? (
-  <div
-    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-    onClick={() => setIsAddOpen(false)}
-  >
-    <section
-      className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border p-4"
-      style={{ borderColor: "var(--border)", background: "var(--card)" }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold uppercase">Add new spot</h2>
-
-        <button
-          className="rounded-full border px-3 py-1 text-xs font-bold"
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
           onClick={() => setIsAddOpen(false)}
         >
-          Close
-        </button>
-      </div>
-
-      {/* KIND SELECT */}
-      <div className="mt-3 flex gap-2">
-        {["study-spot", "food-spot"].map((k) => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => setAddKind(k as SpotKind)}
-            className="rounded-full border px-3 py-1 text-xs font-bold"
-            style={{
-              borderColor: addKind === k ? "var(--accent-green)" : "var(--border)",
-              color: addKind === k ? "var(--accent-green)" : "var(--text)",
-            }}
+          <section
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border p-4"
+            style={{ borderColor: "var(--border)", background: "var(--card)" }}
+            onClick={(e) => e.stopPropagation()}
           >
-            {k === "study-spot" ? "Study spot" : "Food spot"}
-          </button>
-        ))}
-      </div>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold uppercase">Add new spot</h2>
 
-      {/* STUDY FORM */}
-      {addKind === "study-spot" ? (
-        <div className="mt-4 space-y-3">
-          <input
-            placeholder="Name"
-            value={newStudySpot.name}
-            onChange={(e) =>
-              setNewStudySpot({ ...newStudySpot, name: e.target.value })
-            }
-            className="w-full rounded-lg border px-3 py-2"
-          />
+              <button
+                className="rounded-full border px-3 py-1 text-xs font-bold"
+                onClick={() => setIsAddOpen(false)}
+              >
+                Close
+              </button>
+            </div>
 
-          <input
-            placeholder="Area"
-            value={newStudySpot.area}
-            onChange={(e) =>
-              setNewStudySpot({ ...newStudySpot, area: e.target.value })
-            }
-            className="w-full rounded-lg border px-3 py-2"
-          />
+            <div className="mt-3 flex gap-2">
+              {["study-spot", "food-spot"].map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setAddKind(k as SpotKind)}
+                  className="rounded-full border px-3 py-1 text-xs font-bold"
+                  style={{
+                    borderColor: addKind === k ? "var(--accent-green)" : "var(--border)",
+                    color: addKind === k ? "var(--accent-green)" : "var(--text)",
+                  }}
+                >
+                  {k === "study-spot" ? "Study spot" : "Food spot"}
+                </button>
+              ))}
+            </div>
 
-          <div className="flex gap-2">
-            <select
-              value={newStudySpot.spotType}
-              onChange={(e) =>
-                setNewStudySpot({
-                  ...newStudySpot,
-                  spotType: e.target.value as StudySpotType,
-                })
-              }
-              className="w-full rounded-lg border px-3 py-2"
+            {addKind === "study-spot" ? (
+              <div className="mt-4 space-y-3">
+                <input
+                  placeholder="Name"
+                  value={newStudySpot.name}
+                  onChange={(e) =>
+                    setNewStudySpot({ ...newStudySpot, name: e.target.value })
+                  }
+                  className="w-full rounded-lg border px-3 py-2"
+                />
+
+                <input
+                  placeholder="Area"
+                  value={newStudySpot.area}
+                  onChange={(e) =>
+                    setNewStudySpot({ ...newStudySpot, area: e.target.value })
+                  }
+                  className="w-full rounded-lg border px-3 py-2"
+                />
+
+                <div className="flex gap-2">
+                  <select
+                    value={newStudySpot.spotType}
+                    onChange={(e) =>
+                      setNewStudySpot({
+                        ...newStudySpot,
+                        spotType: e.target.value as StudySpotType,
+                      })
+                    }
+                    className="w-full rounded-lg border px-3 py-2"
+                  >
+                    <option value="indoor">Indoor</option>
+                    <option value="outdoor">Outdoor</option>
+                    <option value="mixed">Mixed</option>
+                  </select>
+
+                  <select
+                    value={newStudySpot.noiseLevel}
+                    onChange={(e) =>
+                      setNewStudySpot({
+                        ...newStudySpot,
+                        noiseLevel: e.target.value as StudyNoiseLevel,
+                      })
+                    }
+                    className="w-full rounded-lg border px-3 py-2"
+                  >
+                    <option value="quiet">Quiet</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="busy">Busy</option>
+                  </select>
+                </div>
+
+                <label className="flex gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={newStudySpot.hasWifi}
+                    onChange={(e) =>
+                      setNewStudySpot({ ...newStudySpot, hasWifi: e.target.checked })
+                    }
+                  />
+                  Wifi
+                </label>
+
+                <label className="flex gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={newStudySpot.hasOutlets}
+                    onChange={(e) =>
+                      setNewStudySpot({
+                        ...newStudySpot,
+                        hasOutlets: e.target.checked,
+                      })
+                    }
+                  />
+                  Outlets
+                </label>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                <input
+                  placeholder="Name"
+                  value={newFoodSpot.name}
+                  onChange={(e) =>
+                    setNewFoodSpot({ ...newFoodSpot, name: e.target.value })
+                  }
+                  className="w-full rounded-lg border px-3 py-2"
+                />
+
+                <input
+                  placeholder="Area"
+                  value={newFoodSpot.area}
+                  onChange={(e) =>
+                    setNewFoodSpot({ ...newFoodSpot, area: e.target.value })
+                  }
+                  className="w-full rounded-lg border px-3 py-2"
+                />
+
+                <select
+                  value={newFoodSpot.category}
+                  onChange={(e) =>
+                    setNewFoodSpot({
+                      ...newFoodSpot,
+                      category: e.target.value as FoodVenueCategory,
+                    })
+                  }
+                  className="w-full rounded-lg border px-3 py-2"
+                >
+                  <option value="restaurant">Restaurant</option>
+                  <option value="food">Food</option>
+                  <option value="fast-food">Fast food</option>
+                  <option value="bakery">Bakery</option>
+                </select>
+
+                <select
+                  value={newFoodSpot.priceLevel}
+                  onChange={(e) =>
+                    setNewFoodSpot({
+                      ...newFoodSpot,
+                      priceLevel: e.target.value as PriceLevel,
+                    })
+                  }
+                  className="w-full rounded-lg border px-3 py-2"
+                >
+                  <option value="$">$ (Cheap)</option>
+                  <option value="$$">$$ (Moderate)</option>
+                  <option value="$$$">$$$ (Expensive)</option>
+                </select>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="mt-4 w-full rounded-lg border px-3 py-2 font-bold"
+              onClick={handleAddSpotSubmit}
             >
-              <option value="indoor">Indoor</option>
-              <option value="outdoor">Outdoor</option>
-              <option value="mixed">Mixed</option>
-            </select>
-
-            <select
-              value={newStudySpot.noiseLevel}
-              onChange={(e) =>
-                setNewStudySpot({
-                  ...newStudySpot,
-                  noiseLevel: e.target.value as StudyNoiseLevel,
-                })
-              }
-              className="w-full rounded-lg border px-3 py-2"
-            >
-              <option value="quiet">Quiet</option>
-              <option value="moderate">Moderate</option>
-              <option value="busy">Busy</option>
-            </select>
-          </div>
-
-          <label className="flex gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={newStudySpot.hasWifi}
-              onChange={(e) =>
-                setNewStudySpot({ ...newStudySpot, hasWifi: e.target.checked })
-              }
-            />
-            Wifi
-          </label>
-
-          <label className="flex gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={newStudySpot.hasOutlets}
-              onChange={(e) =>
-                setNewStudySpot({
-                  ...newStudySpot,
-                  hasOutlets: e.target.checked,
-                })
-              }
-            />
-            Outlets
-          </label>
+              Submit
+            </button>
+          </section>
         </div>
-      ) : (
-        /* FOOD FORM */
-        <div className="mt-4 space-y-3">
-          <input
-            placeholder="Name"
-            value={newFoodSpot.name}
-            onChange={(e) =>
-              setNewFoodSpot({ ...newFoodSpot, name: e.target.value })
-            }
-            className="w-full rounded-lg border px-3 py-2"
-          />
-
-          <input
-            placeholder="Area"
-            value={newFoodSpot.area}
-            onChange={(e) =>
-              setNewFoodSpot({ ...newFoodSpot, area: e.target.value })
-            }
-            className="w-full rounded-lg border px-3 py-2"
-          />
-
-          <select
-            value={newFoodSpot.category}
-            onChange={(e) =>
-              setNewFoodSpot({
-                ...newFoodSpot,
-                category: e.target.value as FoodVenueCategory,
-              })
-            }
-            className="w-full rounded-lg border px-3 py-2"
-          >
-            <option value="restaurant">Restaurant</option>
-            <option value="food">Food</option>
-            <option value="fast-food">Fast food</option>
-            <option value="bakery">Bakery</option>
-          </select>
-
-          <select
-  value={newFoodSpot.priceLevel}
-  onChange={(e) =>
-    setNewFoodSpot({
-      ...newFoodSpot,
-      priceLevel: e.target.value as PriceLevel,
-    })
-  }
-  className="w-full rounded-lg border px-3 py-2"
->
-  <option value="$">$ (Cheap)</option>
-  <option value="$$">$$ (Moderate)</option>
-  <option value="$$$">$$$ (Expensive)</option>
-</select>
-        </div>
-      )}
-
-      {/* SUBMIT */}
-      <button
-        type="button"
-        className="mt-4 w-full rounded-lg border px-3 py-2 font-bold"
-        onClick={() => {
-  if (addKind === "study-spot") {
-    const newItem: StudySpotCatalogItem = {
-      id: Date.now().toString(),
-      kind: "study-spot",
-      name: newStudySpot.name,
-      area: newStudySpot.area,
-      spotType: newStudySpot.spotType,
-      noiseLevel: newStudySpot.noiseLevel,
-      hasWifi: newStudySpot.hasWifi,
-      hasOutlets: newStudySpot.hasOutlets,
-      openNow: true,
-      rating: 0,
-    };
-
-    setStudyItems((prev) => [newItem, ...prev]);
-    setNewStudySpot({
-      name: "",
-      area: "",
-      spotType: "indoor",
-      noiseLevel: "quiet",
-      hasWifi: false,
-      hasOutlets: false,
-    });
-  } else {
-    const newItem: FoodSpotCatalogItem = {
-      id: Date.now().toString(),
-      kind: "food-spot",
-      name: newFoodSpot.name,
-      area: newFoodSpot.area,
-      venueCategory: newFoodSpot.category,
-      priceLevel: newFoodSpot.priceLevel,
-      openNow: true,
-      rating: 0,
-    };
-
-    setFoodItems((prev) => [newItem, ...prev]);
-    setNewFoodSpot({
-      name: "",
-      area: "",
-      category: "restaurant",
-      priceLevel: "$",
-    });
-  }
-
-  setIsAddOpen(false);
-}}
-      >
-        Submit
-      </button>
-    </section>
-  </div>
-) : null}
+      ) : null}
     </main>
   );
 }

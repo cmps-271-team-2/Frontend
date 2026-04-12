@@ -171,63 +171,42 @@ export default function SelectSpotPage() {
     setError(null);
 
     try {
-      const isStudy = addKind === "study-spot";
-      
-      if (isStudy && (!newStudySpot.name.trim() || !newStudySpot.area.trim())) {
-        setError("Please enter both study spot name and area.");
-        return;
-      }
-      if (!isStudy && (!newFoodSpot.name.trim() || !newFoodSpot.area.trim())) {
-        setError("Please enter both food spot name and area.");
-        return;
-      }
+      if (addKind === "study-spot") {
+        if (!newStudySpot.name.trim() || !newStudySpot.area.trim()) {
+          setError("Please enter both study spot name and area.");
+          return;
+        }
 
-      const response = await fetch(`${API_BASE_URL}/spots`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(isStudy ? {
-          name: newStudySpot.name.trim(),
-          category: "study",
-          location: newStudySpot.area.trim(),
-          description: "",
-          createdBy: "guest",
-          spotType: newStudySpot.spotType,
-          noiseLevel: newStudySpot.noiseLevel,
-          hasWifi: newStudySpot.hasWifi,
-          hasOutlets: newStudySpot.hasOutlets,
-          openNow: true,
-        } : {
-          name: newFoodSpot.name.trim(),
-          category: "food",
-          location: newFoodSpot.area.trim(),
-          description: "",
-          createdBy: "guest",
-          venueCategory: newFoodSpot.category,
-          priceLevel: newFoodSpot.priceLevel,
-          openNow: true,
-        }),
-      });
+        const response = await fetch(`${API_BASE_URL}/spots`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: newStudySpot.name.trim(),
+            category: "study",
+            location: newStudySpot.area.trim(),
+            description: "",
+            createdBy: "guest",
+            spotType: newStudySpot.spotType,
+            noiseLevel: newStudySpot.noiseLevel,
+            hasWifi: newStudySpot.hasWifi,
+            hasOutlets: newStudySpot.hasOutlets,
+            openNow: true,
+          }),
+        });
 
-      // SAFETY CHECK: Ensure we have JSON before trying to parse
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error(`Server Error: Backend returned non-JSON response (Status: ${response.status})`);
-      }
+        const data = await response.json();
 
-      const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.error || "Failed to add study spot.");
+        }
 
-      if (!response.ok) {
-        throw new Error(data?.error || "Failed to add spot.");
-      }
+        if (data.created === false) {
+          setError("This study spot already exists.");
+          return;
+        }
 
-      if (data.created === false) {
-        setError(`This ${isStudy ? "study" : "food"} spot already exists.`);
-        return;
-      }
-
-      if (isStudy) {
         const newItem: StudySpotCatalogItem = {
           id: data.id,
           kind: "study-spot",
@@ -240,9 +219,50 @@ export default function SelectSpotPage() {
           openNow: true,
           rating: 0,
         };
+
         setStudyItems((prev) => [newItem, ...prev]);
-        setNewStudySpot({ name: "", area: "", spotType: "indoor", noiseLevel: "quiet", hasWifi: false, hasOutlets: false });
+        setNewStudySpot({
+          name: "",
+          area: "",
+          spotType: "indoor",
+          noiseLevel: "quiet",
+          hasWifi: false,
+          hasOutlets: false,
+        });
       } else {
+        if (!newFoodSpot.name.trim() || !newFoodSpot.area.trim()) {
+          setError("Please enter both food spot name and area.");
+          return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/spots`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: newFoodSpot.name.trim(),
+            category: "food",
+            location: newFoodSpot.area.trim(),
+            description: "",
+            createdBy: "guest",
+            venueCategory: newFoodSpot.category,
+            priceLevel: newFoodSpot.priceLevel,
+            openNow: true,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data?.error || "Failed to add food spot.");
+        }
+
+        if (data.created === false) {
+          setError("This food spot already exists.");
+          return;
+        }
+
         const newItem: FoodSpotCatalogItem = {
           id: data.id,
           kind: "food-spot",
@@ -253,8 +273,14 @@ export default function SelectSpotPage() {
           openNow: true,
           rating: 0,
         };
+
         setFoodItems((prev) => [newItem, ...prev]);
-        setNewFoodSpot({ name: "", area: "", category: "restaurant", priceLevel: "$" });
+        setNewFoodSpot({
+          name: "",
+          area: "",
+          category: "restaurant",
+          priceLevel: "$",
+        });
       }
 
       setIsAddOpen(false);

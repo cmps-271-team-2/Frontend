@@ -182,8 +182,7 @@ export default function SelectSpotPage() {
         return;
       }
 
-      // Using trailing slash as some servers return HTML 404/500 without it
-      const response = await fetch(`${API_BASE_URL}/spots/`, {
+      const response = await fetch(`${API_BASE_URL}/spots`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -211,12 +210,10 @@ export default function SelectSpotPage() {
         }),
       });
 
-      // FIXED: Safely check if response is JSON before parsing
+      // SAFETY CHECK: Ensure we have JSON before trying to parse
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        const rawText = await response.text();
-        console.error("Server Error HTML:", rawText);
-        throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}`);
+        throw new Error(`Server Error: Backend returned non-JSON response (Status: ${response.status})`);
       }
 
       const data = await response.json();
@@ -230,7 +227,6 @@ export default function SelectSpotPage() {
         return;
       }
 
-      // Success logic
       if (isStudy) {
         const newItem: StudySpotCatalogItem = {
           id: data.id,
@@ -267,7 +263,6 @@ export default function SelectSpotPage() {
     }
   }
 
-  // ... rest of the component remains exactly the same
   const hasStudyFilters =
     studyFilters.search.trim().length > 0 ||
     studyFilters.types.length > 0 ||

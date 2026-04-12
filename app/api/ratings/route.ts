@@ -1,3 +1,4 @@
+import { getBackendUrl } from "@/lib/api";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const baseUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://api.unitok.app").replace(/\/$/, "");
+  const baseUrl = getBackendUrl();
   if (!baseUrl) {
     return NextResponse.json(
       { ok: false, error: "Backend base URL not configured." },

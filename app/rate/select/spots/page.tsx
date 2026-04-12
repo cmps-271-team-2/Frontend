@@ -17,6 +17,7 @@ import {
   StudySpotFilters,
   StudySpotType,
 } from "@/lib/rating-catalog";
+import { getBackendUrl } from "@/lib/api";
 
 const STUDY_SPOT_TYPES: Array<{ label: string; value: StudySpotType }> = [
   { label: "Indoor", value: "indoor" },
@@ -83,9 +84,8 @@ export default function SelectSpotPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://34.55.22.211.nip.io"; 
-
+  const API_BASE_URL = getBackendUrl();
+  
   const loadItems = useCallback(async () => {
     setLoading(true);
     setError(null);

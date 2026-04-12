@@ -380,9 +380,9 @@ export default function SelectSpotPage() {
           onClick={() => setIsAddOpen(true)}
           className="mt-4 rounded-full border px-4 py-2 text-sm font-bold"
           style={{
-            borderColor: "var(--accent-green)",
+            borderColor: "var(--accent-purple)",
             background: "rgba(105,242,140,0.08)",
-            color: "var(--accent-green)",
+            color: "var(--accent-purple)",
           }}
         >
           + Add spot

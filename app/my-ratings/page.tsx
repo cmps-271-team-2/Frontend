@@ -153,7 +153,13 @@ export default function MyRatingsPage() {
 
     setLoading(true);
     try {
-      let data = await getMyPosts(token);
+      let data: Array<Record<string, unknown>> = [];
+
+      try {
+        data = await getMyPosts(token);
+      } catch {
+        // /posts/mine not yet available on the backend; fall through to client-side filter
+      }
 
       if (data.length === 0 && authUser) {
         const allPosts = await apiFetch<Array<Record<string, unknown>>>("/posts", { cache: "no-store", authToken: token });

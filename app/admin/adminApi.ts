@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import type { ApiFetchOptions } from "@/lib/api";
 import {
   analyticsDtoSchema,
   pagedResponseDtoSchema,
@@ -24,6 +25,18 @@ import {
   type AdminProfileDTO,
 } from "./dtos";
 
+function adminHeaders(): Record<string, string> {
+  const pw = typeof window !== "undefined" ? sessionStorage.getItem("admin_panel_password") : null;
+  return pw ? { "X-Admin-Password": pw } : {};
+}
+
+function adminFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+  return apiFetch<T>(path, {
+    ...options,
+    extraHeaders: { ...adminHeaders(), ...options.extraHeaders },
+  });
+}
+
 export async function fetchAdminProfiles(params: ListProfilesQueryDTO): Promise<PagedResponseDTO<AdminProfileDTO>> {
   const qs = new URLSearchParams();
   if (params.search) qs.set("search", params.search);
@@ -35,7 +48,7 @@ export async function fetchAdminProfiles(params: ListProfilesQueryDTO): Promise<
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
 
   const path = `/admin/profiles?${qs.toString()}`;
-  const raw = await apiFetch<unknown>(path);
+  const raw = await adminFetch<unknown>(path);
   return pagedResponseDtoSchema(adminProfileDtoSchema).parse(raw);
 }
 
@@ -51,12 +64,12 @@ export async function fetchAdminPosts(params: ListPostsQueryDTO): Promise<PagedR
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
 
   const path = `/admin/posts?${qs.toString()}`;
-  const raw = await apiFetch<unknown>(path);
+  const raw = await adminFetch<unknown>(path);
   return pagedResponseDtoSchema(adminPostDtoSchema).parse(raw);
 }
 
 export async function fetchAdminAnalytics(): Promise<AnalyticsDTO> {
-  const raw = await apiFetch<unknown>("/admin/analytics");
+  const raw = await adminFetch<unknown>("/admin/analytics");
   return analyticsDtoSchema.parse(raw);
 }
 
@@ -69,7 +82,7 @@ export async function fetchAdminJobs(params: ListJobsQueryDTO): Promise<PagedRes
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
 
   const path = `/admin/jobs?${qs.toString()}`;
-  const raw = await apiFetch<unknown>(path);
+  const raw = await adminFetch<unknown>(path);
   return pagedResponseDtoSchema(adminJobDtoSchema).parse(raw);
 }
 
@@ -83,19 +96,19 @@ export async function fetchAdminUsers(params: ListUsersQueryDTO): Promise<PagedR
   if (typeof params.limit === "number") qs.set("limit", String(params.limit));
 
   const path = `/admin/users?${qs.toString()}`;
-  const raw = await apiFetch<unknown>(path);
+  const raw = await adminFetch<unknown>(path);
   return pagedResponseDtoSchema(adminUserDtoSchema).parse(raw);
 }
 
 export async function deleteAdminPost(postId: string): Promise<DeleteResultDTO> {
-  const raw = await apiFetch<unknown>(`/admin/posts/${encodeURIComponent(postId)}`, {
+  const raw = await adminFetch<unknown>(`/admin/posts/${encodeURIComponent(postId)}`, {
     method: "DELETE",
   });
   return deleteResultDtoSchema.parse(raw);
 }
 
 export async function setAdminPostModeration(postId: string, accepted: boolean): Promise<SetPostModerationResultDTO> {
-  const raw = await apiFetch<unknown>(`/admin/posts/${encodeURIComponent(postId)}/moderation`, {
+  const raw = await adminFetch<unknown>(`/admin/posts/${encodeURIComponent(postId)}/moderation`, {
     method: "PATCH",
     body: JSON.stringify({ accepted }),
   });
@@ -103,14 +116,14 @@ export async function setAdminPostModeration(postId: string, accepted: boolean):
 }
 
 export async function deleteAdminUser(userId: string): Promise<DeleteResultDTO> {
-  const raw = await apiFetch<unknown>(`/admin/users/${encodeURIComponent(userId)}`, {
+  const raw = await adminFetch<unknown>(`/admin/users/${encodeURIComponent(userId)}`, {
     method: "DELETE",
   });
   return deleteResultDtoSchema.parse(raw);
 }
 
 export async function setAdminUserBanned(userId: string, banned: boolean): Promise<SetBannedResultDTO> {
-  const raw = await apiFetch<unknown>(`/admin/users/${encodeURIComponent(userId)}/banned`, {
+  const raw = await adminFetch<unknown>(`/admin/users/${encodeURIComponent(userId)}/banned`, {
     method: "PATCH",
     body: JSON.stringify({ banned }),
   });
@@ -118,7 +131,7 @@ export async function setAdminUserBanned(userId: string, banned: boolean): Promi
 }
 
 export async function setAdminProfileBanned(profileId: string, banned: boolean): Promise<SetBannedResultDTO> {
-  const raw = await apiFetch<unknown>(`/admin/profiles/${encodeURIComponent(profileId)}/banned`, {
+  const raw = await adminFetch<unknown>(`/admin/profiles/${encodeURIComponent(profileId)}/banned`, {
     method: "PATCH",
     body: JSON.stringify({ banned }),
   });

@@ -2,7 +2,12 @@
 
 import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  browserLocalPersistence,
+  browserSessionPersistence,
+  setPersistence,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Eye, EyeOff, Mail, Loader2, Star, Coffee, BookOpen } from "lucide-react";
@@ -104,6 +109,7 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({ email: "", password: "" });
@@ -219,6 +225,7 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
 
     setLoading(true);
     try {
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       await signInWithEmailAndPassword(auth, emailCheck.data, loginData.password);
       finishAuth();
     } catch (authError) {
@@ -606,7 +613,27 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
                           {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
                         </button>
                       </div>
-                      <div className="text-right"><button type="button" onClick={() => setAuthView("forgot")} className="text-[11px] font-bold uppercase tracking-widest accent-phrase pr-2">Forgot password?</button></div>
+                      <div className="flex items-center justify-between gap-4">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <span className="text-sm font-bold uppercase tracking-widest accent-phrase">Remember Me</span>
+                          <span
+                            className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border border-[var(--border)] transition-colors duration-200 ease-in-out"
+                            style={{ backgroundColor: rememberMe ? "var(--neon-purple)" : "rgba(255,255,255,0.14)" }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={rememberMe}
+                              onChange={(event) => setRememberMe(event.target.checked)}
+                              className="peer sr-only"
+                            />
+                            <span
+                              className="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out"
+                              style={{ transform: rememberMe ? "translateX(22px)" : "translateX(2px)" }}
+                            />
+                          </span>
+                        </label>
+                        <button type="button" onClick={() => setAuthView("forgot")} className="text-sm font-bold uppercase tracking-widest accent-phrase pr-2">Forgot password?</button>
+                      </div>
                       <button type="submit" className="w-full py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl" style={{ backgroundColor: 'var(--text)', color: 'var(--bg)' }} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : "Sign In"}</button>
                     </form>
                   </div>

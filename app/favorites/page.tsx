@@ -138,7 +138,7 @@ export default function FavoritesPage() {
 
   return (
     <main style={{ padding: 20, paddingBottom: 120, maxWidth: 860, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "var(--text)" }}>Favorites</h1>
           <p style={{ color: "var(--muted)", marginTop: 6, fontSize: 14, fontWeight: 500 }}>

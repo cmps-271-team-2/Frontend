@@ -114,10 +114,10 @@ export default function ReviewCard({
   }
 
   return (
-    <div className="snap-item bg-transparent w-full h-full flex flex-col justify-center items-center pt-20">
-      <div className="relative z-20 flex flex-col items-center w-[480px] max-w-[90vw]">
+    <div className="snap-item bg-transparent w-full h-full flex flex-col justify-center items-center pt-32 lg:pt-20">
+      <div className="relative z-20 flex flex-col items-center w-full max-w-[92vw] sm:max-w-[480px]">
         <div
-          className="w-full rounded-[2.5rem] p-9 flex flex-col items-center transition-shadow duration-300"
+          className="w-full rounded-[2.5rem] p-5 sm:p-9 flex flex-col items-center transition-shadow duration-300"
           style={{
             background: "var(--card)",
             border: "1px solid var(--border)",
@@ -162,7 +162,7 @@ export default function ReviewCard({
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center justify-center gap-12 w-full mb-5">
+          <div className="flex flex-wrap sm:flex-nowrap items-center justify-center gap-6 sm:gap-12 w-full mb-5">
             <button
               onClick={handleLike}
               disabled={isBusy}

@@ -826,7 +826,7 @@ export default function HomePage() {
     style={{ background: 'var(--bg)', color: 'var(--text)' }}
   >
     <ThemeToggle />
-    <main ref={mainRef} className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth" style={{ background: "var(--bg)" }}>
+    <main ref={mainRef} className="h-[100dvh] overflow-y-auto snap-y snap-mandatory scroll-smooth" style={{ background: "var(--bg)" }}>
       <GlobalHeader
         activeCategory={selectedCategoryFilter}
         setActiveCategory={setSelectedCategoryFilter}
@@ -835,7 +835,7 @@ export default function HomePage() {
       <SortBar activeSort={selectedSortFilter} setActiveSort={handleSortChange} />
 
       {selectedCategoryFilter === "Study Spot" || selectedCategoryFilter === "Food" ? (
-        <div className="fixed left-1/2 top-24 z-[110] -translate-x-1/2 px-3">
+        <div className="fixed left-1/2 top-[186px] z-[110] -translate-x-1/2 px-3 lg:top-24">
           <button
             type="button"
             onClick={() => setIsFiltersOpen(true)}

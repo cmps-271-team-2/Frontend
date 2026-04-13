@@ -14,7 +14,7 @@ export default function GlobalHeader({ activeCategory, setActiveCategory }: any)
     <>
       {/* ── Search bar ── */}
       <header className="fixed top-3 left-0 w-full z-[100] flex justify-center pointer-events-none">
-        <div className="w-full max-w-[480px] pointer-events-auto px-4">
+        <div className="w-full max-w-[480px] pointer-events-auto px-3 sm:px-4">
           <div className="relative">
             <input
               type="text"
@@ -44,8 +44,8 @@ export default function GlobalHeader({ activeCategory, setActiveCategory }: any)
         </div>
       </header>
 
-      {/* ── Category sidebar ── */}
-      <nav className="fixed top-0 right-6 h-screen z-[100] flex flex-col items-center justify-center gap-5">
+      {/* ── Category sidebar (desktop) ── */}
+      <nav className="fixed top-0 right-6 h-screen z-[100] hidden lg:flex flex-col items-center justify-center gap-5">
         <div className="mb-4 flex items-center justify-center">
           <img
             src="/UniTokLogo.png"
@@ -94,6 +94,39 @@ export default function GlobalHeader({ activeCategory, setActiveCategory }: any)
               </button>
             );
           })}
+        </div>
+      </nav>
+
+      {/* ── Category chips (mobile/tablet) ── */}
+      <nav className="fixed left-0 right-0 top-[74px] z-[100] px-3 lg:hidden pointer-events-none">
+        <div className="hide-scrollbar pointer-events-auto overflow-x-auto">
+          <div
+            className="mx-auto flex min-w-full w-max items-center gap-2 rounded-2xl border px-2 py-2"
+            style={{
+              maxWidth: 640,
+              background: "var(--card)",
+              borderColor: "var(--border)",
+            }}
+          >
+            {CATEGORIES.map((cat) => {
+              const isActive = activeCategory === cat.id;
+              return (
+                <button
+                  key={`mobile-${cat.id}`}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className="flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold"
+                  style={{
+                    borderColor: isActive ? cat.color : "var(--border)",
+                    color: isActive ? cat.color : "var(--muted)",
+                    background: isActive ? "var(--card-elevated)" : "transparent",
+                  }}
+                >
+                  {cat.icon}
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </nav>
     </>

@@ -21,7 +21,8 @@ export default function SortBar({ activeSort, setActiveSort }: any) {
   ];
 
   return (
-    <nav className="fixed top-0 left-6 h-screen z-[100] flex flex-col items-center justify-center gap-5">
+    <>
+    <nav className="fixed top-0 left-6 h-screen z-[100] hidden lg:flex flex-col items-center justify-center gap-5">
 
       <div className="flex flex-col gap-3">
         {sortOptions.map((option) => {
@@ -71,5 +72,38 @@ export default function SortBar({ activeSort, setActiveSort }: any) {
       </div>
 
     </nav>
+
+    <nav className="fixed left-0 right-0 top-[136px] z-[100] px-3 lg:hidden pointer-events-none">
+      <div className="hide-scrollbar pointer-events-auto overflow-x-auto">
+        <div
+          className="mx-auto flex min-w-full w-max items-center gap-2 rounded-2xl border px-2 py-2"
+          style={{
+            maxWidth: 640,
+            background: "var(--card)",
+            borderColor: "var(--border)",
+          }}
+        >
+          {sortOptions.map((option) => {
+            const isActive = activeSort === option.id;
+            return (
+              <button
+                key={`mobile-${option.id}`}
+                onClick={() => setActiveSort(option.id)}
+                className="flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold"
+                style={{
+                  borderColor: isActive ? option.color : "var(--border)",
+                  color: isActive ? option.color : "var(--muted)",
+                  background: isActive ? "var(--card-elevated)" : "transparent",
+                }}
+              >
+                {option.icon}
+                <span>{option.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </nav>
+    </>
   );
 }

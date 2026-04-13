@@ -187,9 +187,9 @@ export default function ProfilePage() {
         >
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text)" }}>Account</h2>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, padding: "14px 0" }}>
             <div style={{ color: "var(--muted)", fontWeight: 600, fontSize: 14 }}>Display name</div>
-            <div style={{ width: 200, display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+            <div style={{ width: "min(280px, 100%)", display: "flex", flexDirection: "column", alignItems: "flex-start", flexGrow: 1 }}>
               <input
                 value={name}
                 disabled={!showName}
@@ -218,7 +218,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div style={{ borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 0" }}>
+          <div style={{ borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, padding: "14px 0" }}>
             <div>
               <div style={{ color: "var(--muted)", fontWeight: 600, fontSize: 14 }}>Show my name on reviews</div>
               <div style={{ color: "var(--muted)", marginTop: 4, fontSize: 12, fontWeight: 500 }}>Your preference will apply to future posts.</div>
@@ -257,7 +257,7 @@ export default function ProfilePage() {
             </label>
           </div>
 
-          <div style={{ borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 0" }}>
+          <div style={{ borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, padding: "14px 0" }}>
             <div style={{ color: "var(--muted)", fontWeight: 600, fontSize: 14 }}>Show my ratings on my profile</div>
             <label style={{ position: "relative", width: 44, height: 24, flexShrink: 0 }}>
               <input
@@ -293,7 +293,7 @@ export default function ProfilePage() {
             </label>
           </div>
 
-          <div style={{ borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 0" }}>
+          <div style={{ borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, padding: "14px 0" }}>
             <div style={{ color: "var(--muted)", fontWeight: 600, fontSize: 14 }}>Email notifications</div>
             <label style={{ position: "relative", width: 44, height: 24, flexShrink: 0 }}>
               <input

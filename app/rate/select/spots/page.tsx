@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { addDoc, collection } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import MultiSelectChips from "@/app/rate/components/multi-select-chips";
 import {
   fetchCatalogItems,
@@ -17,7 +19,6 @@ import {
   StudySpotFilters,
   StudySpotType,
 } from "@/lib/rating-catalog";
-import { getBackendUrl } from "@/lib/api";
 
 const STUDY_SPOT_TYPES: Array<{ label: string; value: StudySpotType }> = [
   { label: "Indoor", value: "indoor" },
@@ -83,8 +84,6 @@ export default function SelectSpotPage() {
   const [foodFilters, setFoodFilters] = useState<FoodSpotFilters>(INITIAL_FOOD_FILTERS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const API_BASE_URL = getBackendUrl();
   
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -207,8 +206,21 @@ export default function SelectSpotPage() {
           return;
         }
 
+        const spotRef = await addDoc(collection(db, "spots"), {
+          name: newStudySpot.name.trim(),
+          category: "study",
+          location: newStudySpot.area.trim(),
+          rating: 0,
+          reviewCount: 0,
+          spotType: newStudySpot.spotType,
+          noiseLevel: newStudySpot.noiseLevel,
+          hasWifi: newStudySpot.hasWifi,
+          hasOutlets: newStudySpot.hasOutlets,
+          openNow: true,
+        });
+
         const newItem: StudySpotCatalogItem = {
-          id: data.id,
+          id: spotRef.id,
           kind: "study-spot",
           name: newStudySpot.name.trim(),
           area: newStudySpot.area.trim(),
@@ -235,36 +247,19 @@ export default function SelectSpotPage() {
           return;
         }
 
-        const response = await fetch(`${API_BASE_URL}/spots`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: newFoodSpot.name.trim(),
-            category: "food",
-            location: newFoodSpot.area.trim(),
-            description: "",
-            createdBy: "guest",
-            venueCategory: newFoodSpot.category,
-            priceLevel: newFoodSpot.priceLevel,
-            openNow: true,
-          }),
+        const spotRef = await addDoc(collection(db, "spots"), {
+          name: newFoodSpot.name.trim(),
+          category: "food",
+          location: newFoodSpot.area.trim(),
+          rating: 0,
+          reviewCount: 0,
+          venueCategory: newFoodSpot.category,
+          priceLevel: newFoodSpot.priceLevel,
+          openNow: true,
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data?.error || "Failed to add food spot.");
-        }
-
-        if (data.created === false) {
-          setError("This food spot already exists.");
-          return;
-        }
-
         const newItem: FoodSpotCatalogItem = {
-          id: data.id,
+          id: spotRef.id,
           kind: "food-spot",
           name: newFoodSpot.name.trim(),
           area: newFoodSpot.area.trim(),

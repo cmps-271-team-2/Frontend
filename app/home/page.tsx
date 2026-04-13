@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { auth } from "@/lib/firebase";
+import { fetchFirestoreSpots } from "@/lib/spots";
 import {
   addFavorite,
   clearPostReaction,
@@ -52,6 +53,7 @@ type BackendPost = {
   courseCode?: string;
   professorName?: string;
   spotName?: string;
+  targetName?: string;
   displayName?: string;
   authorName?: string;
   semesterTaken?: string;
@@ -99,6 +101,7 @@ type HomeReview = {
   courseCode?: string;
   professorName?: string;
   spotName?: string;
+  targetName?: string;
   displayName?: string;
   semester?: string;
   title?: string;
@@ -293,6 +296,14 @@ function mapPostToReview(post: BackendPost, index: number, lookup: PostTargetLoo
     courseCode: post.courseCode,
     professorName: post.professorName,
     spotName: derivedSpotName,
+    targetName:
+      (typeof post.targetName === "string" && post.targetName.trim().length > 0
+        ? post.targetName.trim()
+        : undefined) ||
+      (typeof post.spotName === "string" && post.spotName.trim().length > 0
+        ? post.spotName.trim()
+        : undefined) ||
+      (typeof post.title === "string" && post.title.trim().length > 0 ? post.title.trim() : undefined),
     displayName: authorDisplayName,
     semester: post.semesterTaken ?? post.year,
     kind: getKindFromTargetType(rawTargetType),
@@ -432,7 +443,7 @@ export default function HomePage() {
           apiFetch<BackendPost[]>(`/posts?sort_by=${sort_by}&order=${order}&indexed_only=true`, { cache: "no-store", authToken }),
           apiFetch<LookupEntity[]>("/profiles", { cache: "no-store" }).catch(() => []),
           apiFetch<LookupEntity[]>("/cafeterias", { cache: "no-store" }).catch(() => []),
-          apiFetch<LookupEntity[]>("/spots", { cache: "no-store" }).catch(() => []),
+          fetchFirestoreSpots().catch(() => []),
           apiFetch<LookupEntity[]>("/courses", { cache: "no-store" }).catch(() => []),
         ]);
         if (!mounted) {

@@ -30,6 +30,7 @@ type Review = {
   course?: { code?: string; codeName?: string };
   professorName?: string;
   targetId?: string;
+  targetName?: string;
   displayName?: string;
   showDisplayName?: boolean;
   semester?: string;
@@ -73,6 +74,7 @@ export default function ReviewCard({
   const cleanCourseCode = typeof review.courseCode === "string" ? review.courseCode.trim() : "";
   const cleanTitle = typeof review.title === "string" ? review.title.trim() : "";
   const cleanSpotName = typeof review.spotName === "string" ? review.spotName.trim() : "";
+  const cleanTargetName = typeof review.targetName === "string" ? review.targetName.trim() : "";
   const cleanProfessorName = typeof review.professorName === "string" ? review.professorName.trim() : "";
   const cleanTargetId = typeof review.targetId === "string" ? review.targetId.trim() : "";
   const majorLabel = typeof review.major === "string" && review.major.trim().length > 0 ? review.major.trim() : "Unknown Major";
@@ -82,7 +84,7 @@ export default function ReviewCard({
   // Compute title based on review kind
   const displayTitle =
     review.kind === "study-spot" || review.kind === "food-spot"
-      ? cleanSpotName || cleanTitle || cleanCode || cleanTargetId || "Campus Spot"
+      ? cleanTargetName || cleanSpotName || cleanTitle || cleanCode || cleanTargetId || "Campus Spot"
       : cleanCode.length > 0
         ? cleanCode
         : cleanCourseCode.length > 0

@@ -1,3 +1,5 @@
+import { fetchFirestoreSpots } from "@/lib/spots";
+
 export type SpotKind = "study-spot" | "food-spot";
 export type AcademicKind = "course" | "professor";
 export type CatalogKind = SpotKind | AcademicKind;
@@ -88,10 +90,54 @@ function includesQuery(parts: Array<string | undefined>, query: string): boolean
   return parts.some((part) => normalizedText(part).includes(normalizedQuery));
 }
 
+function resolveSpotKind(category: string | undefined): SpotKind {
+  const normalized = normalizedText(category);
+  return normalized.includes("food") ? "food-spot" : "study-spot";
+}
+
+function mapFirestoreSpotToCatalogItem(spot: Awaited<ReturnType<typeof fetchFirestoreSpots>>[number]): CatalogItem {
+  const kind = resolveSpotKind(spot.category);
+
+  if (kind === "food-spot") {
+    return {
+      id: spot.id,
+      name: spot.name,
+      subtitle: spot.location || undefined,
+      kind,
+      area: spot.location,
+      venueCategory: "restaurant",
+      priceLevel: "$",
+      openNow: true,
+      rating: spot.rating,
+    };
+  }
+
+  return {
+    id: spot.id,
+    name: spot.name,
+    subtitle: spot.location || undefined,
+    kind,
+    area: spot.location,
+    spotType: "mixed",
+    noiseLevel: "moderate",
+    hasWifi: false,
+    hasOutlets: false,
+    openNow: true,
+    rating: spot.rating,
+  };
+}
+
 export async function fetchCatalogItems(
   group: CatalogGroup,
   kind: SpotKind | AcademicKind | "all"
 ): Promise<CatalogItem[]> {
+  if (group === "spots") {
+    const spots = await fetchFirestoreSpots();
+    return spots
+      .map(mapFirestoreSpotToCatalogItem)
+      .filter((item) => kind === "all" || item.kind === kind);
+  }
+
   const response = await fetch(`/api/rating-catalog?group=${group}&kind=${kind}`);
   const data = (await response.json().catch(() => null)) as CatalogResponse | null;
 

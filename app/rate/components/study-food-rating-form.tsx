@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, useMemo } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { apiFetch } from "@/lib/api";
@@ -10,6 +10,7 @@ import PhotoUpload from "./photo-upload";
 import RatingStars from "./rating-stars";
 import { StudyFoodCategory } from "@/lib/ratings";
 import { detectTags } from "@/lib/tag-detector";
+import { fetchFirestoreSpots, type FirestoreSpot } from "@/lib/spots";
 
 const MIN_COMMENT_LENGTH = 20;
 
@@ -51,6 +52,8 @@ export default function StudyFoodRatingForm({
   initialCategory,
   lockSelection = false,
 }: StudyFoodFormProps) {
+  const [spots, setSpots] = useState<FirestoreSpot[]>([]);
+  const [selectedSpotId, setSelectedSpotId] = useState(initialTargetId ?? "");
   const [spotName, setSpotName] = useState(initialSpotName ?? "");
   const [category, setCategory] = useState<StudyFoodCategory | "">(initialCategory ?? "");
   const [location, setLocation] = useState("");
@@ -64,6 +67,40 @@ export default function StudyFoodRatingForm({
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [errors, setErrors] = useState<StudyFoodFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    void fetchFirestoreSpots()
+      .then((items) => {
+        if (mounted) {
+          setSpots(items);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setSpots([]);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (lockSelection) {
+      setSelectedSpotId(initialTargetId ?? "");
+      setSpotName(initialSpotName ?? "");
+      return;
+    }
+
+    const selectedSpot = spots.find((spot) => spot.id === selectedSpotId);
+    if (selectedSpot) {
+      setSpotName(selectedSpot.name);
+      setCategory(selectedSpot.category.includes("food") ? "food-spot" : "study-spot");
+    }
+  }, [initialSpotName, initialTargetId, lockSelection, selectedSpotId, spots]);
 
   // Auto-detect tags from comment text
   const autoDetectedTags = useMemo(() => {
@@ -82,6 +119,7 @@ export default function StudyFoodRatingForm({
 
   function resetForm() {
     photoPreviews.forEach((preview) => URL.revokeObjectURL(preview));
+    setSelectedSpotId(initialTargetId ?? "");
     setSpotName(initialSpotName ?? "");
     setCategory(initialCategory ?? "");
     setLocation("");
@@ -163,6 +201,15 @@ export default function StudyFoodRatingForm({
         ? (userSnap.data() as { displayName?: string; major?: string; showDisplayName?: boolean })
         : {};
 
+      const selectedSpot = spots.find((spot) => spot.id === selectedSpotId);
+      const resolvedTargetId = selectedSpot?.id || initialTargetId;
+      const resolvedTargetName = spotName.trim() || selectedSpot?.name || initialSpotName || "";
+      const resolvedCategory = selectedSpot
+        ? selectedSpot.category.includes("food")
+          ? "food-spot"
+          : "study-spot"
+        : (category as StudyFoodCategory);
+
       await apiFetch<{ id: string; status?: string; message?: string; moderation?: { status?: string; allowed?: boolean } }>(
         "/posts",
         {
@@ -171,14 +218,15 @@ export default function StudyFoodRatingForm({
           body: JSON.stringify({
             rating: overallRating,
             text: comment.trim(),
-            targetId: initialTargetId,
+            targetId: resolvedTargetId,
             targetType: "spot",
-            title: spotName.trim(),
-            spotName: spotName.trim(),
-            category: category as StudyFoodCategory,
+            targetName: resolvedTargetName,
+            title: resolvedTargetName,
+            spotName: resolvedTargetName,
+            category: resolvedCategory,
             location: location.trim() || undefined,
             attributes: finalAttributes,
-            priceRange: category === "food-spot" ? priceRange.trim() || undefined : undefined,
+            priceRange: resolvedCategory === "food-spot" ? priceRange.trim() || undefined : undefined,
             bestTimeToGo: bestTimeToGo.trim() || undefined,
             media: photoFiles.map((file) => file.name),
             userId: currentUser.uid,
@@ -203,14 +251,43 @@ export default function StudyFoodRatingForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <label className="block text-sm font-semibold">Spot name *</label>
-        <input
-          type="text"
-          value={spotName}
-          onChange={(event) => setSpotName(event.target.value)}
-          disabled={lockSelection}
-          className="w-full rounded-lg border px-3 py-2"
-          style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
-        />
+        {lockSelection ? (
+          <input
+            type="text"
+            value={spotName}
+            onChange={(event) => setSpotName(event.target.value)}
+            disabled={lockSelection}
+            className="w-full rounded-lg border px-3 py-2"
+            style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+          />
+        ) : (
+          <select
+            value={selectedSpotId}
+            onChange={(event) => {
+              const nextId = event.target.value;
+              setSelectedSpotId(nextId);
+              const nextSpot = spots.find((spot) => spot.id === nextId);
+              setSpotName(nextSpot?.name ?? "");
+              if (nextSpot) {
+                setCategory(nextSpot.category.includes("food") ? "food-spot" : "study-spot");
+              }
+            }}
+            className="w-full rounded-lg border px-3 py-2"
+            style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+          >
+            <option value="">Select a spot</option>
+            {spots.map((spot) => (
+              <option key={spot.id} value={spot.id}>
+                {spot.name}
+              </option>
+            ))}
+          </select>
+        )}
+        {!lockSelection && selectedSpotId ? (
+          <p className="text-xs font-semibold" style={{ color: "var(--muted)" }}>
+            {spots.find((spot) => spot.id === selectedSpotId)?.location || ""}
+          </p>
+        ) : null}
         {errors.spotName ? <p className="text-sm text-red-500">{errors.spotName}</p> : null}
       </div>
 

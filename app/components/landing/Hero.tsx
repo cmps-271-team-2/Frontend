@@ -12,11 +12,11 @@ const fadeUp: Variants = {
 
 export default function Hero({ onOpenAuth }: Props) {
   return (
-    <section className="min-h-screen w-full flex items-center justify-center relative overflow-hidden py-10">
+    <section className="min-h-screen w-full flex items-center justify-center relative overflow-hidden py-6 sm:py-10">
       {/* Using flex-nowrap on desktop to prevent clipping. 
           Reduced gap to lg:gap-8 to keep them close. 
       */}
-      <div className="max-w-7xl mx-auto w-full px-6 flex flex-col md:flex-row md:flex-nowrap items-center justify-center gap-6 lg:gap-8">
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 flex flex-col md:flex-row md:flex-nowrap items-center justify-center gap-10 md:gap-6 lg:gap-8">
         
         {/* Left Side: Content */}
         <motion.div 
@@ -24,11 +24,11 @@ export default function Hero({ onOpenAuth }: Props) {
           initial="hidden" 
           whileInView="show" 
           viewport={{ once: true }} 
-          className="w-full md:w-auto flex-1 min-w-[320px] md:min-w-[500px] z-10"
+          className="w-full md:w-auto flex-1 min-w-0 md:min-w-[500px] z-10 text-center md:text-left flex flex-col items-center md:items-start"
         >
           <motion.p 
             variants={fadeUp} 
-            className="inline-block mb-4 px-4 py-1 rounded-full text-xs md:text-sm uppercase tracking-widest border font-bold" 
+            className="inline-block mb-4 px-4 py-1 rounded-full text-[11px] sm:text-xs md:text-sm uppercase tracking-widest border font-bold" 
             style={{ background: 'var(--card)', color: 'var(--text)', borderColor: 'var(--border)' }}
           >
             Your campus, your voice
@@ -37,18 +37,18 @@ export default function Hero({ onOpenAuth }: Props) {
           <motion.h1 
             variants={fadeUp} 
             /* Reduced font size slightly to prevent clipping on smaller laptops */
-            className="display-font text-[2.5rem] sm:text-[3.2rem] md:text-[4.2rem] lg:text-[4.8rem] font-black tracking-tight leading-[1.1]" 
+            className="display-font text-[2.3rem] sm:text-[3.2rem] md:text-[4.2rem] lg:text-[4.8rem] font-black tracking-tight leading-[1.05] sm:leading-[1.1]" 
             style={{ color: 'var(--text)' }}
           >
-            <span className="block whitespace-nowrap">Find it. Rate it.</span>
+            <span className="block whitespace-normal sm:whitespace-nowrap">Find it. Rate it.</span>
             <span className="accent-phrase pr-4 inline-block">UniTok</span> it.
           </motion.h1>
 
-          <motion.p variants={fadeUp} className="mt-6 text-base md:text-lg font-medium max-w-md" style={{ color: 'var(--text)', opacity: 1 }}>
+          <motion.p variants={fadeUp} className="mt-5 sm:mt-6 text-sm sm:text-base md:text-lg font-medium max-w-md" style={{ color: 'var(--text)', opacity: 1 }}>
             Honest student reviews for professors, food, and study spots.
           </motion.p>
 
-          <motion.div variants={fadeUp} className="mt-8 flex flex-col sm:flex-row gap-4">
+          <motion.div variants={fadeUp} className="mt-7 sm:mt-8 flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-stretch sm:items-start justify-center md:justify-start">
             <button onClick={onOpenAuth} className="px-8 py-4 rounded-full font-bold transition-all hover:scale-105 active:scale-95 shadow-xl italic" 
                     style={{ background: 'var(--text)', color: 'var(--bg)' }}>
               Explore Reviews
@@ -66,10 +66,10 @@ export default function Hero({ onOpenAuth }: Props) {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
-          className="w-full md:w-auto flex-1 flex items-center justify-center"
+          className="w-full md:w-auto flex-1 flex items-center justify-center mt-2 md:mt-0"
         >
           {/* Constrained max-width to prevent the logo from eating the whole screen */}
-          <div className="relative w-[280px] h-[280px] sm:w-[350px] sm:h-[350px] md:w-[480px] md:h-[480px] lg:w-[580px] lg:h-[580px] flex items-center justify-center">
+          <div className="relative w-[220px] h-[220px] sm:w-[350px] sm:h-[350px] md:w-[480px] md:h-[480px] lg:w-[580px] lg:h-[580px] flex items-center justify-center">
             {/* Ambient glow */}
             <div className="absolute inset-0 bg-[var(--neon-purple)]/20 blur-[80px] md:blur-[120px] rounded-full" />
             

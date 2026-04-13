@@ -686,10 +686,10 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
                     <button
                       type="button"
                       onClick={toggleAuthMode}
-                      className="w-full rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-widest"
+                      className="w-full rounded-full border px-4 py-3 text-[11px] font-bold tracking-wide leading-tight"
                       style={{ borderColor: "var(--border)", color: "var(--text)" }}
                     >
-                      {isSignUp ? "Switch to Sign In" : "Switch to Sign Up"}
+                      {isSignUp ? "New Here? Sign up now!" : "Already have an account? Sign In!"}
                     </button>
                   </div>
                 </>

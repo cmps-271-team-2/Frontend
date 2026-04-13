@@ -367,6 +367,7 @@ export default function HomePage() {
   const [authUser, setAuthUser] = useState<FirebaseUser | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedSortFilter, setSelectedSortFilter] = useState<SortFilter>("relevant");
   const [ratings, setRatings] = useState<HomeReview[]>([]);
   const [userReactions, setUserReactions] = useState<Record<string, UserReaction>>({});
@@ -502,6 +503,8 @@ export default function HomePage() {
   }, [authReady, authUser, selectedSortFilter]);
 
   const filteredReviews = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+
     const next = ratings.filter((review) => {
       const mappedCategory = normalizeCategory(review.category ?? review.type);
 
@@ -525,7 +528,13 @@ export default function HomePage() {
         return false;
       }
 
-      const ratingValue = getRatingValue(review);
+      if (normalizedSearch.length > 0) {
+        const title = (review.title || "").toLowerCase();
+        const targetName = (review.targetName || "").toLowerCase();
+        if (!title.includes(normalizedSearch) && !targetName.includes(normalizedSearch)) {
+          return false;
+        }
+      }
 
       return true;
     });
@@ -535,6 +544,7 @@ export default function HomePage() {
     activeFoodCategory,
     activeNoise,
     ratings,
+    searchQuery,
     selectedCategoryFilter,
   ]);
 
@@ -841,6 +851,8 @@ export default function HomePage() {
       <GlobalHeader
         activeCategory={selectedCategoryFilter}
         setActiveCategory={setSelectedCategoryFilter}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
       />
 
       <SortBar activeSort={selectedSortFilter} setActiveSort={handleSortChange} />

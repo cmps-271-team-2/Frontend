@@ -9,7 +9,19 @@ const CATEGORIES = [
   { id: "Study Spot", label: "Study", icon: <BookOpen size={18} />, color: "var(--accent-green)" },
 ];
 
-export default function GlobalHeader({ activeCategory, setActiveCategory }: any) {
+type GlobalHeaderProps = {
+  activeCategory: string;
+  setActiveCategory: (value: string) => void;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+};
+
+export default function GlobalHeader({
+  activeCategory,
+  setActiveCategory,
+  searchQuery,
+  onSearchQueryChange,
+}: GlobalHeaderProps) {
   return (
     <>
       {/* ── Search bar ── */}
@@ -19,11 +31,14 @@ export default function GlobalHeader({ activeCategory, setActiveCategory }: any)
             <input
               type="text"
               placeholder="Search ratings..."
-              className="w-full text-sm pl-14 pr-5 py-3 rounded-2xl outline-none transition-all duration-200"
+              value={searchQuery}
+              onChange={(event) => onSearchQueryChange(event.target.value)}
+              className="w-full text-sm pr-5 py-3 rounded-2xl outline-none transition-all duration-200"
               style={{
                 background: "var(--card)",
                 border: "1px solid var(--border)",
                 color: "var(--text)",
+                paddingLeft: "3.25rem",
                 boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
               }}
               onFocus={(e) => {
@@ -36,9 +51,9 @@ export default function GlobalHeader({ activeCategory, setActiveCategory }: any)
               }}
             />
             <Search
-              className="absolute left-4.5 top-1/2 -translate-y-1/2"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
               style={{ color: "var(--muted)" }}
-              size={18}
+              size={16}
             />
           </div>
         </div>

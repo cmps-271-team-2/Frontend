@@ -37,7 +37,7 @@ export default function MultiSelectChips({
               className="rounded-full border px-3 py-1.5 text-sm font-medium transition"
               style={{
                 borderColor: isSelected ? "var(--accent)" : "var(--border)",
-                background: isSelected ? "rgba(197, 107, 255, 0.08)" : "transparent",
+                background: isSelected ? "rgba(197, 107, 255, 0.12)" : "var(--card-elevated)",
                 color: "var(--text)",
               }}
             >

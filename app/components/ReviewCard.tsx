@@ -135,6 +135,12 @@ export default function ReviewCard({
             {displayTitle}
           </h2>
 
+          {review.kind === "course-professor" && cleanProfessorName.length > 0 && cleanProfessorName.toLowerCase() !== displayTitle.toLowerCase() ? (
+            <p className="-mt-1 mb-3 text-center text-sm font-semibold" style={{ color: "var(--muted)" }}>
+              {cleanProfessorName}
+            </p>
+          ) : null}
+
           {/* Stars */}
           <div className="flex gap-2 items-center justify-center mb-5">
             {[...Array(5)].map((_, i) => {

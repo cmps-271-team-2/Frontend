@@ -427,7 +427,7 @@ export default function SelectSpotPage() {
                   onClick={clearCurrentFilters}
                   disabled={!hasActiveFilters}
                   className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50"
-                  style={{ borderColor: "var(--border)" }}
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)" }}
                 >
                   Clear filters
                 </button>
@@ -435,7 +435,7 @@ export default function SelectSpotPage() {
                   type="button"
                   onClick={() => setIsFiltersOpen(false)}
                   className="rounded-full border px-3 py-1 text-xs font-bold"
-                  style={{ borderColor: "var(--border)" }}
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)" }}
                 >
                   Done
                 </button>
@@ -492,7 +492,7 @@ export default function SelectSpotPage() {
                     className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm font-semibold"
                     style={{
                       borderColor: studyFilters.requireWifi ? "var(--accent-green)" : "var(--border)",
-                      background: studyFilters.requireWifi ? "rgba(105,242,140,0.08)" : "transparent",
+                      background: studyFilters.requireWifi ? "rgba(105,242,140,0.12)" : "var(--card-elevated)",
                     }}
                   >
                     <span>Wifi</span>
@@ -528,7 +528,7 @@ export default function SelectSpotPage() {
                     className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm font-semibold"
                     style={{
                       borderColor: studyFilters.requireOutlets ? "var(--accent-green)" : "var(--border)",
-                      background: studyFilters.requireOutlets ? "rgba(105,242,140,0.08)" : "transparent",
+                      background: studyFilters.requireOutlets ? "rgba(105,242,140,0.12)" : "var(--card-elevated)",
                     }}
                   >
                     <span>Outlets</span>
@@ -564,7 +564,7 @@ export default function SelectSpotPage() {
                     className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm font-semibold"
                     style={{
                       borderColor: studyFilters.openNowOnly ? "var(--accent-green)" : "var(--border)",
-                      background: studyFilters.openNowOnly ? "rgba(105,242,140,0.08)" : "transparent",
+                      background: studyFilters.openNowOnly ? "rgba(105,242,140,0.12)" : "var(--card-elevated)",
                     }}
                   >
                     <span>Open now</span>

@@ -897,7 +897,7 @@ export default function HomePage() {
                   }}
                   disabled={!hasActiveFilters}
                   className="rounded-full border px-3 py-1 text-xs font-bold disabled:opacity-50"
-                  style={{ borderColor: "var(--border)" }}
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)" }}
                 >
                   Clear filters
                 </button>
@@ -905,7 +905,7 @@ export default function HomePage() {
                   type="button"
                   onClick={() => setIsFiltersOpen(false)}
                   className="rounded-full border px-3 py-1 text-xs font-bold"
-                  style={{ borderColor: "var(--border)" }}
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)" }}
                 >
                   Done
                 </button>
@@ -925,7 +925,7 @@ export default function HomePage() {
                       style={{
                         borderColor: isActive ? "var(--accent-green)" : "var(--border)",
                         color: isActive ? "var(--accent-green)" : "var(--text)",
-                        background: isActive ? "rgba(105,242,140,0.08)" : "transparent",
+                        background: isActive ? "rgba(105,242,140,0.12)" : "var(--card-elevated)",
                       }}
                     >
                       {option.label}
@@ -948,7 +948,7 @@ export default function HomePage() {
                       style={{
                         borderColor: isActive ? "var(--accent-orange)" : "var(--border)",
                         color: isActive ? "var(--accent-orange)" : "var(--text)",
-                        background: isActive ? "rgba(255,176,32,0.08)" : "transparent",
+                        background: isActive ? "rgba(255,176,32,0.12)" : "var(--card-elevated)",
                       }}
                     >
                       {option.label}

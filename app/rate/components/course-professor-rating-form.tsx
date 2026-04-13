@@ -269,7 +269,14 @@ export default function CourseProfessorRatingForm({
         <>
           <div className="space-y-2">
             <label className="block text-sm font-semibold">Course *</label>
-            {coursesLoading ? (
+            {lockSelection ? (
+              <div
+                className="w-full rounded-lg border px-3 py-2 text-sm font-semibold"
+                style={{ borderColor: "var(--accent-blue)", background: "rgba(91, 200, 255, 0.08)" }}
+              >
+                {courseCode || initialName || "Selected course"}
+              </div>
+            ) : coursesLoading ? (
               <p className="text-xs" style={{ color: "var(--muted)" }}>Loading courses…</p>
             ) : (
               <DarkSelect

@@ -191,24 +191,26 @@ async function fetchProfessors(): Promise<ProfessorCatalogItem[]> {
     throw new Error("Failed to load professors.");
   }
 
-  return data
-    .map((professor, index) => {
-      const name = typeof professor.name === "string" ? professor.name.trim() : "";
-      const department = typeof professor.department === "string" ? professor.department.trim() : "";
+  const professors: ProfessorCatalogItem[] = [];
 
-      if (!name) {
-        return null;
-      }
+  data.forEach((professor, index) => {
+    const name = typeof professor.name === "string" ? professor.name.trim() : "";
+    const department = typeof professor.department === "string" ? professor.department.trim() : "";
 
-      return {
-        id: typeof professor.id === "string" && professor.id.trim().length > 0 ? professor.id.trim() : `professor-${index}`,
-        kind: "professor" as const,
-        name,
-        subtitle: department || undefined,
-        department: department || undefined,
-      };
-    })
-    .filter((item): item is ProfessorCatalogItem => item !== null);
+    if (!name) {
+      return;
+    }
+
+    professors.push({
+      id: typeof professor.id === "string" && professor.id.trim().length > 0 ? professor.id.trim() : `professor-${index}`,
+      kind: "professor" as const,
+      name,
+      subtitle: department || undefined,
+      department: department || undefined,
+    });
+  });
+
+  return professors;
 }
 
 export async function GET(request: Request) {

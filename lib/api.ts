@@ -10,7 +10,12 @@ export type ApiFetchOptions = RequestInit & {
 };
 
 export function getBackendUrl(): string {
-  return "https://api.unitok.app";
+  const configuredBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_BACKEND_URL?.trim() ||
+    "http://127.0.0.1:8000";
+
+  return configuredBaseUrl.replace(/\/$/, "");
 }
 
 export async function apiFetch<T>(

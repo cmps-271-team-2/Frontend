@@ -89,6 +89,8 @@ export default function ReviewCard({
         ? cleanCode
         : cleanCourseCode.length > 0
         ? cleanCourseCode
+        : cleanTargetName.length > 0
+        ? cleanTargetName
         : cleanTitle.length > 0
         ? cleanTitle
         : cleanProfessorName.length > 0

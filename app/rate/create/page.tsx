@@ -34,6 +34,7 @@ function CreateRatingPageContent() {
   const flow = searchParams.get("flow");
   const selectedId = searchParams.get("id") || "";
   const selectedName = searchParams.get("name") || "";
+  const selectedLabel = searchParams.get("label") || selectedName;
   const category = searchParams.get("category") as StudyFoodCategory | null;
   const academicType = searchParams.get("type") as CourseProfessorType | null;
 
@@ -75,7 +76,7 @@ function CreateRatingPageContent() {
     <main className="mx-auto w-full max-w-3xl px-4 pb-32 pt-6" style={{ color: "var(--text)" }}>
       <h1 className="text-2xl font-black">{heading}</h1>
       <p className="mt-1 text-sm font-semibold" style={{ color: "var(--muted)" }}>
-        Selected item: {selectedName}
+        Selected item: {selectedLabel}
       </p>
 
       <section

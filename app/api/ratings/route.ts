@@ -71,12 +71,13 @@ function mapRatingPayloadToPost(body: Record<string, unknown>) {
 
     return {
       targetId: String(body.targetId || ""),
-      targetType: String(body.type || "course"),
+      targetType: body.type === "professor" ? "profile" : String(body.type || "course"),
       text: String(body.comment || ""),
       rating: numericRatings.length
         ? Math.round(numericRatings.reduce((sum, value) => sum + value, 0) / numericRatings.length)
         : 0,
       kind: "course-professor",
+      targetName: String(body.targetName || body.professorName || body.courseName || ""),
       title: body.type === "professor" ? String(body.professorName || "") : String(body.courseName || ""),
       department: body.department,
       semesterTaken: body.semesterTaken,

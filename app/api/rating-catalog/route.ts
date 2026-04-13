@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getBackendUrl } from "@/lib/api";
 import type {
   AcademicKind,
   CatalogItem,
@@ -175,61 +176,73 @@ const COURSES: CourseCatalogItem[] = [
   },
 ];
 
-const PROFESSORS: ProfessorCatalogItem[] = [
-  {
-    id: "p1",
-    kind: "professor",
-    name: "Dr. Rana Haddad",
-    subtitle: "Computer Science",
-    department: "Computer Science",
-  },
-  {
-    id: "p2",
-    kind: "professor",
-    name: "Dr. Samir Nassar",
-    subtitle: "Mathematics",
-    department: "Mathematics",
-  },
-  {
-    id: "p3",
-    kind: "professor",
-    name: "Dr. Layla Harb",
-    subtitle: "Engineering",
-    department: "Electrical and Computer Engineering",
-  },
-  {
-    id: "p4",
-    kind: "professor",
-    name: "Dr. Nour Khoury",
-    subtitle: "Nutrition and Food Science",
-    department: "Nutrition and Food Science",
-  },
-];
+async function fetchProfessors(): Promise<ProfessorCatalogItem[]> {
+  const baseUrl = getBackendUrl();
+  if (!baseUrl) {
+    throw new Error("Backend base URL not configured.");
+  }
 
-const ACADEMICS: Record<AcademicKind, CatalogItem[]> = {
-  course: [...COURSES],
-  professor: [...PROFESSORS],
-};
+  const response = await fetch(`${baseUrl}/professors?sort_by=name&order=asc`, {
+    cache: "no-store",
+  });
+
+  const data = (await response.json().catch(() => null)) as Array<Record<string, unknown>> | null;
+  if (!response.ok || !Array.isArray(data)) {
+    throw new Error("Failed to load professors.");
+  }
+
+  return data
+    .map((professor, index) => {
+      const name = typeof professor.name === "string" ? professor.name.trim() : "";
+      const department = typeof professor.department === "string" ? professor.department.trim() : "";
+
+      if (!name) {
+        return null;
+      }
+
+      return {
+        id: typeof professor.id === "string" && professor.id.trim().length > 0 ? professor.id.trim() : `professor-${index}`,
+        kind: "professor" as const,
+        name,
+        subtitle: department || undefined,
+        department: department || undefined,
+      };
+    })
+    .filter((item): item is ProfessorCatalogItem => item !== null);
+}
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const group = searchParams.get("group");
-  const kind = searchParams.get("kind");
+  try {
+    const { searchParams } = new URL(request.url);
+    const group = searchParams.get("group");
+    const kind = searchParams.get("kind");
 
-  if (group === "spots" && (kind === "study-spot" || kind === "food-spot")) {
-    return NextResponse.json({ ok: true, items: SPOTS[kind] });
+    if (group === "spots" && (kind === "study-spot" || kind === "food-spot")) {
+      return NextResponse.json({ ok: true, items: SPOTS[kind] });
+    }
+
+    if (group === "academics" && kind === "course") {
+      return NextResponse.json({ ok: true, items: COURSES });
+    }
+
+    if (group === "academics" && kind === "professor") {
+      const professors = await fetchProfessors();
+      return NextResponse.json({ ok: true, items: professors });
+    }
+
+    if (group === "academics" && kind === "all") {
+      const professors = await fetchProfessors();
+      return NextResponse.json({ ok: true, items: [...COURSES, ...professors] });
+    }
+
+    return NextResponse.json(
+      { ok: false, error: "Invalid group/kind query." },
+      { status: 400 }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Failed to load catalog items." },
+      { status: 500 }
+    );
   }
-
-  if (group === "academics" && (kind === "course" || kind === "professor")) {
-    return NextResponse.json({ ok: true, items: ACADEMICS[kind] });
-  }
-
-  if (group === "academics" && kind === "all") {
-    return NextResponse.json({ ok: true, items: [...COURSES, ...PROFESSORS] });
-  }
-
-  return NextResponse.json(
-    { ok: false, error: "Invalid group/kind query." },
-    { status: 400 }
-  );
 }

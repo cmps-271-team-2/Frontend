@@ -8,6 +8,18 @@ import { AcademicKind, fetchCatalogItems, type CatalogItem } from "@/lib/rating-
 
 type AcademicItem = CatalogItem;
 
+function getAcademicLabel(item: CatalogItem): string {
+  if (item.kind === "professor") {
+    return item.subtitle ? `${item.name} — ${item.subtitle}` : item.name;
+  }
+
+  if (item.kind === "course") {
+    return item.subtitle ? `${item.name} — ${item.subtitle}` : item.name;
+  }
+
+  return item.subtitle ? `${item.name} — ${item.subtitle}` : item.name;
+}
+
 export default function SelectAcademicPage() {
   const router = useRouter();
   const [kind, setKind] = useState<AcademicKind | "all">("all");
@@ -135,18 +147,13 @@ export default function SelectAcademicPage() {
             type="button"
             onClick={() =>
               router.push(
-                `/rate/create?flow=course-professor&type=${item.kind}&id=${encodeURIComponent(item.id)}&name=${encodeURIComponent(item.name)}`
+                `/rate/create?flow=course-professor&type=${item.kind}&id=${encodeURIComponent(item.id)}&name=${encodeURIComponent(item.name)}&label=${encodeURIComponent(getAcademicLabel(item))}`
               )
             }
             className="w-full rounded-xl border px-4 py-3 text-left"
             style={{ borderColor: "var(--border)", background: "var(--card)" }}
           >
-            <div className="font-bold">{item.name}</div>
-            {item.subtitle ? (
-              <div className="text-xs font-semibold" style={{ color: "var(--muted)" }}>
-                {item.subtitle}
-              </div>
-            ) : null}
+            <div className="font-bold">{getAcademicLabel(item)}</div>
           </button>
         ))}
       </div>

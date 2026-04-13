@@ -146,7 +146,7 @@ function getKindFromTargetType(targetType: string | undefined): "study-spot" | "
 function mapTargetTypeToCategory(targetType: string | undefined): string | undefined {
   const normalized = (targetType || "").trim().toLowerCase();
 
-  if (normalized === "prof" || normalized === "professor" || normalized === "course") {
+  if (normalized === "prof" || normalized === "professor" || normalized === "profile" || normalized === "course") {
     return "Professor";
   }
 
@@ -231,6 +231,10 @@ function mapPostToReview(post: BackendPost, index: number, lookup: PostTargetLoo
   const normalizedTargetType = rawTargetType.toLowerCase();
   const resolvedTargetLabel = resolveTargetLabel(post, lookup);
   const normalizedTitle = rawTitle;
+  const explicitTargetName =
+    typeof post.targetName === "string" && post.targetName.trim().length > 0
+      ? post.targetName.trim()
+      : undefined;
   const authorDisplayName =
     (typeof post.displayName === "string" && post.displayName.trim().length > 0
       ? post.displayName.trim()
@@ -297,9 +301,7 @@ function mapPostToReview(post: BackendPost, index: number, lookup: PostTargetLoo
     professorName: post.professorName,
     spotName: derivedSpotName,
     targetName:
-      (typeof post.targetName === "string" && post.targetName.trim().length > 0
-        ? post.targetName.trim()
-        : undefined) ||
+      explicitTargetName ||
       (typeof post.spotName === "string" && post.spotName.trim().length > 0
         ? post.spotName.trim()
         : undefined) ||
@@ -307,7 +309,7 @@ function mapPostToReview(post: BackendPost, index: number, lookup: PostTargetLoo
     displayName: authorDisplayName,
     semester: post.semesterTaken ?? post.year,
     kind: getKindFromTargetType(rawTargetType),
-    title: normalizedTitle || resolvedTargetLabel || undefined,
+    title: normalizedTitle || resolvedTargetLabel || explicitTargetName || undefined,
   };
   return mapped;
 }
@@ -442,9 +444,10 @@ export default function HomePage() {
         const { sort_by, order } = getSortParams(selectedSortFilter);
         const query = searchQuery.trim();
         const searchParam = query.length > 0 ? `&search=${encodeURIComponent(query)}` : "";
-        const [posts, profiles, cafeterias, spots, courses] = await Promise.all([
+        const [posts, profiles, professors, cafeterias, spots, courses] = await Promise.all([
           apiFetch<BackendPost[]>(`/posts?sort_by=${sort_by}&order=${order}&indexed_only=true${searchParam}`, { cache: "no-store", authToken }),
           apiFetch<LookupEntity[]>("/profiles", { cache: "no-store" }).catch(() => []),
+          apiFetch<LookupEntity[]>("/professors", { cache: "no-store" }).catch(() => []),
           apiFetch<LookupEntity[]>("/cafeterias", { cache: "no-store" }).catch(() => []),
           fetchFirestoreSpots().catch(() => []),
           apiFetch<LookupEntity[]>("/courses", { cache: "no-store" }).catch(() => []),
@@ -454,10 +457,16 @@ export default function HomePage() {
         }
 
         const lookup: PostTargetLookup = {
-          profilesByIdOrName: createLookupMap(profiles, (item) => item.name, [
-            (item) => item.id,
-            (item) => item.name,
-          ]),
+          profilesByIdOrName: {
+            ...createLookupMap(profiles, (item) => item.name, [
+              (item) => item.id,
+              (item) => item.name,
+            ]),
+            ...createLookupMap(professors, (item) => item.name, [
+              (item) => item.id,
+              (item) => item.name,
+            ]),
+          },
           cafeteriasByIdOrName: createLookupMap(cafeterias, (item) => item.name, [
             (item) => item.id,
             (item) => item.name,

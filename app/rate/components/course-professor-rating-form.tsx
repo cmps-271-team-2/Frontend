@@ -189,6 +189,7 @@ export default function CourseProfessorRatingForm({
         text: comment.trim(),
         targetId: initialTargetId,
         targetType: type === "course" ? "course" : "professor",
+        targetName: type === "course" ? derivedCourseName || courseCode.trim() || undefined : professorName.trim() || undefined,
         title: derivedCourseName || professorName.trim() || courseCode.trim() || undefined,
         courseCode: courseCode.trim() || undefined,
         courseName: derivedCourseName || undefined,

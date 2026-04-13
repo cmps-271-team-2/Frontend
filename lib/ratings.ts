@@ -22,6 +22,7 @@ export type CourseProfessorRatingPayload = {
   ratingType: "course-professor";
   targetId: string;
   type: CourseProfessorType;
+  targetName?: string;
   courseCode?: string;
   courseName?: string;
   professorName?: string;

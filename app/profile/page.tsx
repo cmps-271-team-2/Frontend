@@ -37,7 +37,6 @@ export default function ProfilePage() {
   const [showName, setShowName] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailNotifs, setEmailNotifs] = useState(false);
-  const [showMyRatingsPublicly, setShowMyRatingsPublicly] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -246,42 +245,6 @@ export default function ProfilePage() {
                   position: "absolute",
                   top: 3,
                   left: showName ? 22 : 3,
-                  width: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  background: "#fff",
-                  transition: "left 0.2s ease",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-                }}
-              />
-            </label>
-          </div>
-
-          <div style={{ borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, padding: "14px 0" }}>
-            <div style={{ color: "var(--muted)", fontWeight: 600, fontSize: 14 }}>Show my ratings on my profile</div>
-            <label style={{ position: "relative", width: 44, height: 24, flexShrink: 0 }}>
-              <input
-                type="checkbox"
-                checked={showMyRatingsPublicly}
-                onChange={(e) => setShowMyRatingsPublicly(e.target.checked)}
-                style={{ opacity: 0, width: 0, height: 0, position: "absolute" }}
-              />
-              <span
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: 12,
-                  cursor: "pointer",
-                  transition: "background-color 0.2s ease, border-color 0.2s ease",
-                  backgroundColor: showMyRatingsPublicly ? TOGGLE_ON_COLOR : TOGGLE_OFF_COLOR,
-                  border: `1px solid ${showMyRatingsPublicly ? TOGGLE_ON_COLOR : TOGGLE_OFF_BORDER}`,
-                }}
-              />
-              <span
-                style={{
-                  position: "absolute",
-                  top: 3,
-                  left: showMyRatingsPublicly ? 22 : 3,
                   width: 18,
                   height: 18,
                   borderRadius: 9,

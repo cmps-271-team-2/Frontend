@@ -460,7 +460,7 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
 
   return (
     <div className="relative w-full transition-colors duration-300" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
-      <ThemeToggle />
+      {!showLogin ? <ThemeToggle /> : null}
       <div className="fixed inset-0 z-0 pointer-events-none opacity-30">
         <FloatingBackground variant="stars" count={40} />
       </div>
@@ -502,25 +502,25 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-[920px] min-h-[600px] rounded-[2.5rem] overflow-hidden flex shadow-2xl transition-colors duration-300"
+              className="relative w-full max-w-[920px] max-h-[92dvh] overflow-y-auto md:overflow-hidden md:max-h-none min-h-[560px] md:min-h-[600px] rounded-[1.5rem] md:rounded-[2.5rem] flex flex-col md:flex-row shadow-2xl transition-colors duration-300"
               style={{ background: 'var(--bg)', border: '1px solid var(--border)', boxShadow: "0px 25px 60px rgba(0, 0, 0, 0.4)" }}
             >
               <button
                 type="button"
                 onClick={closeAuthModal}
-                className="absolute top-6 right-6 z-[110] text-zinc-500 hover:text-red-500 transition-colors"
+                className="absolute top-3 right-3 md:top-6 md:right-6 z-[120] rounded-full p-2 text-zinc-500 hover:text-red-500 transition-colors"
                 disabled={loading}
               >
                 <X size={24}/>
               </button>
 
               {authView === "forgot" ? (
-                <div className="w-full flex flex-col items-center justify-center p-12 text-center">
+                <div className="w-full flex flex-col items-center justify-center p-5 md:p-12 text-center">
                   <div className="w-16 h-16 mb-6 flex items-center justify-center rounded-2xl bg-purple-500/10 border border-purple-500/20"><Mail className="text-[#C56BFF]" size={28} /></div>
                   <h2 className="text-5xl font-black mb-2 italic"><span style={{ color: 'var(--text)' }} className="mr-2">Reset</span><span className="accent-phrase pr-4">Password</span></h2>
                   <p className="text-[10px] font-black uppercase tracking-widest mb-10" style={{ color: 'var(--text-muted)' }}>Enter your AUB email</p>
 
-                  <form onSubmit={forgotCodeSent ? handleResetPassword : handleForgotPasswordSubmit} className="w-full max-w-sm space-y-6">
+                  <form onSubmit={forgotCodeSent ? handleResetPassword : handleForgotPasswordSubmit} className="w-full max-w-sm space-y-4 md:space-y-6">
                     {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
                     {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
                     <input
@@ -601,9 +601,9 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
               ) : (
                 <>
                   {/*sign in side*/}
-                  <div className={`w-1/2 flex flex-col items-center justify-center p-8 transition-all duration-700 ease-in-out ${isSignUp ? "translate-x-full opacity-0 pointer-events-none" : "translate-x-0 opacity-100"}`}>
-                    <h2 className="text-5xl font-black mb-8 italic">Sign <span className="accent-phrase pr-6">In</span></h2>
-                    <form onSubmit={handleSignIn} className="w-full max-w-sm space-y-4">
+                  <div className={`${isSignUp ? "hidden md:flex" : "flex"} w-full md:w-1/2 flex-col items-center justify-center p-5 md:p-8 transition-all duration-700 ease-in-out ${isSignUp ? "md:translate-x-full md:opacity-0 md:pointer-events-none" : "md:translate-x-0 md:opacity-100"}`}>
+                    <h2 className="text-4xl md:text-5xl font-black mb-6 md:mb-8 italic">Sign <span className="accent-phrase pr-6">In</span></h2>
+                    <form onSubmit={handleSignIn} className="w-full max-w-sm space-y-3 md:space-y-4">
                       {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
                       {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
                       <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={loginData.email} onChange={handleLoginChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required autoComplete="email" />
@@ -639,9 +639,9 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
                   </div>
 
                   {/*sign up side*/}
-                  <div className={`w-1/2 flex flex-col items-center justify-center p-8 transition-all duration-700 ease-in-out ${isSignUp ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"}`}>
-                    <h2 className="text-5xl font-black mb-8 italic">Sign <span className="accent-phrase pr-6">Up</span></h2>
-                    <form onSubmit={otpRequested ? handleVerifyOtp : handleRequestOtp} className="w-full max-w-sm space-y-4">
+                  <div className={`${isSignUp ? "flex" : "hidden md:flex"} w-full md:w-1/2 flex-col items-center justify-center p-5 md:p-8 transition-all duration-700 ease-in-out ${isSignUp ? "md:translate-x-0 md:opacity-100" : "md:-translate-x-full md:opacity-0 md:pointer-events-none"}`}>
+                    <h2 className="text-4xl md:text-5xl font-black mb-6 md:mb-8 italic">Sign <span className="accent-phrase pr-6">Up</span></h2>
+                    <form onSubmit={otpRequested ? handleVerifyOtp : handleRequestOtp} className="w-full max-w-sm space-y-3 md:space-y-4">
                       {error && <p className="text-red-400 text-xs font-bold uppercase tracking-widest">{error}</p>}
                       {successMessage && <p className="text-green-400 text-xs font-bold uppercase tracking-widest">{successMessage}</p>}
                       <input name="email" type="email" placeholder="abc00@mail.aub.edu" value={signUpData.email} onChange={handleSignUpChange} className="w-full px-5 py-4 rounded-xl outline-none" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} required readOnly={otpRequested} autoComplete="email" />
@@ -675,11 +675,22 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
                   </div>
 
                   {/* OVERLAY PANEL */}
-                  <div className={`absolute top-0 left-1/2 w-1/2 h-full transition-transform duration-700 ease-in-out z-50 flex flex-col items-center justify-center p-8 text-center pointer-events-none border-[4px] border-zinc-200 rounded-[2.5rem] ${isSignUp ? "-translate-x-full" : "translate-x-0"}`} style={{ background: 'var(--bg)' }}>
+                  <div className={`absolute top-0 left-1/2 w-1/2 h-full transition-transform duration-700 ease-in-out z-50 hidden md:flex flex-col items-center justify-center p-8 text-center pointer-events-none border-[4px] border-zinc-200 rounded-[2.5rem] ${isSignUp ? "-translate-x-full" : "translate-x-0"}`} style={{ background: 'var(--bg)' }}>
                     <div className="pointer-events-auto">
                       <h3 className="text-3xl font-black mb-4 italic leading-tight">{isSignUp ? "Welcome " : "New "}<span className="accent-phrase pr-6">{isSignUp ? "Back!" : "here?"}</span></h3>
                       <button type="button" onClick={toggleAuthMode} className="px-8 py-3 border-2 rounded-full font-bold italic uppercase tracking-widest transition-all text-xs" style={{ color: 'var(--text)', borderColor: 'var(--text)' }}>{isSignUp ? "Sign In" : "Sign Up"}</button>
                     </div>
+                  </div>
+
+                  <div className="md:hidden w-full px-5 pb-5 text-center">
+                    <button
+                      type="button"
+                      onClick={toggleAuthMode}
+                      className="w-full rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-widest"
+                      style={{ borderColor: "var(--border)", color: "var(--text)" }}
+                    >
+                      {isSignUp ? "Switch to Sign In" : "Switch to Sign Up"}
+                    </button>
                   </div>
                 </>
               )}

@@ -59,6 +59,7 @@ type BackendPost = {
   semesterTaken?: string;
   title?: string;
   Title?: string;
+  indexed?: boolean;
 };
 
 type LookupEntity = {
@@ -355,6 +356,13 @@ function getCreatedAtMs(review: HomeReview): number {
   return 0;
 }
 
+function getSortParams(sort: SortFilter): { sort_by: string; order: "asc" | "desc" } {
+  if (sort === "oldest") return { sort_by: "createdAt", order: "asc" };
+  if (sort === "highestRating") return { sort_by: "rating", order: "desc" };
+  if (sort === "lowestRating") return { sort_by: "rating", order: "asc" };
+  return { sort_by: "createdAt", order: "desc" };
+}
+
 export default function HomePage() {
   const [authUser, setAuthUser] = useState<FirebaseUser | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -430,8 +438,9 @@ export default function HomePage() {
 
       try {
         const authToken = authUser ? await authUser.getIdToken() : undefined;
+        const { sort_by, order } = getSortParams(selectedSortFilter);
         const [posts, profiles, cafeterias, spots, courses] = await Promise.all([
-          apiFetch<BackendPost[]>("/posts", { cache: "no-store", authToken }),
+          apiFetch<BackendPost[]>(`/posts?sort_by=${sort_by}&order=${order}&indexed_only=true`, { cache: "no-store", authToken }),
           apiFetch<LookupEntity[]>("/profiles", { cache: "no-store" }).catch(() => []),
           apiFetch<LookupEntity[]>("/cafeterias", { cache: "no-store" }).catch(() => []),
           fetchFirestoreSpots().catch(() => []),
@@ -490,7 +499,7 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, [authReady, authUser]);
+  }, [authReady, authUser, selectedSortFilter]);
 
   const filteredReviews = useMemo(() => {
     const next = ratings.filter((review) => {
@@ -521,46 +530,12 @@ export default function HomePage() {
       return true;
     });
 
-    const sorted = [...next];
-    sorted.sort((a, b) => {
-      if (selectedSortFilter === "relevant") {
-        return b.likes - a.likes;
-      }
-
-      if (selectedSortFilter === "newest") {
-        return getCreatedAtMs(b) - getCreatedAtMs(a);
-      }
-
-      if (selectedSortFilter === "oldest") {
-        return getCreatedAtMs(a) - getCreatedAtMs(b);
-      }
-
-      if (selectedSortFilter === "highestRating") {
-        const ratingDiff = getRatingValue(b) - getRatingValue(a);
-        if (ratingDiff !== 0) {
-          return ratingDiff;
-        }
-        return getCreatedAtMs(b) - getCreatedAtMs(a);
-      }
-
-      if (selectedSortFilter === "lowestRating") {
-        const ratingDiff = getRatingValue(a) - getRatingValue(b);
-        if (ratingDiff !== 0) {
-          return ratingDiff;
-        }
-        return getCreatedAtMs(b) - getCreatedAtMs(a);
-      }
-
-      return 0;
-    });
-
-    return sorted;
+    return next;
   }, [
     activeFoodCategory,
     activeNoise,
     ratings,
     selectedCategoryFilter,
-    selectedSortFilter,
   ]);
 
   useEffect(() => {
@@ -619,30 +594,8 @@ export default function HomePage() {
     if (nextSort === selectedSortFilter) {
       return;
     }
-
-    if (
-      nextSort === "newest" ||
-      nextSort === "oldest" ||
-      nextSort === "highestRating" ||
-      nextSort === "lowestRating"
-    ) {
-      anchorReviewIdRef.current = null;
-      jumpToTopOnSortRef.current = true;
-      setSelectedSortFilter(nextSort);
-      return;
-    }
-
-    const container = mainRef.current;
-    if (container && filteredReviews.length > 0) {
-      const pageIndex = Math.round(container.scrollTop / Math.max(1, container.clientHeight));
-      const safeIndex = Math.min(Math.max(pageIndex, 0), filteredReviews.length - 1);
-      anchorReviewIdRef.current = filteredReviews[safeIndex]?.id ?? null;
-    } else {
-      anchorReviewIdRef.current = null;
-    }
-
-    jumpToTopOnSortRef.current = false;
-
+    anchorReviewIdRef.current = null;
+    jumpToTopOnSortRef.current = true;
     setSelectedSortFilter(nextSort);
   }
 
@@ -884,7 +837,7 @@ export default function HomePage() {
     style={{ background: 'var(--bg)', color: 'var(--text)' }}
   >
     <ThemeToggle />
-    <main ref={mainRef} className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth" style={{ background: "var(--bg)" }}>
+    <main ref={mainRef} className="h-[100dvh] overflow-y-auto snap-y snap-mandatory scroll-smooth" style={{ background: "var(--bg)" }}>
       <GlobalHeader
         activeCategory={selectedCategoryFilter}
         setActiveCategory={setSelectedCategoryFilter}
@@ -893,7 +846,7 @@ export default function HomePage() {
       <SortBar activeSort={selectedSortFilter} setActiveSort={handleSortChange} />
 
       {selectedCategoryFilter === "Study Spot" || selectedCategoryFilter === "Food" ? (
-        <div className="fixed left-1/2 top-24 z-[110] -translate-x-1/2 px-3">
+        <div className="fixed left-1/2 top-[198px] z-[110] -translate-x-1/2 px-3 lg:top-24">
           <button
             type="button"
             onClick={() => setIsFiltersOpen(true)}

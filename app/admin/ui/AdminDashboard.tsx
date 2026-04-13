@@ -309,11 +309,6 @@ export default function AdminDashboard() {
                   <div className="mt-2 text-xs opacity-75">Avg/day: {series.length ? Math.round(series.reduce((a, b) => a + b.posts, 0) / series.length) : "—"}</div>
                 </div>
                 <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4">
-                  <div className="text-xs opacity-70">Profiles</div>
-                  <div className="mt-1 text-2xl font-semibold tabular-nums">{totals?.profilesTotal ?? "—"}</div>
-                  <div className="mt-2 text-xs opacity-75">Targets to rate</div>
-                </div>
-                <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-4">
                   <div className="text-xs opacity-70">Velocity</div>
                   <div className="mt-1 text-2xl font-semibold tabular-nums">
                     {series.length ? Math.round(series.reduce((a, b) => a + b.users + b.posts, 0) / series.length) : "—"}

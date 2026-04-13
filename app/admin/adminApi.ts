@@ -4,7 +4,6 @@ import {
   analyticsDtoSchema,
   pagedResponseDtoSchema,
   adminPostDtoSchema,
-  adminProfileDtoSchema,
   adminJobDtoSchema,
   adminUserDtoSchema,
   deleteResultDtoSchema,
@@ -17,12 +16,10 @@ import {
   type SetBannedResultDTO,
   type SetPostModerationResultDTO,
   type ListPostsQueryDTO,
-  type ListProfilesQueryDTO,
   type ListJobsQueryDTO,
   type ListUsersQueryDTO,
   type PagedResponseDTO,
   type AdminPostDTO,
-  type AdminProfileDTO,
 } from "./dtos";
 
 function adminHeaders(): Record<string, string> {
@@ -35,21 +32,6 @@ function adminFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> 
     ...options,
     extraHeaders: { ...adminHeaders(), ...options.extraHeaders },
   });
-}
-
-export async function fetchAdminProfiles(params: ListProfilesQueryDTO): Promise<PagedResponseDTO<AdminProfileDTO>> {
-  const qs = new URLSearchParams();
-  if (params.search) qs.set("search", params.search);
-  if (params.location) qs.set("location", params.location);
-  if (params.status) qs.set("status", params.status);
-  if (typeof params.minReports === "number") qs.set("minReports", String(params.minReports));
-  if (typeof params.maxReports === "number") qs.set("maxReports", String(params.maxReports));
-  if (typeof params.offset === "number") qs.set("offset", String(params.offset));
-  if (typeof params.limit === "number") qs.set("limit", String(params.limit));
-
-  const path = `/admin/profiles?${qs.toString()}`;
-  const raw = await adminFetch<unknown>(path);
-  return pagedResponseDtoSchema(adminProfileDtoSchema).parse(raw);
 }
 
 export async function fetchAdminPosts(params: ListPostsQueryDTO): Promise<PagedResponseDTO<AdminPostDTO>> {
@@ -130,10 +112,4 @@ export async function setAdminUserBanned(userId: string, banned: boolean): Promi
   return setBannedResultDtoSchema.parse(raw);
 }
 
-export async function setAdminProfileBanned(profileId: string, banned: boolean): Promise<SetBannedResultDTO> {
-  const raw = await adminFetch<unknown>(`/admin/profiles/${encodeURIComponent(profileId)}/banned`, {
-    method: "PATCH",
-    body: JSON.stringify({ banned }),
-  });
-  return setBannedResultDtoSchema.parse(raw);
-}
+

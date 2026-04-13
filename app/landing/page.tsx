@@ -689,7 +689,7 @@ export default function Landing({ onLoginSuccess }: LandingProps) {
                       className="w-full rounded-full border px-4 py-3 text-[11px] font-bold tracking-wide leading-tight"
                       style={{ borderColor: "var(--border)", color: "var(--text)" }}
                     >
-                      {isSignUp ? "New Here? Sign up now!" : "Already have an account? Sign In!"}
+                      {isSignUp ? "Already have an account? Sign In!" : "New Here? Sign up now!"}
                     </button>
                   </div>
                 </>

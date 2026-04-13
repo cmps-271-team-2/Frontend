@@ -10,12 +10,7 @@ export type ApiFetchOptions = RequestInit & {
 };
 
 export function getBackendUrl(): string {
-  const configuredBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_BACKEND_URL?.trim() ||
-    "http://127.0.0.1:8000";
-
-  return configuredBaseUrl.replace(/\/$/, "");
+  return process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/$/, "") || "";
 }
 
 export async function apiFetch<T>(
@@ -23,6 +18,9 @@ export async function apiFetch<T>(
   options: ApiFetchOptions = {}
 ): Promise<T> {
   const baseUrl = getBackendUrl();
+  if (!baseUrl) {
+    throw new Error("NEXT_PUBLIC_API_BASE_URL is missing in .env");
+  }
 
   const { authToken, ...fetchOptions } = options;
 

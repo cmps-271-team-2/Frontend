@@ -13,11 +13,11 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
 NEXT_PUBLIC_FIREBASE_APP_ID=...
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+NEXT_PUBLIC_API_BASE_URL=<your-backend-url>
 
 ```
 
-If you are connecting to a remote FastAPI deployment, set `NEXT_PUBLIC_API_BASE_URL` to that server's public URL instead.
+Set `NEXT_PUBLIC_API_BASE_URL` to the backend URL for your environment, such as your local FastAPI instance or the Docker service URL.
 
 First, run the development server:
 

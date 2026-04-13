@@ -58,6 +58,11 @@ function normalizeSpotName(value: string) {
   return value.trim().toLowerCase();
 }
 
+type SpotSubmitFeedback = {
+  type: "success" | "error";
+  message: string;
+} | null;
+
 export default function SelectSpotPage() {
   const router = useRouter();
   const [kind, setKind] = useState<SpotKind>("study-spot");
@@ -87,6 +92,17 @@ export default function SelectSpotPage() {
   const [foodFilters, setFoodFilters] = useState<FoodSpotFilters>(INITIAL_FOOD_FILTERS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submitFeedback, setSubmitFeedback] = useState<SpotSubmitFeedback>(null);
+  const [isSubmittingSpot, setIsSubmittingSpot] = useState(false);
+
+  useEffect(() => {
+    if (!submitFeedback) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => setSubmitFeedback(null), 2500);
+    return () => window.clearTimeout(timer);
+  }, [submitFeedback]);
   
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -217,11 +233,14 @@ export default function SelectSpotPage() {
 
   async function handleAddSpotSubmit() {
     setError(null);
+    setSubmitFeedback(null);
 
     try {
+      setIsSubmittingSpot(true);
       const currentUser = auth.currentUser;
       if (!currentUser) {
         setError("Please sign in first.");
+        setIsSubmittingSpot(false);
         return;
       }
 
@@ -231,6 +250,7 @@ export default function SelectSpotPage() {
 
         if (!nextName || !nextArea) {
           setError("Please enter both study spot name and area.");
+          setIsSubmittingSpot(false);
           return;
         }
 
@@ -242,6 +262,7 @@ export default function SelectSpotPage() {
 
         if (duplicateExists) {
           setError("Spot already exists.");
+          setIsSubmittingSpot(false);
           return;
         }
 
@@ -265,12 +286,14 @@ export default function SelectSpotPage() {
           hasWifi: false,
           hasOutlets: false,
         });
+        setSubmitFeedback({ type: "success", message: "Spot submitted! Pending approval" });
       } else {
         const nextName = newFoodSpot.name.trim();
         const nextArea = newFoodSpot.area.trim();
 
         if (!nextName || !nextArea) {
           setError("Please enter both food spot name and area.");
+          setIsSubmittingSpot(false);
           return;
         }
 
@@ -282,6 +305,7 @@ export default function SelectSpotPage() {
 
         if (duplicateExists) {
           setError("Spot already exists.");
+          setIsSubmittingSpot(false);
           return;
         }
 
@@ -301,11 +325,13 @@ export default function SelectSpotPage() {
           category: "restaurant",
           priceLevel: "$",
         });
+        setSubmitFeedback({ type: "success", message: "Spot submitted! Pending approval" });
       }
 
-      setIsAddOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add spot.");
+      setSubmitFeedback({ type: "error", message: "Something went wrong" });
+    } finally {
+      setIsSubmittingSpot(false);
     }
   }
 
@@ -772,9 +798,18 @@ export default function SelectSpotPage() {
               type="button"
               className="mt-4 w-full rounded-lg border px-3 py-2 font-bold"
               onClick={handleAddSpotSubmit}
+              disabled={isSubmittingSpot}
             >
-              Submit
+              {isSubmittingSpot ? "Submitting..." : "Submit"}
             </button>
+            {submitFeedback ? (
+              <p
+                className="mt-2 text-sm font-semibold"
+                style={{ color: submitFeedback.type === "success" ? "#c56bff" : "#ef4444" }}
+              >
+                {submitFeedback.message}
+              </p>
+            ) : null}
           </section>
         </div>
       ) : null}

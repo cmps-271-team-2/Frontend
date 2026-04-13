@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { collection, deleteDoc, doc, getDocs, serverTimestamp, writeBatch } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import type {
   AnalyticsDTO,
   AdminModerationStatusDTO,
@@ -19,11 +21,27 @@ import {
 } from "../adminApi";
 import TankPreview from "./TankPreview";
 
-type TabId = "analytics" | "posts" | "users";
+type TabId = "analytics" | "posts" | "users" | "spots";
 
 type LoadState = {
   loading: boolean;
   error: string | null;
+};
+
+type FeedbackState = {
+  type: "success" | "error";
+  message: string;
+} | null;
+
+type PendingSpotDTO = {
+  id: string;
+  name: string;
+  category: string;
+  location: string;
+  createdBy: string;
+  status: string;
+  createdAt: string;
+  data: Record<string, unknown>;
 };
 
 function useDebouncedValue<T>(value: T, delayMs: number) {
@@ -73,16 +91,36 @@ function moderationTone(status: AdminModerationStatusDTO): "good" | "warn" | "ba
   return "neutral";
 }
 
+function formatSpotCreatedAt(value: string) {
+  try {
+    if (!value) return "—";
+    return new Date(value).toLocaleString();
+  } catch {
+    return value || "—";
+  }
+}
+
+function toDisplayString(value: unknown, fallback = "—"): string {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : fallback;
+}
+
 export default function AdminDashboard() {
   const [tab, setTab] = useState<TabId>("analytics");
 
   const [posts, setPosts] = useState<AdminPostDTO[]>([]);
   const [users, setUsers] = useState<AdminUserDTO[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsDTO | null>(null);
+  const [spots, setSpots] = useState<PendingSpotDTO[]>([]);
 
   const [postsState, setPostsState] = useState<LoadState>({ loading: false, error: null });
   const [usersState, setUsersState] = useState<LoadState>({ loading: false, error: null });
   const [analyticsState, setAnalyticsState] = useState<LoadState>({ loading: false, error: null });
+  const [spotsState, setSpotsState] = useState<LoadState>({ loading: false, error: null });
 
   const [postSearch, setPostSearch] = useState("");
   const [postTargetType, setPostTargetType] = useState<string | "all">("all");
@@ -97,9 +135,20 @@ export default function AdminDashboard() {
   const [screenFlash, setScreenFlash] = useState(false);
   const [tankFlashKey, setTankFlashKey] = useState(0);
   const [shatteringUserId, setShatteringUserId] = useState<string | null>(null);
+  const [spotBusyId, setSpotBusyId] = useState<string | null>(null);
+  const [spotFeedback, setSpotFeedback] = useState<FeedbackState>(null);
 
   const debouncedPostSearch = useDebouncedValue(postSearch, 250);
   const debouncedUserSearch = useDebouncedValue(userSearch, 250);
+
+  useEffect(() => {
+    if (!spotFeedback) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => setSpotFeedback(null), 2500);
+    return () => window.clearTimeout(timer);
+  }, [spotFeedback]);
 
   async function loadAnalytics() {
     setAnalyticsState({ loading: true, error: null });
@@ -144,6 +193,41 @@ export default function AdminDashboard() {
       setUsersState({ loading: false, error: null });
     } catch (e: any) {
       setUsersState({ loading: false, error: e?.message ?? "Failed to load users" });
+    }
+  }
+
+  async function loadSpots() {
+    setSpotsState({ loading: true, error: null });
+    try {
+      const snapshot = await getDocs(collection(db, "pending_spots"));
+      const items = snapshot.docs.map((document) => {
+        const data = document.data() as Record<string, unknown>;
+
+        const createdAt =
+          typeof data.createdAt === "string"
+            ? data.createdAt
+            : typeof data.createdAt === "number"
+              ? new Date(data.createdAt).toISOString()
+              : data.createdAt && typeof data.createdAt.toDate === "function"
+                ? data.createdAt.toDate().toISOString()
+                : "";
+
+        return {
+          id: document.id,
+          name: toDisplayString(data.name, document.id),
+          category: toDisplayString(data.category),
+          location: toDisplayString(data.location),
+          createdBy: toDisplayString(data.createdBy),
+          status: toDisplayString(data.status, "pending"),
+          createdAt,
+          data,
+        };
+      });
+
+      setSpots(items);
+      setSpotsState({ loading: false, error: null });
+    } catch (e: any) {
+      setSpotsState({ loading: false, error: e?.message ?? "Failed to load spots" });
     }
   }
 
@@ -193,11 +277,54 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleApproveSpot(spot: PendingSpotDTO) {
+    setSpotBusyId(spot.id);
+    setSpotFeedback(null);
+    try {
+      const batch = writeBatch(db);
+      const spotRef = doc(db, "spots", spot.id);
+      batch.set(spotRef, {
+        ...spot.data,
+        name: spot.name,
+        category: spot.category,
+        location: spot.location,
+        createdBy: spot.createdBy,
+        status: "approved",
+        approvedAt: serverTimestamp(),
+        rating: typeof spot.data.rating === "number" ? spot.data.rating : 0,
+        reviewCount: typeof spot.data.reviewCount === "number" ? spot.data.reviewCount : 0,
+      });
+      batch.delete(doc(db, "pending_spots", spot.id));
+      await batch.commit();
+      setSpots((current) => current.filter((item) => item.id !== spot.id));
+      setSpotFeedback({ type: "success", message: `Approved ${spot.name}.` });
+    } catch (e: any) {
+      setSpotFeedback({ type: "error", message: e?.message ?? "Failed to approve spot" });
+    } finally {
+      setSpotBusyId(null);
+    }
+  }
+
+  async function handleRejectSpot(spotId: string) {
+    setSpotBusyId(spotId);
+    setSpotFeedback(null);
+    try {
+      await deleteDoc(doc(db, "pending_spots", spotId));
+      setSpots((current) => current.filter((item) => item.id !== spotId));
+      setSpotFeedback({ type: "success", message: "Rejected spot submission." });
+    } catch (e: any) {
+      setSpotFeedback({ type: "error", message: e?.message ?? "Failed to reject spot" });
+    } finally {
+      setSpotBusyId(null);
+    }
+  }
+
   useEffect(() => {
     // Load each tab lazily.
     if (tab === "analytics" && !analytics && !analyticsState.loading) loadAnalytics();
     if (tab === "posts" && posts.length === 0 && !postsState.loading) loadPosts();
     if (tab === "users" && users.length === 0 && !usersState.loading) loadUsers();
+    if (tab === "spots" && spots.length === 0 && !spotsState.loading) loadSpots();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -257,6 +384,7 @@ export default function AdminDashboard() {
                 { id: "analytics" as const, label: "Analytics" },
                 { id: "posts" as const, label: "Posts" },
                 { id: "users" as const, label: "Users" },
+                { id: "spots" as const, label: "Spots" },
               ] as const
             ).map((t) => (
               <button
@@ -606,6 +734,102 @@ export default function AdminDashboard() {
               </div>
 
               <div className="text-xs opacity-70">Showing {users.length} users.{usersState.loading ? " Loading…" : ""}</div>
+            </section>
+          )}
+
+          {tab === "spots" && (
+            <section className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-medium">Spots</h2>
+                  <p className="text-sm opacity-75">Review pending spot submissions before they are approved.</p>
+                </div>
+                <button
+                  onClick={loadSpots}
+                  className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm hover:bg-foreground/10"
+                >
+                  Refresh
+                </button>
+              </div>
+
+              {spotsState.error && (
+                <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-3 text-sm">{spotsState.error}</div>
+              )}
+
+              {spotFeedback && (
+                <div
+                  className="rounded-xl border p-3 text-sm"
+                  style={{
+                    borderColor: spotFeedback.type === "success" ? "rgba(105,242,140,0.35)" : "rgba(255,107,107,0.35)",
+                    background: spotFeedback.type === "success" ? "rgba(105,242,140,0.08)" : "rgba(255,107,107,0.08)",
+                  }}
+                >
+                  {spotFeedback.message}
+                </div>
+              )}
+
+              {spots.length > 0 ? (
+                <div className="space-y-3">
+                  {spots.map((spot) => (
+                    <article
+                      key={spot.id}
+                      className="rounded-xl border border-foreground/10 bg-foreground/5 p-4 transition hover:bg-foreground/10"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="min-w-0 truncate text-base font-semibold">{spot.name}</h3>
+                            <StatusPill label={spot.status} tone={spot.status === "pending" ? "warn" : "neutral"} />
+                          </div>
+                          <div className="grid gap-2 text-sm sm:grid-cols-3">
+                            <div className="rounded-lg border border-foreground/10 bg-background px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-wide opacity-60">Location</div>
+                              <div className="mt-1 font-medium">{spot.location}</div>
+                            </div>
+                            <div className="rounded-lg border border-foreground/10 bg-background px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-wide opacity-60">Category</div>
+                              <div className="mt-1 font-medium">{spot.category}</div>
+                            </div>
+                            <div className="rounded-lg border border-foreground/10 bg-background px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-wide opacity-60">Created By</div>
+                              <div className="mt-1 font-medium tabular-nums">{spot.createdBy}</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-xs opacity-70 sm:text-right">
+                          <div className="uppercase tracking-wide">Created</div>
+                          <div className="mt-1 font-medium">{formatSpotCreatedAt(spot.createdAt)}</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleApproveSpot(spot)}
+                          disabled={spotBusyId === spot.id}
+                          className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs hover:bg-foreground/10 disabled:opacity-50"
+                        >
+                          {spotBusyId === spot.id ? "Approving..." : "Approve"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleRejectSpot(spot.id)}
+                          disabled={spotBusyId === spot.id}
+                          className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs hover:bg-foreground/10 disabled:opacity-50"
+                        >
+                          {spotBusyId === spot.id ? "Rejecting..." : "Reject"}
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : !spotsState.loading ? (
+                <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-10 text-center text-sm opacity-70">
+                  No pending spots found.
+                </div>
+              ) : null}
+
+              <div className="text-xs opacity-70">Showing {spots.length} pending spots.{spotsState.loading ? " Loading…" : ""}</div>
             </section>
           )}
         </div>

@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { addDoc, collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { addDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import MultiSelectChips from "@/app/rate/components/multi-select-chips";
 import {
   filterFoodSpotItems,
@@ -53,6 +53,10 @@ const INITIAL_FOOD_FILTERS: FoodSpotFilters = {
   search: "",
   categories: [],
 };
+
+function normalizeSpotName(value: string) {
+  return value.trim().toLowerCase();
+}
 
 export default function SelectSpotPage() {
   const router = useRouter();
@@ -106,7 +110,12 @@ export default function SelectSpotPage() {
           venueCategory?: FoodVenueCategory;
           priceLevel?: PriceLevel;
           openNow?: boolean;
+          status?: string;
         };
+
+        if (typeof data.status === "string" && data.status.toLowerCase() !== "approved") {
+          return;
+        }
 
         const category = (data.category || "").toLowerCase();
         const base = {
@@ -210,39 +219,44 @@ export default function SelectSpotPage() {
     setError(null);
 
     try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        setError("Please sign in first.");
+        return;
+      }
+
       if (addKind === "study-spot") {
-        if (!newStudySpot.name.trim() || !newStudySpot.area.trim()) {
+        const nextName = newStudySpot.name.trim();
+        const nextArea = newStudySpot.area.trim();
+
+        if (!nextName || !nextArea) {
           setError("Please enter both study spot name and area.");
           return;
         }
 
-        const spotRef = await addDoc(collection(db, "spots"), {
-          name: newStudySpot.name.trim(),
-          category: "study",
-          location: newStudySpot.area.trim(),
-          rating: 0,
-          reviewCount: 0,
-          spotType: newStudySpot.spotType,
-          noiseLevel: newStudySpot.noiseLevel,
-          hasWifi: newStudySpot.hasWifi,
-          hasOutlets: newStudySpot.hasOutlets,
-          openNow: true,
+        const spotsSnapshot = await getDocs(collection(db, "spots"));
+        const duplicateExists = spotsSnapshot.docs.some((document) => {
+          const data = document.data() as { name?: string };
+          return normalizeSpotName(data.name || document.id) === normalizeSpotName(nextName);
         });
 
-        const newItem: StudySpotCatalogItem = {
-          id: spotRef.id,
-          kind: "study-spot",
-          name: newStudySpot.name.trim(),
-          area: newStudySpot.area.trim(),
+        if (duplicateExists) {
+          setError("Spot already exists.");
+          return;
+        }
+
+        await addDoc(collection(db, "pending_spots"), {
+          name: nextName,
+          category: "study",
+          location: nextArea,
           spotType: newStudySpot.spotType,
           noiseLevel: newStudySpot.noiseLevel,
           hasWifi: newStudySpot.hasWifi,
           hasOutlets: newStudySpot.hasOutlets,
-          openNow: true,
-          rating: 0,
-        };
-
-        setStudyItems((prev) => [newItem, ...prev]);
+          createdBy: currentUser.uid,
+          status: "pending",
+          createdAt: serverTimestamp(),
+        });
         setNewStudySpot({
           name: "",
           area: "",
@@ -252,34 +266,35 @@ export default function SelectSpotPage() {
           hasOutlets: false,
         });
       } else {
-        if (!newFoodSpot.name.trim() || !newFoodSpot.area.trim()) {
+        const nextName = newFoodSpot.name.trim();
+        const nextArea = newFoodSpot.area.trim();
+
+        if (!nextName || !nextArea) {
           setError("Please enter both food spot name and area.");
           return;
         }
 
-        const spotRef = await addDoc(collection(db, "spots"), {
-          name: newFoodSpot.name.trim(),
-          category: "food",
-          location: newFoodSpot.area.trim(),
-          rating: 0,
-          reviewCount: 0,
-          venueCategory: newFoodSpot.category,
-          priceLevel: newFoodSpot.priceLevel,
-          openNow: true,
+        const spotsSnapshot = await getDocs(collection(db, "spots"));
+        const duplicateExists = spotsSnapshot.docs.some((document) => {
+          const data = document.data() as { name?: string };
+          return normalizeSpotName(data.name || document.id) === normalizeSpotName(nextName);
         });
 
-        const newItem: FoodSpotCatalogItem = {
-          id: spotRef.id,
-          kind: "food-spot",
-          name: newFoodSpot.name.trim(),
-          area: newFoodSpot.area.trim(),
+        if (duplicateExists) {
+          setError("Spot already exists.");
+          return;
+        }
+
+        await addDoc(collection(db, "pending_spots"), {
+          name: nextName,
+          category: "food",
+          location: nextArea,
           venueCategory: newFoodSpot.category,
           priceLevel: newFoodSpot.priceLevel,
-          openNow: true,
-          rating: 0,
-        };
-
-        setFoodItems((prev) => [newItem, ...prev]);
+          createdBy: currentUser.uid,
+          status: "pending",
+          createdAt: serverTimestamp(),
+        });
         setNewFoodSpot({
           name: "",
           area: "",

@@ -13,7 +13,7 @@ export default function GlobalHeader({ activeCategory, setActiveCategory }: any)
   return (
     <>
       {/* ── Search bar ── */}
-      <header className="fixed top-3 left-0 w-full z-[100] flex justify-center pointer-events-none">
+      <header className="fixed top-2 sm:top-3 left-0 w-full z-[105] flex justify-center pointer-events-none">
         <div className="w-full max-w-[480px] pointer-events-auto px-3 sm:px-4">
           <div className="relative">
             <input
@@ -98,7 +98,7 @@ export default function GlobalHeader({ activeCategory, setActiveCategory }: any)
       </nav>
 
       {/* ── Category chips (mobile/tablet) ── */}
-      <nav className="fixed left-0 right-0 top-[74px] z-[100] px-3 lg:hidden pointer-events-none">
+      <nav className="fixed left-0 right-0 top-[68px] z-[104] px-3 lg:hidden pointer-events-none">
         <div className="hide-scrollbar pointer-events-auto overflow-x-auto">
           <div
             className="mx-auto flex min-w-full w-max items-center gap-2 rounded-2xl border px-2 py-2"

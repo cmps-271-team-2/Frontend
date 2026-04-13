@@ -23,17 +23,17 @@ export default function ThemeToggle() {
     <button
       onClick={toggle}
       aria-label="Toggle Theme"
-      className="fixed top-6 right-6 z-[10000] p-2 transition-transform active:scale-90 group"
+      className="fixed right-3 bottom-[calc(env(safe-area-inset-bottom,0px)+88px)] md:bottom-auto md:top-6 md:right-6 z-[900] p-1.5 md:p-2 transition-transform active:scale-90 group"
       style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
     >
       {/* The Lamp SVG */}
       <svg 
-        width="60" 
-        height="80" 
+        width="46" 
+        height="62" 
         viewBox="0 0 100 120" 
         fill="none" 
         xmlns="http://www.w3.org/2000/svg"
-        className="drop-shadow-xl"
+        className="drop-shadow-xl md:h-[80px] md:w-[60px]"
       >
         {/*glow effect */}
         {theme === "light" && (

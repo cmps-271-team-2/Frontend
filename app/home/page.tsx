@@ -835,7 +835,7 @@ export default function HomePage() {
       <SortBar activeSort={selectedSortFilter} setActiveSort={handleSortChange} />
 
       {selectedCategoryFilter === "Study Spot" || selectedCategoryFilter === "Food" ? (
-        <div className="fixed left-1/2 top-[186px] z-[110] -translate-x-1/2 px-3 lg:top-24">
+        <div className="fixed left-1/2 top-[198px] z-[110] -translate-x-1/2 px-3 lg:top-24">
           <button
             type="button"
             onClick={() => setIsFiltersOpen(true)}

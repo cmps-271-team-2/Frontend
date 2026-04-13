@@ -73,7 +73,7 @@ export default function SortBar({ activeSort, setActiveSort }: any) {
 
     </nav>
 
-    <nav className="fixed left-0 right-0 top-[136px] z-[100] px-3 lg:hidden pointer-events-none">
+    <nav className="fixed left-0 right-0 top-[126px] z-[103] px-3 lg:hidden pointer-events-none">
       <div className="hide-scrollbar pointer-events-auto overflow-x-auto">
         <div
           className="mx-auto flex min-w-full w-max items-center gap-2 rounded-2xl border px-2 py-2"

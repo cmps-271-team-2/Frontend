@@ -109,6 +109,32 @@ function toDisplayString(value: unknown, fallback = "—"): string {
   return trimmed.length > 0 ? trimmed : fallback;
 }
 
+function toIsoCreatedAt(value: unknown): string {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof value === "number") {
+    return new Date(value).toISOString();
+  }
+
+  if (value && typeof value === "object" && "toDate" in value) {
+    const timestampLike = value as { toDate?: unknown };
+    if (typeof timestampLike.toDate === "function") {
+      const date = timestampLike.toDate();
+      if (date instanceof Date) {
+        return date.toISOString();
+      }
+    }
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return "";
+}
+
 export default function AdminDashboard() {
   const [tab, setTab] = useState<TabId>("analytics");
 
@@ -203,15 +229,6 @@ export default function AdminDashboard() {
       const items = snapshot.docs.map((document) => {
         const data = document.data() as Record<string, unknown>;
 
-        const createdAt =
-          typeof data.createdAt === "string"
-            ? data.createdAt
-            : typeof data.createdAt === "number"
-              ? new Date(data.createdAt).toISOString()
-              : data.createdAt && typeof data.createdAt.toDate === "function"
-                ? data.createdAt.toDate().toISOString()
-                : "";
-
         return {
           id: document.id,
           name: toDisplayString(data.name, document.id),
@@ -219,7 +236,7 @@ export default function AdminDashboard() {
           location: toDisplayString(data.location),
           createdBy: toDisplayString(data.createdBy),
           status: toDisplayString(data.status, "pending"),
-          createdAt,
+          createdAt: toIsoCreatedAt(data.createdAt),
           data,
         };
       });

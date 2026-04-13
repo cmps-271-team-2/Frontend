@@ -2,11 +2,10 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import MultiSelectChips from "@/app/rate/components/multi-select-chips";
 import {
-  fetchCatalogItems,
   filterFoodSpotItems,
   filterStudySpotItems,
   FoodSpotCatalogItem,
@@ -90,17 +89,58 @@ export default function SelectSpotPage() {
     setError(null);
 
     try {
-      const [studyData, foodData] = await Promise.all([
-        fetchCatalogItems("spots", "study-spot"),
-        fetchCatalogItems("spots", "food-spot"),
-      ]);
+      const snapshot = await getDocs(collection(db, "spots"));
+      const studyData: StudySpotCatalogItem[] = [];
+      const foodData: FoodSpotCatalogItem[] = [];
+
+      snapshot.docs.forEach((document) => {
+        const data = document.data() as {
+          name?: string;
+          category?: string;
+          location?: string;
+          rating?: number;
+          spotType?: StudySpotType;
+          noiseLevel?: StudyNoiseLevel;
+          hasWifi?: boolean;
+          hasOutlets?: boolean;
+          venueCategory?: FoodVenueCategory;
+          priceLevel?: PriceLevel;
+          openNow?: boolean;
+        };
+
+        const category = (data.category || "").toLowerCase();
+        const base = {
+          id: document.id,
+          name: data.name || document.id,
+          area: data.location || "",
+          openNow: data.openNow !== false,
+          rating: typeof data.rating === "number" ? data.rating : Number(data.rating ?? 0) || 0,
+        };
+
+        if (category === "food") {
+          foodData.push({
+            ...base,
+            kind: "food-spot",
+            venueCategory: data.venueCategory || "restaurant",
+            priceLevel: data.priceLevel || "$",
+          });
+          return;
+        }
+
+        studyData.push({
+          ...base,
+          kind: "study-spot",
+          spotType: data.spotType || "mixed",
+          noiseLevel: data.noiseLevel || "moderate",
+          hasWifi: Boolean(data.hasWifi),
+          hasOutlets: Boolean(data.hasOutlets),
+        });
+      });
 
       setStudyItems(
-        studyData.filter((item): item is StudySpotCatalogItem => item.kind === "study-spot")
+        studyData
       );
-      setFoodItems(
-        foodData.filter((item): item is FoodSpotCatalogItem => item.kind === "food-spot")
-      );
+      setFoodItems(foodData);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load spots.");
       setStudyItems([]);
@@ -173,36 +213,6 @@ export default function SelectSpotPage() {
       if (addKind === "study-spot") {
         if (!newStudySpot.name.trim() || !newStudySpot.area.trim()) {
           setError("Please enter both study spot name and area.");
-          return;
-        }
-
-        const response = await fetch(`${API_BASE_URL}/spots`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: newStudySpot.name.trim(),
-            category: "study",
-            location: newStudySpot.area.trim(),
-            description: "",
-            createdBy: "guest",
-            spotType: newStudySpot.spotType,
-            noiseLevel: newStudySpot.noiseLevel,
-            hasWifi: newStudySpot.hasWifi,
-            hasOutlets: newStudySpot.hasOutlets,
-            openNow: true,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data?.error || "Failed to add study spot.");
-        }
-
-        if (data.created === false) {
-          setError("This study spot already exists.");
           return;
         }
 

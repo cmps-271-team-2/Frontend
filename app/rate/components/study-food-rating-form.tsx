@@ -172,7 +172,7 @@ export default function StudyFoodRatingForm({
             rating: overallRating,
             text: comment.trim(),
             targetId: initialTargetId,
-            targetType: category === "food-spot" ? "food-spot" : "study-spot",
+            targetType: "spot",
             title: spotName.trim(),
             spotName: spotName.trim(),
             category: category as StudyFoodCategory,

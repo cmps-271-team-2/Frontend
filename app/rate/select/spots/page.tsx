@@ -342,8 +342,7 @@ export default function SelectSpotPage() {
     studyFilters.requireWifi ||
     studyFilters.requireOutlets ||
     studyFilters.openNowOnly ||
-    studyFilters.areas.length > 0 ||
-    studyFilters.minRating > 0;
+    studyFilters.areas.length > 0;
 
   const hasFoodFilters = foodFilters.search.trim().length > 0 || foodFilters.categories.length > 0;
   const hasActiveFilters = kind === "study-spot" ? hasStudyFilters : hasFoodFilters;
@@ -355,8 +354,7 @@ export default function SelectSpotPage() {
         (studyFilters.search.trim().length > 0 ? 1 : 0) +
         (studyFilters.requireWifi ? 1 : 0) +
         (studyFilters.requireOutlets ? 1 : 0) +
-        (studyFilters.openNowOnly ? 1 : 0) +
-        (studyFilters.minRating > 0 ? 1 : 0)
+        (studyFilters.openNowOnly ? 1 : 0)
       : foodFilters.categories.length + (foodFilters.search.trim().length > 0 ? 1 : 0);
 
   return (
@@ -415,7 +413,7 @@ export default function SelectSpotPage() {
             className="w-full rounded-lg border px-3 py-2"
             style={{
               borderColor: "var(--border)",
-              background: "transparent",
+              background: "var(--card-elevated)",
               color: "var(--text)",
             }}
           />
@@ -477,7 +475,7 @@ export default function SelectSpotPage() {
                   onChange={(event) => updateStudyFilters({ search: event.target.value })}
                   placeholder="Search study spots by name or area..."
                   className="w-full rounded-lg border px-3 py-2"
-                  style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 />
 
                 <MultiSelectChips
@@ -513,46 +511,114 @@ export default function SelectSpotPage() {
                   onChange={(areas) => updateStudyFilters({ areas })}
                 />
 
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <label className="flex items-center gap-2 text-sm font-semibold">
-                    <input
-                      type="checkbox"
-                      checked={studyFilters.requireWifi}
-                      onChange={(event) => updateStudyFilters({ requireWifi: event.target.checked })}
-                    />
-                    Wifi available
-                  </label>
-                  <label className="flex items-center gap-2 text-sm font-semibold">
-                    <input
-                      type="checkbox"
-                      checked={studyFilters.requireOutlets}
-                      onChange={(event) => updateStudyFilters({ requireOutlets: event.target.checked })}
-                    />
-                    Charging outlets
-                  </label>
-                  <label className="flex items-center gap-2 text-sm font-semibold sm:col-span-2">
-                    <input
-                      type="checkbox"
-                      checked={studyFilters.openNowOnly}
-                      onChange={(event) => updateStudyFilters({ openNowOnly: event.target.checked })}
-                    />
-                    Open now
-                  </label>
-                </div>
+                <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => updateStudyFilters({ requireWifi: !studyFilters.requireWifi })}
+                    className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm font-semibold"
+                    style={{
+                      borderColor: studyFilters.requireWifi ? "var(--accent-green)" : "var(--border)",
+                      background: studyFilters.requireWifi ? "rgba(105,242,140,0.08)" : "transparent",
+                    }}
+                  >
+                    <span>Wifi</span>
+                    <span
+                      style={{
+                        position: "relative",
+                        width: 30,
+                        height: 18,
+                        borderRadius: 999,
+                        border: `1px solid ${studyFilters.requireWifi ? "var(--accent-green)" : "var(--border)"}`,
+                        background: studyFilters.requireWifi ? "var(--accent-green)" : "rgba(255,255,255,0.10)",
+                        display: "inline-block",
+                      }}
+                    >
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: 1,
+                          left: studyFilters.requireWifi ? 13 : 1,
+                          width: 14,
+                          height: 14,
+                          borderRadius: 999,
+                          background: "#fff",
+                          transition: "left 0.2s ease",
+                        }}
+                      />
+                    </span>
+                  </button>
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold">
-                    Minimum rating: {studyFilters.minRating.toFixed(1)}
-                  </label>
-                  <input
-                    type="range"
-                    min={0}
-                    max={5}
-                    step={0.5}
-                    value={studyFilters.minRating}
-                    onChange={(event) => updateStudyFilters({ minRating: Number(event.target.value) })}
-                    className="w-full"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => updateStudyFilters({ requireOutlets: !studyFilters.requireOutlets })}
+                    className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm font-semibold"
+                    style={{
+                      borderColor: studyFilters.requireOutlets ? "var(--accent-green)" : "var(--border)",
+                      background: studyFilters.requireOutlets ? "rgba(105,242,140,0.08)" : "transparent",
+                    }}
+                  >
+                    <span>Outlets</span>
+                    <span
+                      style={{
+                        position: "relative",
+                        width: 30,
+                        height: 18,
+                        borderRadius: 999,
+                        border: `1px solid ${studyFilters.requireOutlets ? "var(--accent-green)" : "var(--border)"}`,
+                        background: studyFilters.requireOutlets ? "var(--accent-green)" : "rgba(255,255,255,0.10)",
+                        display: "inline-block",
+                      }}
+                    >
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: 1,
+                          left: studyFilters.requireOutlets ? 13 : 1,
+                          width: 14,
+                          height: 14,
+                          borderRadius: 999,
+                          background: "#fff",
+                          transition: "left 0.2s ease",
+                        }}
+                      />
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => updateStudyFilters({ openNowOnly: !studyFilters.openNowOnly })}
+                    className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm font-semibold"
+                    style={{
+                      borderColor: studyFilters.openNowOnly ? "var(--accent-green)" : "var(--border)",
+                      background: studyFilters.openNowOnly ? "rgba(105,242,140,0.08)" : "transparent",
+                    }}
+                  >
+                    <span>Open now</span>
+                    <span
+                      style={{
+                        position: "relative",
+                        width: 30,
+                        height: 18,
+                        borderRadius: 999,
+                        border: `1px solid ${studyFilters.openNowOnly ? "var(--accent-green)" : "var(--border)"}`,
+                        background: studyFilters.openNowOnly ? "var(--accent-green)" : "rgba(255,255,255,0.10)",
+                        display: "inline-block",
+                      }}
+                    >
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: 1,
+                          left: studyFilters.openNowOnly ? 13 : 1,
+                          width: 14,
+                          height: 14,
+                          borderRadius: 999,
+                          background: "#fff",
+                          transition: "left 0.2s ease",
+                        }}
+                      />
+                    </span>
+                  </button>
                 </div>
               </div>
             ) : (
@@ -562,7 +628,7 @@ export default function SelectSpotPage() {
                   onChange={(event) => updateFoodFilters({ search: event.target.value })}
                   placeholder="Search food spots by name or area..."
                   className="w-full rounded-lg border px-3 py-2"
-                  style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 />
 
                 <MultiSelectChips
@@ -633,7 +699,7 @@ export default function SelectSpotPage() {
         >
           <section
             className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border p-4"
-            style={{ borderColor: "var(--border)", background: "var(--card)" }}
+            style={{ borderColor: "var(--border)", background: "var(--card)", boxShadow: "0 10px 35px rgba(0,0,0,0.45)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -673,6 +739,7 @@ export default function SelectSpotPage() {
                     setNewStudySpot({ ...newStudySpot, name: e.target.value })
                   }
                   className="w-full rounded-lg border px-3 py-2"
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 />
 
                 <input
@@ -682,6 +749,7 @@ export default function SelectSpotPage() {
                     setNewStudySpot({ ...newStudySpot, area: e.target.value })
                   }
                   className="w-full rounded-lg border px-3 py-2"
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 />
 
                 <div className="flex gap-2">
@@ -694,6 +762,7 @@ export default function SelectSpotPage() {
                       })
                     }
                     className="w-full rounded-lg border px-3 py-2"
+                    style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                   >
                     <option value="indoor">Indoor</option>
                     <option value="outdoor">Outdoor</option>
@@ -709,6 +778,7 @@ export default function SelectSpotPage() {
                       })
                     }
                     className="w-full rounded-lg border px-3 py-2"
+                    style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                   >
                     <option value="quiet">Quiet</option>
                     <option value="moderate">Moderate</option>
@@ -750,6 +820,7 @@ export default function SelectSpotPage() {
                     setNewFoodSpot({ ...newFoodSpot, name: e.target.value })
                   }
                   className="w-full rounded-lg border px-3 py-2"
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 />
 
                 <input
@@ -759,6 +830,7 @@ export default function SelectSpotPage() {
                     setNewFoodSpot({ ...newFoodSpot, area: e.target.value })
                   }
                   className="w-full rounded-lg border px-3 py-2"
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 />
 
                 <select
@@ -770,6 +842,7 @@ export default function SelectSpotPage() {
                     })
                   }
                   className="w-full rounded-lg border px-3 py-2"
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 >
                   <option value="restaurant">Restaurant</option>
                   <option value="food">Food</option>
@@ -786,6 +859,7 @@ export default function SelectSpotPage() {
                     })
                   }
                   className="w-full rounded-lg border px-3 py-2"
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 >
                   <option value="$">$ (Cheap)</option>
                   <option value="$$">$$ (Moderate)</option>

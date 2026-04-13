@@ -116,7 +116,7 @@ export default function SelectAcademicPage() {
         onChange={(event) => setSearch(event.target.value)}
         placeholder="Search by professor, course name, or code..."
         className="mt-4 w-full rounded-lg border px-3 py-2"
-        style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+        style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
       />
 
       <div className="mt-4 space-y-2">

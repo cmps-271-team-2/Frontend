@@ -19,7 +19,7 @@ export default function GlobalHeader({ activeCategory, setActiveCategory }: any)
             <input
               type="text"
               placeholder="Search ratings..."
-              className="w-full text-sm pl-12 pr-5 py-3 rounded-2xl outline-none transition-all duration-200"
+              className="w-full text-sm pl-14 pr-5 py-3 rounded-2xl outline-none transition-all duration-200"
               style={{
                 background: "var(--card)",
                 border: "1px solid var(--border)",
@@ -36,7 +36,7 @@ export default function GlobalHeader({ activeCategory, setActiveCategory }: any)
               }}
             />
             <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2"
+              className="absolute left-4.5 top-1/2 -translate-y-1/2"
               style={{ color: "var(--muted)" }}
               size={18}
             />

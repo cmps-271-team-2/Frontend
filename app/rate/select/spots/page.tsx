@@ -389,7 +389,7 @@ export default function SelectSpotPage() {
             className="w-full rounded-lg border px-3 py-2"
             style={{
               borderColor: "var(--border)",
-              background: "transparent",
+              background: "var(--card-elevated)",
               color: "var(--text)",
             }}
           />
@@ -451,7 +451,7 @@ export default function SelectSpotPage() {
                   onChange={(event) => updateStudyFilters({ search: event.target.value })}
                   placeholder="Search study spots by name or area..."
                   className="w-full rounded-lg border px-3 py-2"
-                  style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 />
 
                 <MultiSelectChips
@@ -536,7 +536,7 @@ export default function SelectSpotPage() {
                   onChange={(event) => updateFoodFilters({ search: event.target.value })}
                   placeholder="Search food spots by name or area..."
                   className="w-full rounded-lg border px-3 py-2"
-                  style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 />
 
                 <MultiSelectChips
@@ -607,7 +607,7 @@ export default function SelectSpotPage() {
         >
           <section
             className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border p-4"
-            style={{ borderColor: "var(--border)", background: "var(--card)" }}
+            style={{ borderColor: "var(--border)", background: "var(--card)", boxShadow: "0 10px 35px rgba(0,0,0,0.45)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -647,6 +647,7 @@ export default function SelectSpotPage() {
                     setNewStudySpot({ ...newStudySpot, name: e.target.value })
                   }
                   className="w-full rounded-lg border px-3 py-2"
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 />
 
                 <input
@@ -656,6 +657,7 @@ export default function SelectSpotPage() {
                     setNewStudySpot({ ...newStudySpot, area: e.target.value })
                   }
                   className="w-full rounded-lg border px-3 py-2"
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 />
 
                 <div className="flex gap-2">
@@ -668,6 +670,7 @@ export default function SelectSpotPage() {
                       })
                     }
                     className="w-full rounded-lg border px-3 py-2"
+                    style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                   >
                     <option value="indoor">Indoor</option>
                     <option value="outdoor">Outdoor</option>
@@ -683,6 +686,7 @@ export default function SelectSpotPage() {
                       })
                     }
                     className="w-full rounded-lg border px-3 py-2"
+                    style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                   >
                     <option value="quiet">Quiet</option>
                     <option value="moderate">Moderate</option>
@@ -724,6 +728,7 @@ export default function SelectSpotPage() {
                     setNewFoodSpot({ ...newFoodSpot, name: e.target.value })
                   }
                   className="w-full rounded-lg border px-3 py-2"
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 />
 
                 <input
@@ -733,6 +738,7 @@ export default function SelectSpotPage() {
                     setNewFoodSpot({ ...newFoodSpot, area: e.target.value })
                   }
                   className="w-full rounded-lg border px-3 py-2"
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 />
 
                 <select
@@ -744,6 +750,7 @@ export default function SelectSpotPage() {
                     })
                   }
                   className="w-full rounded-lg border px-3 py-2"
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 >
                   <option value="restaurant">Restaurant</option>
                   <option value="food">Food</option>
@@ -760,6 +767,7 @@ export default function SelectSpotPage() {
                     })
                   }
                   className="w-full rounded-lg border px-3 py-2"
+                  style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
                 >
                   <option value="$">$ (Cheap)</option>
                   <option value="$$">$$ (Moderate)</option>

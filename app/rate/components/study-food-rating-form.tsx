@@ -258,7 +258,7 @@ export default function StudyFoodRatingForm({
             onChange={(event) => setSpotName(event.target.value)}
             disabled={lockSelection}
             className="w-full rounded-lg border px-3 py-2"
-            style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+            style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
           />
         ) : (
           <select
@@ -273,7 +273,7 @@ export default function StudyFoodRatingForm({
               }
             }}
             className="w-full rounded-lg border px-3 py-2"
-            style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+            style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
           >
             <option value="">Select a spot</option>
             {spots.map((spot) => (
@@ -331,7 +331,7 @@ export default function StudyFoodRatingForm({
           value={location}
           onChange={(event) => setLocation(event.target.value)}
           className="w-full rounded-lg border px-3 py-2"
-          style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+          style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
         />
       </div>
 
@@ -372,7 +372,7 @@ export default function StudyFoodRatingForm({
           value={bestTimeToGo}
           onChange={(event) => setBestTimeToGo(event.target.value)}
           className="w-full rounded-lg border px-3 py-2"
-          style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+          style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
         />
       </div>
 
@@ -383,7 +383,7 @@ export default function StudyFoodRatingForm({
           onChange={(event) => setComment(event.target.value)}
           rows={4}
           className="w-full rounded-lg border px-3 py-2"
-          style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+          style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
         />
         <p className="text-xs" style={{ color: "var(--muted)" }}>
           Minimum {MIN_COMMENT_LENGTH} characters.

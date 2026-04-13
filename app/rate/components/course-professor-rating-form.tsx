@@ -294,7 +294,7 @@ export default function CourseProfessorRatingForm({
               value={professorName}
               onChange={(e) => setProfessorName(e.target.value)}
               className="w-full rounded-lg border px-3 py-2"
-              style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+              style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
             />
             {errors.professorName ? <p className="text-sm text-red-500">{errors.professorName}</p> : null}
           </div>
@@ -312,7 +312,7 @@ export default function CourseProfessorRatingForm({
               onChange={(e) => setProfessorName(e.target.value)}
               disabled={lockSelection}
               className="w-full rounded-lg border px-3 py-2"
-              style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+              style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
             />
             {errors.professorName ? <p className="text-sm text-red-500">{errors.professorName}</p> : null}
           </div>
@@ -323,7 +323,7 @@ export default function CourseProfessorRatingForm({
               value={courseName}
               onChange={(e) => setCourseName(e.target.value)}
               className="w-full rounded-lg border px-3 py-2"
-              style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+              style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
             />
             {errors.courseName ? <p className="text-sm text-red-500">{errors.courseName}</p> : null}
           </div>
@@ -338,7 +338,7 @@ export default function CourseProfessorRatingForm({
           onChange={(event) => setSemesterTaken(event.target.value)}
           placeholder="e.g. Fall 2025"
           className="w-full rounded-lg border px-3 py-2"
-          style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+          style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
         />
       </div>
 
@@ -385,7 +385,7 @@ export default function CourseProfessorRatingForm({
           onChange={(event) => setComment(event.target.value)}
           rows={4}
           className="w-full rounded-lg border px-3 py-2"
-          style={{ borderColor: "var(--border)", background: "transparent", color: "var(--text)" }}
+          style={{ borderColor: "var(--border)", background: "var(--card-elevated)", color: "var(--text)" }}
         />
         <p className="text-xs" style={{ color: "var(--muted)" }}>
           Minimum {MIN_COMMENT_LENGTH} characters.

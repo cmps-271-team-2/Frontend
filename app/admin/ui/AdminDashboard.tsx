@@ -3,30 +3,23 @@
 import { useEffect, useMemo, useState } from "react";
 import type {
   AnalyticsDTO,
-  AdminJobDTO,
   AdminModerationStatusDTO,
   AdminPostDTO,
-  AdminProfileDTO,
   AdminUserDTO,
   AdminStatusDTO,
-  JobKindDTO,
-  JobStatusDTO,
 } from "../dtos";
 import {
   deleteAdminPost,
   deleteAdminUser,
-  setAdminProfileBanned,
   setAdminPostModeration,
   setAdminUserBanned,
   fetchAdminAnalytics,
-  fetchAdminJobs,
   fetchAdminPosts,
-  fetchAdminProfiles,
   fetchAdminUsers,
 } from "../adminApi";
 import TankPreview from "./TankPreview";
 
-type TabId = "analytics" | "profiles" | "posts" | "jobs" | "users";
+type TabId = "analytics" | "posts" | "users";
 
 type LoadState = {
   loading: boolean;
@@ -83,31 +76,18 @@ function moderationTone(status: AdminModerationStatusDTO): "good" | "warn" | "ba
 export default function AdminDashboard() {
   const [tab, setTab] = useState<TabId>("analytics");
 
-  const [profiles, setProfiles] = useState<AdminProfileDTO[]>([]);
   const [posts, setPosts] = useState<AdminPostDTO[]>([]);
-  const [jobs, setJobs] = useState<AdminJobDTO[]>([]);
   const [users, setUsers] = useState<AdminUserDTO[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsDTO | null>(null);
 
-  const [profilesState, setProfilesState] = useState<LoadState>({ loading: false, error: null });
   const [postsState, setPostsState] = useState<LoadState>({ loading: false, error: null });
-  const [jobsState, setJobsState] = useState<LoadState>({ loading: false, error: null });
   const [usersState, setUsersState] = useState<LoadState>({ loading: false, error: null });
   const [analyticsState, setAnalyticsState] = useState<LoadState>({ loading: false, error: null });
-
-  const [profileSearch, setProfileSearch] = useState("");
-  const [profileLocation, setProfileLocation] = useState<string | "all">("all");
-  const [profileMinReports, setProfileMinReports] = useState<number | "all">("all");
-  const [profileStatus, setProfileStatus] = useState<AdminStatusDTO | "all">("all");
 
   const [postSearch, setPostSearch] = useState("");
   const [postTargetType, setPostTargetType] = useState<string | "all">("all");
   const [postMinRating, setPostMinRating] = useState<number | "all">("all");
   const [postMinReports, setPostMinReports] = useState<number | "all">("all");
-
-  const [jobSearch, setJobSearch] = useState("");
-  const [jobStatus, setJobStatus] = useState<JobStatusDTO | "all">("all");
-  const [jobKind, setJobKind] = useState<JobKindDTO | "all">("all");
 
   const [userSearch, setUserSearch] = useState("");
   const [userVerified, setUserVerified] = useState<boolean | "all">("all");
@@ -118,9 +98,7 @@ export default function AdminDashboard() {
   const [tankFlashKey, setTankFlashKey] = useState(0);
   const [shatteringUserId, setShatteringUserId] = useState<string | null>(null);
 
-  const debouncedProfileSearch = useDebouncedValue(profileSearch, 250);
   const debouncedPostSearch = useDebouncedValue(postSearch, 250);
-  const debouncedJobSearch = useDebouncedValue(jobSearch, 250);
   const debouncedUserSearch = useDebouncedValue(userSearch, 250);
 
   async function loadAnalytics() {
@@ -131,24 +109,6 @@ export default function AdminDashboard() {
       setAnalyticsState({ loading: false, error: null });
     } catch (e: any) {
       setAnalyticsState({ loading: false, error: e?.message ?? "Failed to load analytics" });
-    }
-  }
-
-  async function loadProfiles() {
-    setProfilesState({ loading: true, error: null });
-    try {
-      const data = await fetchAdminProfiles({
-        search: debouncedProfileSearch || undefined,
-        location: profileLocation,
-        status: profileStatus,
-        minReports: profileMinReports === "all" ? undefined : profileMinReports,
-        limit: 200,
-        offset: 0,
-      });
-      setProfiles(data.items);
-      setProfilesState({ loading: false, error: null });
-    } catch (e: any) {
-      setProfilesState({ loading: false, error: e?.message ?? "Failed to load profiles" });
     }
   }
 
@@ -167,23 +127,6 @@ export default function AdminDashboard() {
       setPostsState({ loading: false, error: null });
     } catch (e: any) {
       setPostsState({ loading: false, error: e?.message ?? "Failed to load posts" });
-    }
-  }
-
-  async function loadJobs() {
-    setJobsState({ loading: true, error: null });
-    try {
-      const data = await fetchAdminJobs({
-        search: debouncedJobSearch || undefined,
-        status: jobStatus,
-        kind: jobKind,
-        limit: 200,
-        offset: 0,
-      });
-      setJobs(data.items);
-      setJobsState({ loading: false, error: null });
-    } catch (e: any) {
-      setJobsState({ loading: false, error: e?.message ?? "Failed to load jobs" });
     }
   }
 
@@ -250,29 +193,13 @@ export default function AdminDashboard() {
     }
   }
 
-  async function handleToggleProfileBanned(profileId: string, banned: boolean) {
-    try {
-      await setAdminProfileBanned(profileId, banned);
-      await loadProfiles();
-    } catch (e: any) {
-      alert(e?.message ?? "Failed to update profile status");
-    }
-  }
-
   useEffect(() => {
     // Load each tab lazily.
     if (tab === "analytics" && !analytics && !analyticsState.loading) loadAnalytics();
-    if (tab === "profiles" && profiles.length === 0 && !profilesState.loading) loadProfiles();
     if (tab === "posts" && posts.length === 0 && !postsState.loading) loadPosts();
-    if (tab === "jobs" && jobs.length === 0 && !jobsState.loading) loadJobs();
     if (tab === "users" && users.length === 0 && !usersState.loading) loadUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
-
-  useEffect(() => {
-    if (tab === "profiles") loadProfiles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedProfileSearch, profileLocation, profileMinReports, profileStatus]);
 
   useEffect(() => {
     if (tab === "posts") loadPosts();
@@ -280,23 +207,9 @@ export default function AdminDashboard() {
   }, [debouncedPostSearch, postTargetType, postMinRating, postMinReports]);
 
   useEffect(() => {
-    if (tab === "jobs") loadJobs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedJobSearch, jobStatus, jobKind]);
-
-  useEffect(() => {
     if (tab === "users") loadUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedUserSearch, userVerified, userStatus]);
-
-  const profileLocationOptions = useMemo(() => {
-    const set = new Set<string>();
-    for (const p of profiles) {
-      const loc = (p.location ?? "").trim();
-      if (loc) set.add(loc);
-    }
-    return ["all", ...Array.from(set).sort()];
-  }, [profiles]);
 
   const postTargetTypeOptions = useMemo(() => {
     const set = new Set<string>();
@@ -306,9 +219,6 @@ export default function AdminDashboard() {
     }
     return ["all", ...Array.from(set).sort()];
   }, [posts]);
-
-  const jobKinds = useMemo(() => ["all", "ai", "etl", "indexing", "cron", "other"] as const, []);
-  const jobStatuses = useMemo(() => ["all", "queued", "running", "succeeded", "failed", "canceled"] as const, []);
 
   const totals = analytics?.totals;
   const series = analytics?.series7d ?? [];
@@ -341,13 +251,11 @@ export default function AdminDashboard() {
             <p className="text-sm opacity-80">FreedomBot 🦅</p>
           </div>
 
-          <nav className="inline-flex w-full rounded-xl border border-foreground/10 bg-foreground/5 p-1 sm:w-auto">
+          <nav className="inline-flex w-full gap-1 border-b border-foreground/10 sm:w-auto">
             {(
               [
                 { id: "analytics" as const, label: "Analytics" },
-                { id: "profiles" as const, label: "Profiles" },
                 { id: "posts" as const, label: "Posts" },
-                { id: "jobs" as const, label: "Jobs" },
                 { id: "users" as const, label: "Users" },
               ] as const
             ).map((t) => (
@@ -355,8 +263,8 @@ export default function AdminDashboard() {
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={cx(
-                  "rounded-lg px-3 py-2 text-sm transition",
-                  tab === t.id ? "bg-foreground text-background" : "hover:bg-foreground/10"
+                  "px-3 py-2 text-sm transition border-b-2 -mb-px",
+                  tab === t.id ? "border-foreground font-medium" : "border-transparent opacity-60 hover:opacity-100"
                 )}
               >
                 {t.label}
@@ -454,119 +362,7 @@ export default function AdminDashboard() {
             </section>
           )}
 
-          {tab === "profiles" && (
-            <section className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h2 className="text-lg font-medium">Profiles</h2>
-                  <p className="text-sm opacity-75">Search + filter mock user profiles.</p>
-                </div>
-                <button
-                  onClick={loadProfiles}
-                  className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm hover:bg-foreground/10"
-                >
-                  Refresh
-                </button>
-              </div>
 
-              <div className="grid gap-3 rounded-xl border border-foreground/10 bg-foreground/5 p-3 sm:grid-cols-4">
-                <input
-                  value={profileSearch}
-                  onChange={(e) => setProfileSearch(e.target.value)}
-                  placeholder="Search name, location, id…"
-                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/30"
-                />
-                <select
-                  value={profileLocation}
-                  onChange={(e) => setProfileLocation(e.target.value)}
-                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
-                >
-                  {profileLocationOptions.map((loc) => (
-                    <option key={loc} value={loc}>
-                      {loc === "all" ? "All locations" : loc}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={profileMinReports}
-                  onChange={(e) => setProfileMinReports(e.target.value === "all" ? "all" : Number(e.target.value))}
-                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
-                >
-                  <option value="all">Any reports</option>
-                  <option value="1">≥ 1</option>
-                  <option value="2">≥ 2</option>
-                  <option value="5">≥ 5</option>
-                  <option value="10">≥ 10</option>
-                </select>
-                <select
-                  value={profileStatus}
-                  onChange={(e) => setProfileStatus(e.target.value as any)}
-                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
-                >
-                  <option value="all">All statuses</option>
-                  <option value="active">Active</option>
-                  <option value="banned">Banned</option>
-                </select>
-              </div>
-
-              {profilesState.error && (
-                <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-3 text-sm">{profilesState.error}</div>
-              )}
-
-              <div className="overflow-x-auto rounded-xl border border-foreground/10">
-                <table className="w-full min-w-215 border-collapse text-left text-sm">
-                  <thead className="bg-foreground/5">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Profile</th>
-                      <th className="px-4 py-3 font-medium">Location</th>
-                      <th className="px-4 py-3 font-medium">Rating</th>
-                      <th className="px-4 py-3 font-medium">Count</th>
-                      <th className="px-4 py-3 font-medium">Reports</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-4 py-3 font-medium">Created</th>
-                      <th className="px-4 py-3 font-medium"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {profiles.map((p) => (
-                      <tr key={p.id} className="border-t border-foreground/10 hover:bg-foreground/5">
-                        <td className="px-4 py-3">
-                          <div className="font-medium">{p.name}</div>
-                          <div className="text-xs opacity-70">{p.id}</div>
-                        </td>
-                        <td className="px-4 py-3">{p.location ?? "—"}</td>
-                        <td className="px-4 py-3 tabular-nums">{p.ratingAvg.toFixed(2)}</td>
-                        <td className="px-4 py-3 tabular-nums">{p.ratingCount}</td>
-                        <td className="px-4 py-3 tabular-nums">{p.reports}</td>
-                        <td className="px-4 py-3">
-                          <StatusPill label={p.status} tone={p.status === "banned" ? "bad" : "good"} />
-                        </td>
-                        <td className="px-4 py-3 text-xs opacity-80">{formatDate(p.createdAt)}</td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={() => handleToggleProfileBanned(p.id, p.status !== "banned")}
-                            className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs hover:bg-foreground/10"
-                          >
-                            {p.status === "banned" ? "Unban" : "Ban"}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-
-                    {!profilesState.loading && profiles.length === 0 && (
-                      <tr>
-                        <td colSpan={8} className="px-4 py-10 text-center text-sm opacity-70">No profiles match your filters.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="text-xs opacity-70">
-                Showing {profiles.length} profiles (mock).{profilesState.loading ? " Loading…" : ""}
-              </div>
-            </section>
-          )}
 
           {tab === "posts" && (
             <section className="space-y-4">
@@ -706,123 +502,6 @@ export default function AdminDashboard() {
               </div>
 
               <div className="text-xs opacity-70">Showing {posts.length} posts.{postsState.loading ? " Loading…" : ""}</div>
-            </section>
-          )}
-
-          {tab === "jobs" && (
-            <section className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h2 className="text-lg font-medium">Jobs</h2>
-                  <p className="text-sm opacity-75">Ongoing compute jobs (mock).</p>
-                </div>
-                <button
-                  onClick={loadJobs}
-                  className="rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm hover:bg-foreground/10"
-                >
-                  Refresh
-                </button>
-              </div>
-
-              <div className="grid gap-3 rounded-xl border border-foreground/10 bg-foreground/5 p-3 sm:grid-cols-3">
-                <input
-                  value={jobSearch}
-                  onChange={(e) => setJobSearch(e.target.value)}
-                  placeholder="Search job name, id…"
-                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm outline-none focus:border-foreground/30"
-                />
-                <select
-                  value={jobKind}
-                  onChange={(e) => setJobKind(e.target.value as any)}
-                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
-                >
-                  {jobKinds.map((k) => (
-                    <option key={k} value={k}>
-                      {k === "all" ? "All kinds" : k}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={jobStatus}
-                  onChange={(e) => setJobStatus(e.target.value as any)}
-                  className="w-full rounded-lg border border-foreground/10 bg-background px-3 py-2 text-sm"
-                >
-                  {jobStatuses.map((s) => (
-                    <option key={s} value={s}>
-                      {s === "all" ? "All statuses" : s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {jobsState.error && (
-                <div className="rounded-xl border border-foreground/10 bg-foreground/5 p-3 text-sm">{jobsState.error}</div>
-              )}
-
-              <div className="overflow-x-auto rounded-xl border border-foreground/10">
-                <table className="w-full min-w-245 border-collapse text-left text-sm">
-                  <thead className="bg-foreground/5">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Job</th>
-                      <th className="px-4 py-3 font-medium">Kind</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-4 py-3 font-medium">Progress</th>
-                      <th className="px-4 py-3 font-medium">ETA</th>
-                      <th className="px-4 py-3 font-medium">Updated</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {jobs.map((j) => (
-                      <tr key={j.id} className="border-t border-foreground/10 hover:bg-foreground/5">
-                        <td className="px-4 py-3">
-                          <div className="font-medium">{j.name}</div>
-                          <div className="text-xs opacity-70">{j.id}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusPill label={j.kind} tone="neutral" />
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusPill
-                            label={j.status}
-                            tone={
-                              j.status === "running"
-                                ? "good"
-                                : j.status === "queued"
-                                  ? "warn"
-                                  : j.status === "succeeded"
-                                    ? "neutral"
-                                    : "bad"
-                            }
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <div className="h-2 w-40 overflow-hidden rounded-full bg-foreground/10">
-                              <div
-                                className="h-full bg-foreground/30"
-                                style={{ width: `${Math.max(0, Math.min(100, j.progress))}%` }}
-                              />
-                            </div>
-                            <div className="tabular-nums text-xs opacity-80">{j.progress}%</div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-xs opacity-80 tabular-nums">
-                          {typeof j.etaSeconds === "number" ? `${Math.round(j.etaSeconds / 60)}m` : "—"}
-                        </td>
-                        <td className="px-4 py-3 text-xs opacity-80">{formatDate(j.updatedAt)}</td>
-                      </tr>
-                    ))}
-
-                    {!jobsState.loading && jobs.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-10 text-center text-sm opacity-70">No jobs match your filters.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="text-xs opacity-70">Showing {jobs.length} jobs (mock).{jobsState.loading ? " Loading…" : ""}</div>
             </section>
           )}
 

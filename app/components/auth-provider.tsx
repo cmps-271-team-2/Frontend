@@ -21,7 +21,6 @@ const PROTECTED_ROUTE_PREFIXES = [
   "/profile",
   "/rate",
   "/change-password",
-  "/admin",
 ];
 
 function isPublicRoute(pathname: string) {

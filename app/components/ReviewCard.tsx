@@ -136,8 +136,8 @@ export default function ReviewCard({
           </h2>
 
           {review.kind === "course-professor" && cleanProfessorName.length > 0 && cleanProfessorName.toLowerCase() !== displayTitle.toLowerCase() ? (
-            <p className="-mt-1 mb-3 text-center text-sm font-semibold" style={{ color: "var(--muted)" }}>
-              {cleanProfessorName}
+            <p className="-mt-1 mb-3 text-center text-sm font-semibold" style={{ color: "var(--text)" }}>
+              Taken with: {cleanProfessorName}
             </p>
           ) : null}
 

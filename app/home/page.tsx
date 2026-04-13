@@ -440,8 +440,10 @@ export default function HomePage() {
       try {
         const authToken = authUser ? await authUser.getIdToken() : undefined;
         const { sort_by, order } = getSortParams(selectedSortFilter);
+        const query = searchQuery.trim();
+        const searchParam = query.length > 0 ? `&search=${encodeURIComponent(query)}` : "";
         const [posts, profiles, cafeterias, spots, courses] = await Promise.all([
-          apiFetch<BackendPost[]>(`/posts?sort_by=${sort_by}&order=${order}&indexed_only=true`, { cache: "no-store", authToken }),
+          apiFetch<BackendPost[]>(`/posts?sort_by=${sort_by}&order=${order}&indexed_only=true${searchParam}`, { cache: "no-store", authToken }),
           apiFetch<LookupEntity[]>("/profiles", { cache: "no-store" }).catch(() => []),
           apiFetch<LookupEntity[]>("/cafeterias", { cache: "no-store" }).catch(() => []),
           fetchFirestoreSpots().catch(() => []),
@@ -500,11 +502,9 @@ export default function HomePage() {
     return () => {
       mounted = false;
     };
-  }, [authReady, authUser, selectedSortFilter]);
+  }, [authReady, authUser, selectedSortFilter, searchQuery]);
 
   const filteredReviews = useMemo(() => {
-    const normalizedSearch = searchQuery.trim().toLowerCase();
-
     const next = ratings.filter((review) => {
       const mappedCategory = normalizeCategory(review.category ?? review.type);
 
@@ -528,14 +528,6 @@ export default function HomePage() {
         return false;
       }
 
-      if (normalizedSearch.length > 0) {
-        const title = (review.title || "").toLowerCase();
-        const targetName = (review.targetName || "").toLowerCase();
-        if (!title.includes(normalizedSearch) && !targetName.includes(normalizedSearch)) {
-          return false;
-        }
-      }
-
       return true;
     });
 
@@ -544,7 +536,6 @@ export default function HomePage() {
     activeFoodCategory,
     activeNoise,
     ratings,
-    searchQuery,
     selectedCategoryFilter,
   ]);
 

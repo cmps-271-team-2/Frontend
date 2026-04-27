@@ -4,20 +4,28 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { AcademicKind, fetchCatalogItems, type CatalogItem } from "@/lib/rating-catalog";
-
-type AcademicItem = CatalogItem;
+import { AcademicKind, fetchCatalogItems, filterAcademicItems, type CatalogItem } from "@/lib/rating-catalog";
 
 function getAcademicLabel(item: CatalogItem): string {
-  if (item.kind === "professor") {
-    return item.subtitle ? `${item.name} — ${item.subtitle}` : item.name;
+  const safeName = typeof item.name === "string" ? item.name.trim() : "";
+  const safeSubtitle = typeof item.subtitle === "string" ? item.subtitle.trim() : "";
+  const fallbackLabel = item.kind === "professor" ? "Unknown professor" : "Unknown course";
+  const label = safeName.length > 0 ? safeName : fallbackLabel;
+
+  if (safeSubtitle.length > 0) {
+    return `${label} — ${safeSubtitle}`;
   }
 
-  if (item.kind === "course") {
-    return item.subtitle ? `${item.name} — ${item.subtitle}` : item.name;
-  }
+  return label;
+}
 
-  return item.subtitle ? `${item.name} — ${item.subtitle}` : item.name;
+function normalizeAcademicField(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeAcademicCode(value: unknown, fallback: string): string {
+  const normalizedValue = normalizeAcademicField(value);
+  return normalizedValue.length > 0 ? normalizedValue : fallback;
 }
 
 export default function SelectAcademicPage() {
@@ -35,7 +43,7 @@ export default function SelectAcademicPage() {
       setLoading(true);
       setError(null);
       try {
-        let data: AcademicItem[];
+        let data: CatalogItem[];
 
         const loadCourses = async (): Promise<CatalogItem[]> => {
           const snapshot = await getDocs(collection(db, "courses"));
@@ -46,12 +54,15 @@ export default function SelectAcademicPage() {
               code?: string;
             };
 
+            const code = normalizeAcademicCode(course.code, doc.id);
+            const title = normalizeAcademicField(course.title);
+
             return {
               id: doc.id,
-              name: course.code as string,
-              subtitle: course.title as string,
+              name: code,
+              subtitle: title.length > 0 ? title : undefined,
               kind: "course" as const,
-              courseCode: course.code,
+              courseCode: title.length > 0 ? code : undefined,
             };
           });
         };
@@ -147,7 +158,7 @@ export default function SelectAcademicPage() {
             type="button"
             onClick={() =>
               router.push(
-                `/rate/create?flow=course-professor&type=${item.kind}&id=${encodeURIComponent(item.id)}&name=${encodeURIComponent(item.name)}&label=${encodeURIComponent(getAcademicLabel(item))}`
+                  `/rate/create?flow=course-professor&type=${item.kind}&id=${encodeURIComponent(item.id)}&name=${encodeURIComponent(typeof item.name === "string" ? item.name : "")}&label=${encodeURIComponent(getAcademicLabel(item))}`
               )
             }
             className="w-full rounded-xl border px-4 py-3 text-left"
@@ -159,18 +170,4 @@ export default function SelectAcademicPage() {
       </div>
     </main>
   );
-}
-
-function filterAcademicItems(
-  items: CatalogItem[],
-  kind: AcademicKind | "all",
-  search: string
-): CatalogItem[] {
-  const query = search.trim().toLowerCase();
-
-  return items.filter((item: CatalogItem) => {
-    const matchesKind = kind === "all" || item.kind === kind;
-    const matchesSearch = !query || item.name.toLowerCase().includes(query);
-    return matchesKind && matchesSearch;
-  });
 }
